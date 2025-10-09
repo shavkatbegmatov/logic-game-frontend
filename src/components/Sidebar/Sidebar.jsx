@@ -67,22 +67,22 @@ const Sidebar = () => {
   }
 
   return (
-    <div className="w-72 bg-white border-r border-gray-200 flex flex-col h-full shadow-lg">
+    <div className="relative w-72 h-full flex flex-col border-r border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_30px_60px_-30px_rgba(15,23,42,0.75)]">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
-        <h2 className="text-xl font-bold text-gray-800">Logic Gate Simulator</h2>
-        <p className="text-sm text-gray-500 mt-1">Mantiqiy sxemalar yarating</p>
+      <div className="p-6 border-b border-white/10 bg-gradient-to-br from-white/10 to-transparent">
+        <h2 className="text-2xl font-semibold text-white tracking-tight">Logic Gate Studio</h2>
+        <p className="mt-2 text-sm text-slate-300">Mantiqiy sxemalarni zamonaviy tarzda yarating</p>
       </div>
 
       {/* Boshqaruv tugmalari */}
-      <div className="p-4 border-b border-gray-200">
-        <div className="grid grid-cols-2 gap-2">
+      <div className="p-6 border-b border-white/5">
+        <div className="grid grid-cols-2 gap-3">
           <button
             onClick={handleSimulation}
-            className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-white font-medium transition-all ${
+            className={`group flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-semibold text-white transition-all ${
               isSimulating
-                ? 'bg-red-500 hover:bg-red-600'
-                : 'bg-green-500 hover:bg-green-600'
+                ? 'bg-gradient-to-r from-rose-500 via-rose-400 to-orange-400 shadow-[0_12px_30px_-12px_rgba(244,63,94,0.55)] hover:brightness-110 hover:shadow-[0_18px_40px_-15px_rgba(244,63,94,0.65)]'
+                : 'bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 shadow-[0_12px_30px_-12px_rgba(16,185,129,0.55)] hover:brightness-110 hover:shadow-[0_18px_40px_-15px_rgba(6,182,212,0.65)]'
             }`}
           >
             {isSimulating ? (
@@ -100,7 +100,7 @@ const Sidebar = () => {
 
           <button
             onClick={resetCanvas}
-            className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-gray-500 hover:bg-gray-600 text-white font-medium transition-all"
+            className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-slate-100 transition-all hover:border-white/20 hover:bg-white/15"
           >
             <RotateCcw size={18} />
             <span>Tozalash</span>
@@ -108,13 +108,13 @@ const Sidebar = () => {
 
           <button
             onClick={handleSave}
-            className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium transition-all"
+            className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-500 px-4 py-3 font-semibold text-white transition-all shadow-[0_12px_32px_-14px_rgba(79,70,229,0.65)] hover:brightness-110 hover:shadow-[0_18px_45px_-16px_rgba(99,102,241,0.7)]"
           >
             <Save size={18} />
             <span>Saqlash</span>
           </button>
 
-          <label className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white font-medium cursor-pointer transition-all">
+          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-3 font-semibold text-slate-100 transition-all hover:border-white/20 hover:bg-white/15">
             <Upload size={18} />
             <span>Yuklash</span>
             <input
@@ -128,12 +128,12 @@ const Sidebar = () => {
       </div>
 
       {/* Gate'lar ro'yxati */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <h3 className="font-semibold text-gray-700 mb-3">Komponentlar</h3>
+      <div className="flex-1 overflow-y-auto p-6">
+        <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">Komponentlar</h3>
 
         {/* Asosiy gate'lar */}
-        <div className="space-y-2 mb-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Mantiqiy Gate'lar</p>
+        <div className="mb-8 space-y-3">
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-300">Mantiqiy Gate'lar</p>
           {Object.entries(GateTypes)
             .filter(([_, type]) => !['INPUT', 'OUTPUT'].includes(type))
             .map(([key, type]) => {
@@ -143,16 +143,16 @@ const Sidebar = () => {
                   key={type}
                   draggable
                   onDragStart={(e) => handleDragStart(e, type)}
-                  className="p-3 rounded-lg border-2 border-gray-200 hover:border-gray-400 cursor-move transition-all hover:shadow-md"
+                  className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 shadow-[0_20px_45px_-35px_rgba(15,23,42,0.7)] cursor-move transition-all hover:-translate-y-1 hover:border-white/30 hover:bg-white/10 hover:shadow-[0_28px_55px_-25px_rgba(15,23,42,0.7)]"
                   style={{ borderLeftColor: config.color, borderLeftWidth: 4 }}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="font-medium text-gray-800">{config.name}</div>
-                      <div className="text-xs text-gray-500">{config.description}</div>
+                      <div className="text-sm font-semibold text-white">{config.name}</div>
+                      <div className="text-xs text-slate-300">{config.description}</div>
                     </div>
                     <div
-                      className="w-10 h-10 rounded flex items-center justify-center text-white font-bold"
+                      className="flex h-11 w-11 items-center justify-center rounded-xl text-white font-bold shadow-lg"
                       style={{ backgroundColor: config.color }}
                     >
                       {config.symbol}
@@ -164,8 +164,8 @@ const Sidebar = () => {
         </div>
 
         {/* I/O komponentlar */}
-        <div className="space-y-2">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Kirish/Chiqish</p>
+        <div className="space-y-3">
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-300">Kirish/Chiqish</p>
           {['INPUT', 'OUTPUT'].map(type => {
             const config = gateConfigs[type]
             return (
@@ -173,14 +173,14 @@ const Sidebar = () => {
                 key={type}
                 draggable
                 onDragStart={(e) => handleDragStart(e, type)}
-                className="p-3 rounded-lg border-2 border-gray-200 hover:border-gray-400 cursor-move transition-all hover:shadow-md"
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 shadow-[0_20px_45px_-35px_rgba(15,23,42,0.7)] cursor-move transition-all hover:-translate-y-1 hover:border-white/30 hover:bg-white/10 hover:shadow-[0_28px_55px_-25px_rgba(15,23,42,0.7)]"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="font-medium text-gray-800">{config.name}</div>
-                    <div className="text-xs text-gray-500">{config.description}</div>
+                    <div className="text-sm font-semibold text-white">{config.name}</div>
+                    <div className="text-xs text-slate-300">{config.description}</div>
                   </div>
-                  <div className="w-10 h-10 bg-gray-500 rounded flex items-center justify-center text-white font-bold">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-500 text-white font-bold shadow-lg">
                     {config.symbol}
                   </div>
                 </div>
@@ -191,15 +191,15 @@ const Sidebar = () => {
       </div>
 
       {/* Footer - statistika */}
-      <div className="p-4 border-t border-gray-200 bg-gray-50">
-        <div className="text-xs text-gray-600">
-          <div className="flex justify-between mb-1">
-            <span>Gate'lar:</span>
-            <span className="font-medium">{gates.length}</span>
+      <div className="border-t border-white/10 bg-white/5 p-6">
+        <div className="flex flex-col gap-2 text-xs text-slate-300">
+          <div className="flex items-center justify-between">
+            <span className="tracking-[0.2em] text-slate-400 uppercase">Gate'lar</span>
+            <span className="text-sm font-semibold text-white">{gates.length}</span>
           </div>
-          <div className="flex justify-between">
-            <span>Simlar:</span>
-            <span className="font-medium">{wires.length}</span>
+          <div className="flex items-center justify-between">
+            <span className="tracking-[0.2em] text-slate-400 uppercase">Simlar</span>
+            <span className="text-sm font-semibold text-white">{wires.length}</span>
           </div>
         </div>
       </div>

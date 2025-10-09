@@ -128,21 +128,22 @@ const Canvas = () => {
 
   return (
     <div
-      className="relative bg-gray-50"
+      className="relative h-full overflow-hidden"
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
       {/* Grid background */}
       <div
-        className="absolute inset-0 opacity-5"
+        className="pointer-events-none absolute inset-0 opacity-40 mix-blend-screen"
         style={{
           backgroundImage: `
-            linear-gradient(to right, #d1d5db 1px, transparent 1px),
-            linear-gradient(to bottom, #d1d5db 1px, transparent 1px)
+            linear-gradient(to right, rgba(148, 163, 184, 0.15) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(148, 163, 184, 0.15) 1px, transparent 1px)
           `,
           backgroundSize: '20px 20px'
         }}
       />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent" />
 
       <Stage
         ref={stageRef}
@@ -198,9 +199,9 @@ const Canvas = () => {
 
       {/* Simulyatsiya indikatori */}
       {isSimulating && (
-        <div className="absolute top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
-          <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
-          <span className="font-medium">Simulyatsiya ishlamoqda</span>
+        <div className="absolute right-4 top-4 flex items-center gap-2 rounded-full border border-emerald-300/30 bg-emerald-500/20 px-4 py-2 text-sm font-semibold text-emerald-200 backdrop-blur">
+          <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-300" />
+          <span>Simulyatsiya ishlamoqda</span>
         </div>
       )}
     </div>
