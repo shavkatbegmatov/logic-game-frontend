@@ -123,6 +123,13 @@ const GateComponent = ({
           }}
           onMouseDown={(e) => {
             e.cancelBubble = true
+          }}
+          onMouseUp={(e) => {
+            e.cancelBubble = true
+            onWireEnd(gate.id, 'input', index)
+          }}
+          onTouchEnd={(e) => {
+            e.cancelBubble = true
             onWireEnd(gate.id, 'input', index)
           }}
         />

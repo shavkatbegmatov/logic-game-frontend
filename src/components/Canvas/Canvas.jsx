@@ -126,6 +126,17 @@ const Canvas = () => {
     setTempWireEnd(position)
   }
 
+  const handleStageMouseUp = (e) => {
+    if (!isDraggingWire) return
+
+    const target = e.target
+    if (target && target.getClassName && target.getClassName() === 'Circle') {
+      return
+    }
+
+    cancelWireCreation()
+  }
+
   return (
     <div
       className="relative h-full overflow-hidden"
@@ -151,7 +162,8 @@ const Canvas = () => {
         height={stageSize.height}
         onClick={handleStageClick}
         onMouseMove={handleMouseMove}
-        onMouseUp={cancelWireCreation}
+        onMouseUp={handleStageMouseUp}
+        onTouchEnd={handleStageMouseUp}
       >
         <Layer>
           {/* Simlarni chizish */}
