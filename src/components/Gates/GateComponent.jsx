@@ -110,6 +110,60 @@ const GateComponent = ({
         fill="white"
       />
 
+      {/* INPUT gate LED indikatori */}
+      {gate.type === GateTypes.INPUT && (
+        <Group>
+          {/* LED orqa fon */}
+          <Circle
+            x={gate.width / 2}
+            y={-12}
+            radius={5}
+            fill={gate.value === 1 ? '#10B981' : '#4B5563'}
+            opacity={gate.value === 1 ? 1 : 0.6}
+            shadowBlur={gate.value === 1 ? 15 : 3}
+            shadowColor={gate.value === 1 ? 'rgba(16, 185, 129, 1)' : 'rgba(75, 85, 99, 0.5)'}
+            shadowOpacity={gate.value === 1 ? 0.9 : 0.3}
+          />
+          {/* LED yorug' nuqta */}
+          {gate.value === 1 && (
+            <Circle
+              x={gate.width / 2}
+              y={-12}
+              radius={3}
+              fill="rgba(240, 253, 244, 0.95)"
+              opacity={0.9}
+            />
+          )}
+        </Group>
+      )}
+
+      {/* OUTPUT gate LED indikatori */}
+      {gate.type === GateTypes.OUTPUT && (
+        <Group>
+          {/* LED orqa fon */}
+          <Circle
+            x={gate.width / 2}
+            y={-12}
+            radius={5}
+            fill={outputSignal === 1 ? '#10B981' : '#4B5563'}
+            opacity={outputSignal === 1 ? 1 : 0.6}
+            shadowBlur={outputSignal === 1 ? 15 : 3}
+            shadowColor={outputSignal === 1 ? 'rgba(16, 185, 129, 1)' : 'rgba(75, 85, 99, 0.5)'}
+            shadowOpacity={outputSignal === 1 ? 0.9 : 0.3}
+          />
+          {/* LED yorug' nuqta */}
+          {outputSignal === 1 && (
+            <Circle
+              x={gate.width / 2}
+              y={-12}
+              radius={3}
+              fill="rgba(240, 253, 244, 0.95)"
+              opacity={0.9}
+            />
+          )}
+        </Group>
+      )}
+
       {/* Kirish nuqtalari */}
       {gate.type !== GateTypes.INPUT && inputPositions.map((pos, index) => (
         <Circle

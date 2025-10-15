@@ -88,20 +88,31 @@ const WireComponent = ({ wire, gates, signal, isSimulating, isTemporary, draggin
 
     if (isSimulating && signal === 1) {
       return {
-        stroke: 'rgba(59, 130, 246, 0.9)',
-        strokeWidth: 3,
-        shadowBlur: 14,
-        shadowColor: 'rgba(56, 189, 248, 0.85)',
+        stroke: '#10B981', // Yorqin yashil
+        strokeWidth: 4,
+        shadowBlur: 20,
+        shadowColor: 'rgba(16, 185, 129, 0.9)',
         opacity: 1
       }
     }
 
+    // Signal yo'q holat
+    if (signal === 0 || !isSimulating) {
+      return {
+        stroke: 'rgba(100, 116, 139, 0.4)', // Qorong'i kulrang
+        strokeWidth: 2,
+        shadowBlur: 0,
+        opacity: 0.6
+      }
+    }
+
+    // Default: signal bor lekin simulyatsiya yo'q
     return {
-      stroke: signal === 1 ? 'rgba(34, 197, 94, 0.85)' : 'rgba(148, 163, 184, 0.55)',
-      strokeWidth: 2.5,
-      shadowBlur: signal === 1 ? 10 : 0,
-      shadowColor: signal === 1 ? 'rgba(34, 197, 94, 0.6)' : undefined,
-      opacity: signal === 1 ? 0.95 : 0.8
+      stroke: 'rgba(34, 197, 94, 0.7)',
+      strokeWidth: 3,
+      shadowBlur: 12,
+      shadowColor: 'rgba(34, 197, 94, 0.5)',
+      opacity: 0.85
     }
   }
 
@@ -117,16 +128,32 @@ const WireComponent = ({ wire, gates, signal, isSimulating, isTemporary, draggin
         tension={0}
       />
 
-      {/* Signal animatsiyasi */}
+      {/* Signal animatsiyasi - oqib turuvchi energiya */}
       {isSimulating && signal === 1 && !isTemporary && (
-        <Line
-          points={points}
-          stroke="rgba(224, 242, 254, 0.85)"
-          strokeWidth={1}
-          opacity={0.8}
-          dash={[10, 10]}
-          dashOffset={-Date.now() / 50}
-        />
+        <>
+          {/* Asosiy oqayotgan chiziq */}
+          <Line
+            points={points}
+            stroke="rgba(240, 253, 244, 0.9)"
+            strokeWidth={2}
+            opacity={0.9}
+            dash={[15, 15]}
+            dashOffset={-Date.now() / 30}
+            lineCap="round"
+          />
+          {/* Qo'shimcha yorqin nuqtalar */}
+          <Line
+            points={points}
+            stroke="rgba(167, 243, 208, 1)"
+            strokeWidth={3}
+            opacity={0.7}
+            dash={[5, 25]}
+            dashOffset={-Date.now() / 40}
+            lineCap="round"
+            shadowBlur={10}
+            shadowColor="rgba(16, 185, 129, 0.8)"
+          />
+        </>
       )}
     </Group>
   )
