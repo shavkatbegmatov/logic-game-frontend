@@ -11,6 +11,7 @@ const Canvas = () => {
   const [isDraggingWire, setIsDraggingWire] = useState(false)
   const [wireStart, setWireStart] = useState(null)
   const [tempWireEnd, setTempWireEnd] = useState(null)
+  const [draggingGate, setDraggingGate] = useState(null) // { id, x, y }
 
   const {
     gates,
@@ -68,8 +69,13 @@ const Canvas = () => {
   }
 
   // Gate harakatlanishi
+  const handleGateDragMove = (gateId, newPosition) => {
+    setDraggingGate({ id: gateId, x: newPosition.x, y: newPosition.y })
+  }
+
   const handleGateDragEnd = (gateId, newPosition) => {
     updateGate(gateId, newPosition)
+    setDraggingGate(null) // Vaqtinchalik pozitsiyani tozalash
   }
 
   // Wire ulash boshlash
@@ -180,6 +186,7 @@ const Canvas = () => {
               gates={gates}
               signal={signals[wire.id]}
               isSimulating={isSimulating}
+              draggingGate={draggingGate}
             />
           ))}
 
@@ -224,6 +231,7 @@ const Canvas = () => {
               key={gate.id}
               gate={gate}
               isSelected={selectedGate === gate.id}
+              onDragMove={handleGateDragMove}
               onDragEnd={handleGateDragEnd}
               onSelect={() => selectGate(gate.id)}
               onWireStart={handleWireStart}

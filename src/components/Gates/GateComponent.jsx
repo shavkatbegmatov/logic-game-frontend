@@ -5,6 +5,7 @@ import { GateTypes, gateConfigs } from '../../engine/gates'
 const GateComponent = ({
   gate,
   isSelected,
+  onDragMove,
   onDragEnd,
   onSelect,
   onWireStart,
@@ -69,6 +70,12 @@ const GateComponent = ({
       x={gate.x}
       y={gate.y}
       draggable={true}
+      onDragMove={(e) => {
+        onDragMove(gate.id, {
+          x: e.target.x(),
+          y: e.target.y()
+        })
+      }}
       onDragEnd={(e) => {
         onDragEnd(gate.id, {
           x: e.target.x(),

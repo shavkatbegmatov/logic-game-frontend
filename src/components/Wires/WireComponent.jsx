@@ -2,7 +2,7 @@ import React from 'react'
 import { Line, Group } from 'react-konva'
 import { gateConfigs } from '../../engine/gates'
 
-const WireComponent = ({ wire, gates, signal, isSimulating, isTemporary }) => {
+const WireComponent = ({ wire, gates, signal, isSimulating, isTemporary, draggingGate }) => {
   // Wire'ning boshlang'ich va tugash nuqtalarini hisoblash
   const getWirePoints = () => {
     if (isTemporary) {
@@ -11,10 +11,20 @@ const WireComponent = ({ wire, gates, signal, isSimulating, isTemporary }) => {
     }
 
     // Oddiy wire uchun
-    const fromGate = gates.find(g => g.id === wire.fromGate)
-    const toGate = gates.find(g => g.id === wire.toGate)
+    let fromGate = gates.find(g => g.id === wire.fromGate)
+    let toGate = gates.find(g => g.id === wire.toGate)
 
     if (!fromGate || !toGate) return []
+
+    // Agar fromGate drag qilinayotgan bo'lsa, vaqtinchalik pozitsiyani ishlatish
+    if (draggingGate && draggingGate.id === fromGate.id) {
+      fromGate = { ...fromGate, x: draggingGate.x, y: draggingGate.y }
+    }
+
+    // Agar toGate drag qilinayotgan bo'lsa, vaqtinchalik pozitsiyani ishlatish
+    if (draggingGate && draggingGate.id === toGate.id) {
+      toGate = { ...toGate, x: draggingGate.x, y: draggingGate.y }
+    }
 
     // Chiqish nuqtasi (from)
     const fromX = fromGate.x + fromGate.width + 5
