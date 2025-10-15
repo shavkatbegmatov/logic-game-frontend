@@ -76,27 +76,29 @@ const WireComponent = ({ wire, gates, signal, isSimulating, isTemporary }) => {
   const getWireStyle = () => {
     if (isTemporary) {
       return {
-        stroke: '#9CA3AF',
+        stroke: 'rgba(148, 163, 184, 0.6)',
         strokeWidth: 2,
         dash: [5, 5],
-        opacity: 0.6
+        opacity: 0.65
       }
     }
 
     if (isSimulating && signal === 1) {
       return {
-        stroke: '#22C55E',
+        stroke: 'rgba(59, 130, 246, 0.9)',
         strokeWidth: 3,
-        shadowBlur: 8,
-        shadowColor: '#22C55E',
+        shadowBlur: 14,
+        shadowColor: 'rgba(56, 189, 248, 0.85)',
         opacity: 1
       }
     }
 
     return {
-      stroke: signal === 1 ? '#22C55E' : '#9CA3AF',
-      strokeWidth: 2,
-      opacity: 1
+      stroke: signal === 1 ? 'rgba(34, 197, 94, 0.85)' : 'rgba(148, 163, 184, 0.55)',
+      strokeWidth: 2.5,
+      shadowBlur: signal === 1 ? 10 : 0,
+      shadowColor: signal === 1 ? 'rgba(34, 197, 94, 0.6)' : undefined,
+      opacity: signal === 1 ? 0.95 : 0.8
     }
   }
 
@@ -116,7 +118,7 @@ const WireComponent = ({ wire, gates, signal, isSimulating, isTemporary }) => {
       {isSimulating && signal === 1 && !isTemporary && (
         <Line
           points={points}
-          stroke="#FFFFFF"
+          stroke="rgba(224, 242, 254, 0.85)"
           strokeWidth={1}
           opacity={0.8}
           dash={[10, 10]}

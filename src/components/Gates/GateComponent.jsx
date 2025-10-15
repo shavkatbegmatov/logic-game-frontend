@@ -110,9 +110,12 @@ const GateComponent = ({
           x={pos.x - gate.x}
           y={pos.y - gate.y}
           radius={6}
-          fill="#F3F4F6"
-          stroke="#6B7280"
+          fill="rgba(8,15,30,0.92)"
+          stroke="rgba(56,189,248,0.65)"
           strokeWidth={1.5}
+          shadowBlur={6}
+          shadowOpacity={0.35}
+          shadowColor="rgba(56,189,248,0.65)"
           onMouseEnter={(e) => {
             e.target.radius(8)
             e.target.getLayer().batchDraw()
@@ -142,9 +145,12 @@ const GateComponent = ({
           x={pos.x - gate.x}
           y={pos.y - gate.y}
           radius={6}
-          fill={outputSignal === 1 ? '#22C55E' : '#F3F4F6'}
-          stroke="#6B7280"
+          fill={outputSignal === 1 ? '#22C55E' : 'rgba(8,15,30,0.92)'}
+          stroke={outputSignal === 1 ? '#34D399' : 'rgba(99,102,241,0.6)'}
           strokeWidth={1.5}
+          shadowBlur={outputSignal === 1 ? 10 : 6}
+          shadowOpacity={outputSignal === 1 ? 0.6 : 0.25}
+          shadowColor={outputSignal === 1 ? 'rgba(34,197,94,0.8)' : 'rgba(129,140,248,0.6)'}
           onMouseEnter={(e) => {
             e.target.radius(8)
             e.target.getLayer().batchDraw()

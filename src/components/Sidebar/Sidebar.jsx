@@ -14,7 +14,9 @@ const Sidebar = () => {
     updateSignals,
     resetCanvas,
     saveCircuit,
-    loadCircuit
+    loadCircuit,
+    currentLevel,
+    isSandboxMode
   } = useGameStore()
 
   // Simulyatsiyani boshqarish
@@ -66,12 +68,33 @@ const Sidebar = () => {
     e.dataTransfer.setData('gateType', gateType)
   }
 
+  const energyLevel = Math.min(100, Math.round(gates.length * 12 + wires.length * 6))
+  const fluxLevel = Math.max(12, gates.length * 4 + wires.length * 6)
+  const missionLabel = isSandboxMode ? 'Sandbox rejimi' : `Daraja ${currentLevel + 1}`
+  const missionStatus = isSimulating ? "Signal oqmoqda" : "Kutish holati"
+
   return (
     <div className="relative w-72 h-full flex flex-col border-r border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_30px_60px_-30px_rgba(15,23,42,0.75)]">
       {/* Header */}
-      <div className="p-6 border-b border-white/10 bg-gradient-to-br from-white/10 to-transparent">
-        <h2 className="text-2xl font-semibold text-white tracking-tight">Logic Gate Studio</h2>
-        <p className="mt-2 text-sm text-slate-300">Mantiqiy sxemalarni zamonaviy tarzda yarating</p>
+      <div className="relative overflow-hidden border-b border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-transparent p-6">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,rgba(34,211,238,0.16),transparent_55%),radial-gradient(circle_at_90%_20%,rgba(129,140,248,0.12),transparent_60%)] opacity-70" />
+        <div className="pointer-events-none absolute -top-24 right-12 h-48 w-48 rounded-full bg-cyan-400/30 blur-3xl mix-blend-screen" />
+        <div className="relative space-y-4">
+          <div>
+            <h2 className="text-2xl font-semibold tracking-tight text-white">Transistor Nexus</h2>
+            <p className="mt-2 text-sm text-slate-300">
+              Kvant impulslarini boshqarib, sxemani uyg‘ot.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.35em] text-cyan-200/80">
+            <span className="rounded-full border border-cyan-400/40 bg-cyan-400/10 px-3 py-1">
+              Missiya: {missionLabel}
+            </span>
+            <span className="rounded-full border border-indigo-400/40 bg-indigo-500/10 px-3 py-1">
+              {missionStatus}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Boshqaruv tugmalari */}
@@ -192,7 +215,7 @@ const Sidebar = () => {
 
       {/* Footer - statistika */}
       <div className="border-t border-white/10 bg-white/5 p-6">
-        <div className="flex flex-col gap-2 text-xs text-slate-300">
+        <div className="flex flex-col gap-3 text-xs text-slate-300">
           <div className="flex items-center justify-between">
             <span className="tracking-[0.2em] text-slate-400 uppercase">Gate'lar</span>
             <span className="text-sm font-semibold text-white">{gates.length}</span>
@@ -200,6 +223,22 @@ const Sidebar = () => {
           <div className="flex items-center justify-between">
             <span className="tracking-[0.2em] text-slate-400 uppercase">Simlar</span>
             <span className="text-sm font-semibold text-white">{wires.length}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="tracking-[0.2em] text-slate-400 uppercase">Flux</span>
+            <span className="text-sm font-semibold text-cyan-200">{fluxLevel}</span>
+          </div>
+        </div>
+        <div className="mt-4">
+          <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.25em] text-slate-400">
+            <span>Energiya</span>
+            <span>{energyLevel}%</span>
+          </div>
+          <div className="mt-2 h-2 w-full rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-400"
+              style={{ width: `${Math.max(8, energyLevel)}%` }}
+            />
           </div>
         </div>
       </div>

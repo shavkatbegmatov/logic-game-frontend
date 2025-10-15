@@ -55,7 +55,7 @@ export const gateConfigs = {
     name: 'AND Gate',
     description: 'Barcha kirishlar 1 bo\'lsa, chiqish 1',
     minInputs: 2,
-    maxInputs: 8,
+    maxInputs: 2,
     outputs: 1,
     color: '#3B82F6',
     symbol: '&'
@@ -64,7 +64,7 @@ export const gateConfigs = {
     name: 'OR Gate',
     description: 'Kamida bitta kirish 1 bo\'lsa, chiqish 1',
     minInputs: 2,
-    maxInputs: 8,
+    maxInputs: 2,
     outputs: 1,
     color: '#10B981',
     symbol: '≥1'
@@ -82,7 +82,7 @@ export const gateConfigs = {
     name: 'XOR Gate',
     description: 'Toq sondagi kirishlar 1 bo\'lsa, chiqish 1',
     minInputs: 2,
-    maxInputs: 8,
+    maxInputs: 2,
     outputs: 1,
     color: '#8B5CF6',
     symbol: '⊕'
@@ -91,7 +91,7 @@ export const gateConfigs = {
     name: 'NAND Gate',
     description: 'AND gate\'ning teskarisi',
     minInputs: 2,
-    maxInputs: 8,
+    maxInputs: 2,
     outputs: 1,
     color: '#F59E0B',
     symbol: '!&'
@@ -100,7 +100,7 @@ export const gateConfigs = {
     name: 'NOR Gate',
     description: 'OR gate\'ning teskarisi',
     minInputs: 2,
-    maxInputs: 8,
+    maxInputs: 2,
     outputs: 1,
     color: '#EC4899',
     symbol: '!≥1'
