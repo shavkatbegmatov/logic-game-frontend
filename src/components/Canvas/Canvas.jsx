@@ -3,7 +3,7 @@ import { Stage, Layer } from 'react-konva'
 import useGameStore from '../../store/gameStore'
 import GateComponent from '../Gates/GateComponent'
 import WireComponent from '../Wires/WireComponent'
-import { createGate } from '../../engine/gates'
+import { createGate, gateConfigs } from '../../engine/gates'
 
 const Canvas = () => {
   const stageRef = useRef(null)
@@ -184,20 +184,39 @@ const Canvas = () => {
           ))}
 
           {/* Vaqtinchalik wire (yaratish jarayonida) */}
-          {isDraggingWire && wireStart && tempWireEnd && (
-            <WireComponent
-              wire={{
-                id: 'temp',
-                fromGate: wireStart.gateId,
-                fromIndex: wireStart.index,
-                endX: tempWireEnd.x,
-                endY: tempWireEnd.y
-              }}
-              gates={gates}
-              signal={0}
-              isTemporary={true}
-            />
-          )}
+          {isDraggingWire && wireStart && tempWireEnd && (() => {
+            const gate = gates.find(g => g.id === wireStart.gateId)
+            if (!gate) return null
+
+            let startX, startY
+            if (wireStart.type === 'output') {
+              // Chiqish nuqtasidan boshlangan
+              startX = gate.x + gate.width + 5
+              startY = gate.y + gate.height / 2
+            } else {
+              // Kirish nuqtasidan boshlangan
+              const config = gateConfigs[gate.type]
+              const inputCount = config.maxInputs || 2
+              const spacing = gate.height / (inputCount + 1)
+              startX = gate.x - 5
+              startY = gate.y + spacing * (wireStart.index + 1)
+            }
+
+            return (
+              <WireComponent
+                wire={{
+                  id: 'temp',
+                  startX,
+                  startY,
+                  endX: tempWireEnd.x,
+                  endY: tempWireEnd.y
+                }}
+                gates={gates}
+                signal={0}
+                isTemporary={true}
+              />
+            )
+          })()}
 
           {/* Gate'larni chizish */}
           {gates.map(gate => (

@@ -6,15 +6,8 @@ const WireComponent = ({ wire, gates, signal, isSimulating, isTemporary }) => {
   // Wire'ning boshlang'ich va tugash nuqtalarini hisoblash
   const getWirePoints = () => {
     if (isTemporary) {
-      // Vaqtinchalik wire uchun
-      const fromGate = gates.find(g => g.id === wire.fromGate)
-      if (!fromGate) return []
-
-      const fromConfig = gateConfigs[fromGate.type]
-      const fromX = fromGate.x + fromGate.width + 5
-      const fromY = fromGate.y + fromGate.height / 2
-
-      return [fromX, fromY, wire.endX, wire.endY]
+      // Vaqtinchalik wire uchun bezier egri chiziq
+      return createBezierPoints(wire.startX, wire.startY, wire.endX, wire.endY)
     }
 
     // Oddiy wire uchun
