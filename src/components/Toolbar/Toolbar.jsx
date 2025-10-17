@@ -1,9 +1,16 @@
 import React from 'react'
-import { Zap, Grid, HelpCircle, Settings, BookOpen } from 'lucide-react'
+import { Zap, Grid, HelpCircle, Settings, BookOpen, Play, Pause } from 'lucide-react'
 import useGameStore from '../../store/gameStore'
 
 const Toolbar = () => {
-  const { isSimulating, isSandboxMode, setSandboxMode, currentLevel } = useGameStore()
+  const {
+    isSimulating,
+    isSandboxMode,
+    setSandboxMode,
+    currentLevel,
+    startSimulation,
+    stopSimulation
+  } = useGameStore()
 
   return (
     <div className="relative flex h-16 items-center justify-between border-b border-white/5 bg-slate-950/40 px-6 backdrop-blur-2xl shadow-[0_15px_35px_-20px_rgba(15,23,42,0.6)]">
@@ -54,6 +61,27 @@ const Toolbar = () => {
 
       {/* Right side - Actions */}
       <div className="relative z-10 flex items-center gap-2">
+        {/* Simulyatsiya tugmalari */}
+        {!isSimulating ? (
+          <button
+            onClick={startSimulation}
+            className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/20 px-4 py-2 text-emerald-200 transition-all hover:border-emerald-400/50 hover:bg-emerald-500/30 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+            title="Simulyatsiyani boshlash"
+          >
+            <Play size={18} fill="currentColor" />
+            <span className="text-sm font-semibold">Ishga tushirish</span>
+          </button>
+        ) : (
+          <button
+            onClick={stopSimulation}
+            className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/20 px-4 py-2 text-red-200 transition-all hover:border-red-400/50 hover:bg-red-500/30 hover:shadow-[0_0_20px_rgba(239,68,68,0.3)]"
+            title="Simulyatsiyani to'xtatish"
+          >
+            <Pause size={18} fill="currentColor" />
+            <span className="text-sm font-semibold">To'xtatish</span>
+          </button>
+        )}
+
         <button
           className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-200 transition-colors hover:border-white/20 hover:bg-white/10"
           title="Grid"

@@ -8,6 +8,7 @@ const GateComponent = ({
   onDragMove,
   onDragEnd,
   onSelect,
+  onUpdateGate,
   onWireStart,
   onWireEnd,
   outputSignal
@@ -58,8 +59,7 @@ const GateComponent = ({
     // INPUT gate uchun qiymatni almashtirish
     if (gate.type === GateTypes.INPUT) {
       const newValue = gate.value === 1 ? 0 : 1
-      // Bu yerda updateGate funksiyasini chaqirish kerak
-      onSelect()
+      onUpdateGate(gate.id, { value: newValue })
     } else {
       onSelect()
     }

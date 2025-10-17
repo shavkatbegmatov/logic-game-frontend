@@ -1,9 +1,10 @@
-import React, { useRef, useCallback, useState } from 'react'
+import React, { useRef, useCallback, useState, useEffect } from 'react'
 import { Stage, Layer } from 'react-konva'
 import useGameStore from '../../store/gameStore'
 import GateComponent from '../Gates/GateComponent'
 import WireComponent from '../Wires/WireComponent'
 import { createGate, gateConfigs } from '../../engine/gates'
+import { runSimulation } from '../../engine/simulation'
 
 const Canvas = () => {
   const stageRef = useRef(null)
@@ -23,7 +24,8 @@ const Canvas = () => {
     selectGate,
     clearSelection,
     isSimulating,
-    signals
+    signals,
+    updateSignals
   } = useGameStore()
 
   // Canvas o'lchamini yangilash
@@ -37,6 +39,34 @@ const Canvas = () => {
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
+
+  // Simulyatsiya loop
+  useEffect(() => {
+    if (!isSimulating) return
+
+    const simulationInterval = setInterval(() => {
+      const result = runSimulation(gates, wires)
+
+      if (result.success) {
+        // Signallarni yangilash
+        const newSignals = {}
+
+        // Wire signallari
+        Object.keys(result.signals).forEach(key => {
+          newSignals[key] = result.signals[key]
+        })
+
+        // Gate output signallari
+        Object.keys(result.gateOutputs).forEach(key => {
+          newSignals[`gate_${key}`] = result.gateOutputs[key]
+        })
+
+        updateSignals(newSignals)
+      }
+    }, 100) // Har 100ms da yangilash
+
+    return () => clearInterval(simulationInterval)
+  }, [isSimulating, gates, wires, updateSignals])
 
   // Canvas'ga gate qo'shish (drag & drop uchun)
   const handleDrop = useCallback((e) => {
@@ -234,6 +264,7 @@ const Canvas = () => {
               onDragMove={handleGateDragMove}
               onDragEnd={handleGateDragEnd}
               onSelect={() => selectGate(gate.id)}
+              onUpdateGate={updateGate}
               onWireStart={handleWireStart}
               onWireEnd={handleWireEnd}
               outputSignal={isSimulating ? signals[`gate_${gate.id}`] : 0}
