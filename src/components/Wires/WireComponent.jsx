@@ -75,6 +75,26 @@ const WireComponent = ({ wire, gates, signal, isSimulating, isTemporary, draggin
   const points = getWirePoints()
   if (points.length === 0) return null
 
+  // Wire yonishi kerakmi? (INPUT gate faol yoki simulyatsiya faol va signal 1)
+  const shouldGlow = () => {
+    // 1. Simulyatsiya faol va signal 1 bo'lsa
+    if (isSimulating && signal === 1) {
+      return true
+    }
+
+    // 2. INPUT gate'dan chiqayotgan wire bo'lsa va INPUT gate faol bo'lsa
+    if (!isTemporary && wire.fromGate) {
+      const fromGate = gates.find(g => g.id === wire.fromGate)
+      if (fromGate && fromGate.type === 'INPUT' && fromGate.value === 1) {
+        return true
+      }
+    }
+
+    return false
+  }
+
+  const wireIsActive = shouldGlow()
+
   // Wire rangi va qalinligi
   const getWireStyle = () => {
     if (isTemporary) {
@@ -86,8 +106,8 @@ const WireComponent = ({ wire, gates, signal, isSimulating, isTemporary, draggin
       }
     }
 
-    // Faqat simulyatsiya faol VA signal 1 bo'lgandagina yashil
-    if (isSimulating && signal === 1) {
+    // Wire faol bo'lsa (INPUT gate faol yoki simulyatsiya signal 1)
+    if (wireIsActive) {
       return {
         stroke: '#10B981', // Yorqin yashil
         strokeWidth: 4,
@@ -97,7 +117,7 @@ const WireComponent = ({ wire, gates, signal, isSimulating, isTemporary, draggin
       }
     }
 
-    // Boshqa barcha holatlar - kulrang (simulyatsiya yo'q, signal 0, signal undefined)
+    // Boshqa barcha holatlar - kulrang
     return {
       stroke: 'rgba(100, 116, 139, 0.4)', // Qorong'i kulrang
       strokeWidth: 2,
@@ -119,7 +139,7 @@ const WireComponent = ({ wire, gates, signal, isSimulating, isTemporary, draggin
       />
 
       {/* Signal animatsiyasi - oqib turuvchi energiya */}
-      {isSimulating && signal === 1 && !isTemporary && (
+      {wireIsActive && !isTemporary && (
         <>
           {/* Asosiy oqayotgan chiziq */}
           <Line

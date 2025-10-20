@@ -5,7 +5,11 @@
       "Bash(npm init:*)",
       "Bash(npm install:*)",
       "Bash(npx tailwindcss init:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(timeout /t 3 /nobreak)"
     ],
     "deny": [],
     "ask": []
