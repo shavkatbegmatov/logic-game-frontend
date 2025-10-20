@@ -60,6 +60,15 @@ export class SimulationEngine {
     outputWires.forEach(wire => {
       this.signals[wire.id] = output
     })
+
+    // Debug: INPUT gate'lar uchun signal uzatishni ko'rsatish
+    if (gate.type === GateTypes.INPUT && output === 1) {
+      console.log(`⚡ INPUT gate ${gate.id} signal uzatmoqda:`, {
+        output,
+        outputWires: outputWires.map(w => w.id),
+        signals: outputWires.map(w => ({ wireId: w.id, signal: this.signals[w.id] }))
+      })
+    }
   }
 
   // Gate'ning kirish signallarini olish
@@ -204,16 +213,16 @@ export const runSimulation = (gates, wires) => {
   const engine = new SimulationEngine(gates, wires)
   const validation = engine.validateCircuit()
 
+  // Validation xatoliklari bo'lganda ham simulyatsiya ishlashi kerak
+  // Faqat warning berish
   if (!validation.valid) {
-    return {
-      success: false,
-      errors: validation.errors
-    }
+    console.warn('Sxemada xatoliklar bor, lekin simulyatsiya davom etmoqda:', validation.errors)
   }
 
   const result = engine.simulate()
   return {
     success: true,
-    ...result
+    ...result,
+    warnings: validation.valid ? [] : validation.errors
   }
 }

@@ -86,6 +86,7 @@ const WireComponent = ({ wire, gates, signal, isSimulating, isTemporary, draggin
       }
     }
 
+    // Faqat simulyatsiya faol VA signal 1 bo'lgandagina yashil
     if (isSimulating && signal === 1) {
       return {
         stroke: '#10B981', // Yorqin yashil
@@ -96,23 +97,12 @@ const WireComponent = ({ wire, gates, signal, isSimulating, isTemporary, draggin
       }
     }
 
-    // Signal yo'q holat
-    if (signal === 0 || !isSimulating) {
-      return {
-        stroke: 'rgba(100, 116, 139, 0.4)', // Qorong'i kulrang
-        strokeWidth: 2,
-        shadowBlur: 0,
-        opacity: 0.6
-      }
-    }
-
-    // Default: signal bor lekin simulyatsiya yo'q
+    // Boshqa barcha holatlar - kulrang (simulyatsiya yo'q, signal 0, signal undefined)
     return {
-      stroke: 'rgba(34, 197, 94, 0.7)',
-      strokeWidth: 3,
-      shadowBlur: 12,
-      shadowColor: 'rgba(34, 197, 94, 0.5)',
-      opacity: 0.85
+      stroke: 'rgba(100, 116, 139, 0.4)', // Qorong'i kulrang
+      strokeWidth: 2,
+      shadowBlur: 0,
+      opacity: 0.6
     }
   }
 

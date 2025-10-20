@@ -61,6 +61,13 @@ const Canvas = () => {
           newSignals[`gate_${key}`] = result.gateOutputs[key]
         })
 
+        // Debug: INPUT gate'lar va ularning signal'larini ko'rsatish
+        console.log('🔍 Simulyatsiya signals:', {
+          wireSignals: result.signals,
+          gateOutputs: result.gateOutputs,
+          inputGates: gates.filter(g => g.type === 'INPUT').map(g => ({ id: g.id, value: g.value }))
+        })
+
         updateSignals(newSignals)
       }
     }, 100) // Har 100ms da yangilash
