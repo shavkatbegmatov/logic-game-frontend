@@ -60,7 +60,12 @@ const GateComponent = ({
     if (gate.type === GateTypes.INPUT) {
       const newValue = gate.value === 1 ? 0 : 1
       onUpdateGate(gate.id, { value: newValue })
-    } else {
+    }
+    // CLOCK gate uchun hech narsa qilmaslik (avtomatik ishlaydi)
+    else if (gate.type === GateTypes.CLOCK) {
+      onSelect()
+    }
+    else {
       onSelect()
     }
   }
@@ -158,6 +163,33 @@ const GateComponent = ({
               y={-12}
               radius={3}
               fill="rgba(240, 253, 244, 0.95)"
+              opacity={0.9}
+            />
+          )}
+        </Group>
+      )}
+
+      {/* CLOCK gate LED indikatori - periodik miltillash */}
+      {gate.type === GateTypes.CLOCK && (
+        <Group>
+          {/* LED orqa fon */}
+          <Circle
+            x={gate.width / 2}
+            y={-12}
+            radius={5}
+            fill={gate.value === 1 ? '#0EA5E9' : '#334155'}
+            opacity={gate.value === 1 ? 1 : 0.6}
+            shadowBlur={gate.value === 1 ? 15 : 3}
+            shadowColor={gate.value === 1 ? 'rgba(14, 165, 233, 1)' : 'rgba(51, 65, 85, 0.5)'}
+            shadowOpacity={gate.value === 1 ? 0.9 : 0.3}
+          />
+          {/* LED yorug' nuqta */}
+          {gate.value === 1 && (
+            <Circle
+              x={gate.width / 2}
+              y={-12}
+              radius={3}
+              fill="rgba(224, 242, 254, 0.95)"
               opacity={0.9}
             />
           )}

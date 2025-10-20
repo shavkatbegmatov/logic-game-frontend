@@ -158,7 +158,7 @@ const Sidebar = () => {
         <div className="mb-8 space-y-3">
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-300">Mantiqiy Gate'lar</p>
           {Object.entries(GateTypes)
-            .filter(([_, type]) => !['INPUT', 'OUTPUT'].includes(type))
+            .filter(([_, type]) => !['INPUT', 'OUTPUT', 'CLOCK'].includes(type))
             .map(([key, type]) => {
               const config = gateConfigs[type]
               return (
@@ -189,7 +189,7 @@ const Sidebar = () => {
         {/* I/O komponentlar */}
         <div className="space-y-3">
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-300">Kirish/Chiqish</p>
-          {['INPUT', 'OUTPUT'].map(type => {
+          {['INPUT', 'OUTPUT', 'CLOCK'].map(type => {
             const config = gateConfigs[type]
             return (
               <div
@@ -203,7 +203,10 @@ const Sidebar = () => {
                     <div className="text-sm font-semibold text-white">{config.name}</div>
                     <div className="text-xs text-slate-300">{config.description}</div>
                   </div>
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-500 text-white font-bold shadow-lg">
+                  <div
+                    className="flex h-11 w-11 items-center justify-center rounded-xl text-white font-bold shadow-lg"
+                    style={{ backgroundColor: type === 'CLOCK' ? config.color : '#64748b' }}
+                  >
                     {config.symbol}
                   </div>
                 </div>

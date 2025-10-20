@@ -1,4 +1,4 @@
-import { gateLogic, GateTypes } from './gates'
+import { gateLogic, GateTypes, gateConfigs } from './gates'
 
 export class SimulationEngine {
   constructor(gates, wires) {

@@ -1,9 +1,9 @@
-import React, { useRef, useCallback, useState, useEffect } from 'react'
+import React, { useRef, useCallback, useState, useEffect, useMemo } from 'react'
 import { Stage, Layer } from 'react-konva'
 import useGameStore from '../../store/gameStore'
 import GateComponent from '../Gates/GateComponent'
 import WireComponent from '../Wires/WireComponent'
-import { createGate, gateConfigs } from '../../engine/gates'
+import { createGate, gateConfigs, GateTypes } from '../../engine/gates'
 import { runSimulation } from '../../engine/simulation'
 
 const Canvas = () => {
@@ -73,7 +73,63 @@ const Canvas = () => {
     }, 100) // Har 100ms da yangilash
 
     return () => clearInterval(simulationInterval)
-  }, [isSimulating, gates, wires, updateSignals])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSimulating, gates, wires])
+
+  // Simulyatsiya faol bo'lmaganda ham signal'larni hisoblash (useMemo)
+  // Bu signal'larni har safar gates/wires o'zgarganda qayta hisoblaydi
+  // Lekin store'ga yozmaydi, shuning uchun cheksiz loop bo'lmaydi
+  const computedSignals = useMemo(() => {
+    // Agar simulyatsiya faol bo'lsa, store'dagi signal'lardan foydalanish
+    if (isSimulating) {
+      return signals
+    }
+
+    // Agar gate yoki wire yo'q bo'lsa, bo'sh object qaytarish
+    if (gates.length === 0 || wires.length === 0) {
+      return {}
+    }
+
+    // Signal'larni hisoblash
+    const result = runSimulation(gates, wires)
+
+    if (result.success) {
+      const newSignals = {}
+
+      // Wire signallari
+      Object.keys(result.signals).forEach(key => {
+        newSignals[key] = result.signals[key]
+      })
+
+      // Gate output signallari
+      Object.keys(result.gateOutputs).forEach(key => {
+        newSignals[`gate_${key}`] = result.gateOutputs[key]
+      })
+
+      return newSignals
+    }
+
+    return {}
+  }, [gates, wires, isSimulating, signals])
+
+  // Clock gate'lar uchun interval - periodik signal generatori
+  useEffect(() => {
+    const clockGates = gates.filter(g => g.type === GateTypes.CLOCK)
+
+    // Agar Clock gate'lar yo'q bo'lsa, hech narsa qilmaslik
+    if (clockGates.length === 0) return
+
+    // Har 500ms da Clock gate'larning value'sini almashtirish
+    const clockInterval = setInterval(() => {
+      clockGates.forEach(gate => {
+        const newValue = gate.value === 1 ? 0 : 1
+        updateGate(gate.id, { value: newValue })
+      })
+    }, 500) // 500ms = 0.5 soniya (2Hz chastota)
+
+    return () => clearInterval(clockInterval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gates])
 
   // Canvas'ga gate qo'shish (drag & drop uchun)
   const handleDrop = useCallback((e) => {
@@ -221,7 +277,7 @@ const Canvas = () => {
               key={wire.id}
               wire={wire}
               gates={gates}
-              signal={signals[wire.id]}
+              signal={computedSignals[wire.id]}
               isSimulating={isSimulating}
               draggingGate={draggingGate}
             />
@@ -274,7 +330,7 @@ const Canvas = () => {
               onUpdateGate={updateGate}
               onWireStart={handleWireStart}
               onWireEnd={handleWireEnd}
-              outputSignal={isSimulating ? signals[`gate_${gate.id}`] : 0}
+              outputSignal={computedSignals[`gate_${gate.id}`] || 0}
             />
           ))}
         </Layer>

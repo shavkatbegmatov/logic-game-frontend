@@ -8,7 +8,8 @@ export const GateTypes = {
   NAND: 'NAND',
   NOR: 'NOR',
   INPUT: 'INPUT',
-  OUTPUT: 'OUTPUT'
+  OUTPUT: 'OUTPUT',
+  CLOCK: 'CLOCK'
 }
 
 // Gate logikalari
@@ -46,7 +47,9 @@ export const gateLogic = {
 
   [GateTypes.INPUT]: (_, value) => value || 0,
 
-  [GateTypes.OUTPUT]: (inputs) => inputs[0] || 0
+  [GateTypes.OUTPUT]: (inputs) => inputs[0] || 0,
+
+  [GateTypes.CLOCK]: (_, value) => value || 0
 }
 
 // Gate konfiguratsiyalari
@@ -122,6 +125,15 @@ export const gateConfigs = {
     outputs: 0,
     color: '#6B7280',
     symbol: 'OUT'
+  },
+  [GateTypes.CLOCK]: {
+    name: 'Clock Signal',
+    description: 'Periodik signal generatori (takt)',
+    minInputs: 0,
+    maxInputs: 0,
+    outputs: 1,
+    color: '#0EA5E9',
+    symbol: 'CLK'
   }
 }
 
