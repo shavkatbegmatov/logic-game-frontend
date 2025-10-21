@@ -2,16 +2,28 @@ import React from 'react'
 import Canvas from './components/Canvas/Canvas'
 import Sidebar from './components/Sidebar/Sidebar'
 import Toolbar from './components/Toolbar/Toolbar'
+import SpaceBackground from './components/SpaceBackground/SpaceBackground'
+import { Toaster } from 'react-hot-toast'
 
 function App() {
   return (
     <div className="relative flex h-screen overflow-hidden text-slate-100">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(56,189,248,0.08),transparent_55%),radial-gradient(circle_at_80%_70%,rgba(129,140,248,0.08),transparent_55%)]" />
-      <div className="pointer-events-none absolute -left-40 top-1/3 h-96 w-96 rounded-full bg-cyan-400/25 blur-3xl mix-blend-screen holo-pulse" />
-      <div className="pointer-events-none absolute right-[-18%] bottom-[-10%] h-[460px] w-[460px] rounded-full bg-indigo-500/25 blur-[160px] mix-blend-screen holo-pulse" />
-      <div className="pointer-events-none absolute inset-0 opacity-25">
-        <div className="scanline-overlay h-full w-full" />
-      </div>
+      {/* Space Background with animated stars and nebula */}
+      <SpaceBackground />
+
+      {/* Toast Notifications for achievements */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          className: '',
+          style: {
+            background: 'rgba(26, 31, 58, 0.95)',
+            color: '#F0F9FF',
+            border: '1px solid rgba(0, 191, 255, 0.3)',
+            boxShadow: '0 0 20px rgba(0, 191, 255, 0.3)',
+          },
+        }}
+      />
 
       {/* Sidebar */}
       <Sidebar />

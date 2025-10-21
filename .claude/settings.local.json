@@ -9,7 +9,11 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push)",
-      "Bash(timeout /t 3 /nobreak)"
+      "Bash(timeout /t 3 /nobreak)",
+      "Bash(rename \"D:\\PROJECTS\\!LOGIC_GAME\\logic-game-frontend\\src\\store\\achievementStore.js\" achievementStore.jsx)",
+      "Bash(cmd /c \"ren \"\"D:\\PROJECTS\\!LOGIC_GAME\\logic-game-frontend\\src\\store\\achievementStore.js\"\" achievementStore.jsx\")",
+      "Bash(dir:*)",
+      "Bash(powershell -Command:*)"
     ],
     "deny": [],
     "ask": []

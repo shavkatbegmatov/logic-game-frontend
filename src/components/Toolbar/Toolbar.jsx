@@ -1,6 +1,7 @@
 import React from 'react'
-import { Zap, Grid, HelpCircle, Settings, BookOpen, Play, Pause } from 'lucide-react'
+import { Zap, Grid, HelpCircle, Settings, BookOpen, Play, Pause, Rocket, Cpu, Shield } from 'lucide-react'
 import useGameStore from '../../store/gameStore'
+import useSound from '../../hooks/useSound'
 
 const Toolbar = () => {
   const {
@@ -12,6 +13,8 @@ const Toolbar = () => {
     stopSimulation
   } = useGameStore()
 
+  const { playSound } = useSound()
+
   return (
     <div className="relative flex h-16 items-center justify-between border-b border-white/5 bg-slate-950/40 px-6 backdrop-blur-2xl shadow-[0_15px_35px_-20px_rgba(15,23,42,0.6)]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.12),transparent_50%),radial-gradient(circle_at_bottom_right,rgba(129,140,248,0.12),transparent_55%)] opacity-60" />
@@ -19,26 +22,34 @@ const Toolbar = () => {
 
       {/* Left side - Mode switcher */}
       <div className="relative z-10 flex items-center gap-4">
-        <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/10 p-1.5 shadow-inner shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+        <div className="flex items-center gap-2 rounded-full border border-cyan-400/30 bg-gradient-to-r from-slate-900/80 to-slate-800/80 p-1.5 shadow-inner shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
           <button
-            onClick={() => setSandboxMode(false)}
-            className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-all ${
+            onClick={() => {
+              setSandboxMode(false);
+              playSound('gateClick');
+            }}
+            className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-bold font-orbitron transition-all ${
               !isSandboxMode
-                ? 'bg-white text-slate-900 shadow-lg ring-1 ring-white/40'
-                : 'text-slate-300 hover:text-white'
+                ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-900 shadow-lg shadow-cyan-400/50'
+                : 'text-slate-400 hover:text-cyan-300'
             }`}
           >
-            Tutorial
+            <Rocket size={14} />
+            <span>MISSION</span>
           </button>
           <button
-            onClick={() => setSandboxMode(true)}
-            className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-all ${
+            onClick={() => {
+              setSandboxMode(true);
+              playSound('gateClick');
+            }}
+            className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-bold font-orbitron transition-all ${
               isSandboxMode
-                ? 'bg-white text-slate-900 shadow-lg ring-1 ring-white/40'
-                : 'text-slate-300 hover:text-white'
+                ? 'bg-gradient-to-r from-purple-400 to-pink-500 text-slate-900 shadow-lg shadow-purple-400/50'
+                : 'text-slate-400 hover:text-purple-300'
             }`}
           >
-            Sandbox
+            <Cpu size={14} />
+            <span>SANDBOX</span>
           </button>
         </div>
 

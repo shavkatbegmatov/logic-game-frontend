@@ -1,8 +1,10 @@
 import React from 'react'
 import { Play, Pause, RotateCcw, Save, Upload, Grid, Trash2 } from 'lucide-react'
 import useGameStore from '../../store/gameStore'
+import useAchievementStore from '../../store/achievementStore'
 import { GateTypes, gateConfigs } from '../../engine/gates'
 import { runSimulation } from '../../engine/simulation'
+import AchievementDisplay from '../UI/AchievementDisplay'
 
 const Sidebar = () => {
   const {
@@ -214,6 +216,11 @@ const Sidebar = () => {
             )
           })}
         </div>
+      </div>
+
+      {/* Achievement Display */}
+      <div className="p-4 border-t border-white/10">
+        <AchievementDisplay />
       </div>
 
       {/* Footer - statistika */}

@@ -1,8 +1,9 @@
 import React, { useRef, useCallback, useState, useEffect, useMemo } from 'react'
 import { Stage, Layer } from 'react-konva'
 import useGameStore from '../../store/gameStore'
-import GateComponent from '../Gates/GateComponent'
-import WireComponent from '../Wires/WireComponent'
+import useAchievementStore from '../../store/achievementStore'
+import PCBGateComponent from '../Gates/PCBGateComponent'
+import SpaceWireComponent from '../Wires/SpaceWireComponent'
 import { createGate, gateConfigs, GateTypes } from '../../engine/gates'
 import { runSimulation } from '../../engine/simulation'
 
@@ -27,6 +28,8 @@ const Canvas = () => {
     signals,
     updateSignals
   } = useGameStore()
+
+  const { updateStats } = useAchievementStore()
 
   // Canvas o'lchamini yangilash
   React.useEffect(() => {
@@ -147,7 +150,15 @@ const Canvas = () => {
     // Yangi gate yaratish
     const newGate = createGate(gateType, position.x, position.y)
     addGate(newGate)
-  }, [addGate])
+
+    // Update achievement statistics
+    updateStats('gatesPlaced', prev => prev + 1)
+    updateStats('gateTypesUsed', prev => {
+      const types = new Set(prev)
+      types.add(gateType)
+      return types
+    })
+  }, [addGate, updateStats])
 
   const handleDragOver = (e) => {
     e.preventDefault()
@@ -208,6 +219,9 @@ const Canvas = () => {
 
     addWire(wire)
     cancelWireCreation()
+
+    // Update achievement statistics
+    updateStats('wiresConnected', prev => prev + 1)
   }
 
   const cancelWireCreation = () => {
@@ -238,10 +252,13 @@ const Canvas = () => {
 
   return (
     <div
-      className="relative h-full overflow-hidden bg-slate-950/30"
+      className="relative h-full overflow-hidden bg-slate-950/30 canvas-3d"
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
+      {/* 3D Grid Floor */}
+      <div className="grid-3d" />
+
       {/* Grid background */}
       <div
         className="pointer-events-none absolute inset-0 opacity-60 mix-blend-screen"
@@ -273,7 +290,7 @@ const Canvas = () => {
         <Layer>
           {/* Simlarni chizish */}
           {wires.map(wire => (
-            <WireComponent
+            <SpaceWireComponent
               key={wire.id}
               wire={wire}
               gates={gates}
@@ -303,7 +320,7 @@ const Canvas = () => {
             }
 
             return (
-              <WireComponent
+              <SpaceWireComponent
                 wire={{
                   id: 'temp',
                   startX,
@@ -320,7 +337,7 @@ const Canvas = () => {
 
           {/* Gate'larni chizish */}
           {gates.map(gate => (
-            <GateComponent
+            <PCBGateComponent
               key={gate.id}
               gate={gate}
               isSelected={selectedGate === gate.id}
