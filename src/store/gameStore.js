@@ -113,16 +113,28 @@ const useGameStore = create((set, get) => ({
     const { gates } = get();
     if (!box) return [];
 
-    const minX = Math.min(box.x1, box.x2);
-    const maxX = Math.max(box.x1, box.x2);
-    const minY = Math.min(box.y1, box.y2);
-    const maxY = Math.max(box.y1, box.y2);
+    const selMinX = Math.min(box.x1, box.x2);
+    const selMaxX = Math.max(box.x1, box.x2);
+    const selMinY = Math.min(box.y1, box.y2);
+    const selMaxY = Math.max(box.y1, box.y2);
 
+    // AABB (Axis-Aligned Bounding Box) intersection detection
+    // Gate'ning har qanday qismi selection box bilan kesishsa - select qilish
     return gates.filter(gate => {
-      const centerX = gate.x + gate.width / 2;
-      const centerY = gate.y + gate.height / 2;
-      return centerX >= minX && centerX <= maxX &&
-             centerY >= minY && centerY <= maxY;
+      const gateMinX = gate.x;
+      const gateMaxX = gate.x + gate.width;
+      const gateMinY = gate.y;
+      const gateMaxY = gate.y + gate.height;
+
+      // Ikkita to'rtburchak kesishishini tekshirish
+      const intersects = !(
+        gateMaxX < selMinX || // Gate selection box'dan chap tomonda
+        gateMinX > selMaxX || // Gate selection box'dan o'ng tomonda
+        gateMaxY < selMinY || // Gate selection box'dan yuqorida
+        gateMinY > selMaxY    // Gate selection box'dan pastda
+      );
+
+      return intersects;
     });
   },
 

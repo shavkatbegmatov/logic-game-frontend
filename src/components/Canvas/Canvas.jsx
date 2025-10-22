@@ -464,10 +464,13 @@ const Canvas = () => {
               y={Math.min(tempSelectionBox.y1, tempSelectionBox.y2)}
               width={Math.abs(tempSelectionBox.x2 - tempSelectionBox.x1)}
               height={Math.abs(tempSelectionBox.y2 - tempSelectionBox.y1)}
-              fill="rgba(59, 130, 246, 0.1)"
-              stroke="rgba(59, 130, 246, 0.5)"
+              fill="rgba(59, 130, 246, 0.15)"
+              stroke="rgba(59, 130, 246, 0.8)"
               strokeWidth={2}
-              dash={[5, 5]}
+              dash={[8, 4]}
+              shadowBlur={10}
+              shadowColor="rgba(59, 130, 246, 0.5)"
+              shadowOpacity={0.8}
             />
           )}
 
