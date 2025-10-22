@@ -1,9 +1,10 @@
 import React, { useRef, useCallback, useState, useEffect, useMemo } from 'react'
-import { Stage, Layer } from 'react-konva'
+import { Stage, Layer, Rect } from 'react-konva'
 import useGameStore from '../../store/gameStore'
 import useAchievementStore from '../../store/achievementStore'
 import PCBGateComponent from '../Gates/PCBGateComponent'
 import SpaceWireComponent from '../Wires/SpaceWireComponent'
+import CreateSubcircuitModal from '../Modals/CreateSubcircuitModal'
 import { createGate, gateConfigs, GateTypes } from '../../engine/gates'
 import { runSimulation } from '../../engine/simulation'
 
@@ -15,15 +16,31 @@ const Canvas = () => {
   const [tempWireEnd, setTempWireEnd] = useState(null)
   const [draggingGate, setDraggingGate] = useState(null) // { id, x, y }
 
+  // Multi-selection state
+  const [isDrawingSelection, setIsDrawingSelection] = useState(false)
+  const [selectionStart, setSelectionStart] = useState(null)
+  const [tempSelectionBox, setTempSelectionBox] = useState(null)
+
+  // Subcircuit modal
+  const [isSubcircuitModalOpen, setIsSubcircuitModalOpen] = useState(false)
+
   const {
     gates,
     wires,
     selectedGate,
+    selectedGates,
+    selectionBox,
+    selectionMode,
     addGate,
     updateGate,
     addWire,
     selectGate,
     clearSelection,
+    toggleGateSelection,
+    selectMultipleGates,
+    setSelectionBox,
+    getGatesInSelectionBox,
+    createSubcircuitFromSelected,
     isSimulating,
     signals,
     updateSignals
@@ -42,6 +59,42 @@ const Canvas = () => {
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ctrl+A - barcha gate'larni tanlash
+      if (e.ctrlKey && e.key === 'a') {
+        e.preventDefault()
+        const allGateIds = gates.map(g => g.id)
+        selectMultipleGates(allGateIds)
+      }
+
+      // Ctrl+G - tanlangan gate'lardan subcircuit yaratish
+      if (e.ctrlKey && e.key === 'g') {
+        e.preventDefault()
+        if (selectedGates.length > 0) {
+          setIsSubcircuitModalOpen(true)
+        }
+      }
+
+      // Escape - tanlashni bekor qilish
+      if (e.key === 'Escape') {
+        clearSelection()
+        setIsDrawingSelection(false)
+        setTempSelectionBox(null)
+      }
+
+      // Delete - tanlangan gate'larni o'chirish (agar kerak bo'lsa)
+      // if (e.key === 'Delete' && selectedGates.length > 0) {
+      //   selectedGates.forEach(id => removeGate(id))
+      //   clearSelection()
+      // }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedGates, gates, selectMultipleGates, createSubcircuitFromSelected, clearSelection])
 
   // Simulyatsiya loop
   useEffect(() => {
@@ -172,6 +225,58 @@ const Canvas = () => {
     }
   }
 
+  // Selection rectangle handlers
+  const handleStageMouseDown = (e) => {
+    // Agar bo'sh joyga bosilsa va Shift tugmasi bosilgan bo'lsa, selection box boshlash
+    if (e.target === e.target.getStage() && e.evt.shiftKey) {
+      const stage = stageRef.current
+      if (!stage) return
+
+      const position = stage.getPointerPosition()
+      setIsDrawingSelection(true)
+      setSelectionStart(position)
+      setTempSelectionBox({
+        x1: position.x,
+        y1: position.y,
+        x2: position.x,
+        y2: position.y
+      })
+    }
+  }
+
+  const handleSelectionMouseMove = (e) => {
+    if (!isDrawingSelection || !selectionStart) return
+
+    const stage = stageRef.current
+    if (!stage) return
+
+    const position = stage.getPointerPosition()
+    setTempSelectionBox({
+      x1: selectionStart.x,
+      y1: selectionStart.y,
+      x2: position.x,
+      y2: position.y
+    })
+  }
+
+  const handleSelectionMouseUp = (e) => {
+    if (!isDrawingSelection || !tempSelectionBox) return
+
+    // Selection box ichidagi gate'larni topish
+    const gatesInBox = getGatesInSelectionBox(tempSelectionBox)
+    const gateIds = gatesInBox.map(g => g.id)
+
+    if (gateIds.length > 0) {
+      selectMultipleGates(gateIds)
+    }
+
+    // Selection state'ni tozalash
+    setIsDrawingSelection(false)
+    setSelectionStart(null)
+    setTempSelectionBox(null)
+    setSelectionBox(null)
+  }
+
   // Gate harakatlanishi
   const handleGateDragMove = (gateId, newPosition) => {
     setDraggingGate({ id: gateId, x: newPosition.x, y: newPosition.y })
@@ -232,6 +337,13 @@ const Canvas = () => {
 
   // Mouse harakati (vaqtinchalik wire ko'rsatish uchun)
   const handleMouseMove = (e) => {
+    // Selection box drawing
+    if (isDrawingSelection) {
+      handleSelectionMouseMove(e)
+      return
+    }
+
+    // Wire creation
     if (!isDraggingWire) return
 
     const stage = stageRef.current
@@ -240,6 +352,13 @@ const Canvas = () => {
   }
 
   const handleStageMouseUp = (e) => {
+    // Selection box tugallash
+    if (isDrawingSelection) {
+      handleSelectionMouseUp(e)
+      return
+    }
+
+    // Wire creation tugallash
     if (!isDraggingWire) return
 
     const target = e.target
@@ -283,6 +402,7 @@ const Canvas = () => {
         width={stageSize.width}
         height={stageSize.height}
         onClick={handleStageClick}
+        onMouseDown={handleStageMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleStageMouseUp}
         onTouchEnd={handleStageMouseUp}
@@ -335,15 +455,40 @@ const Canvas = () => {
             )
           })()}
 
+          {/* Selection rectangle */}
+          {tempSelectionBox && (
+            <Rect
+              x={Math.min(tempSelectionBox.x1, tempSelectionBox.x2)}
+              y={Math.min(tempSelectionBox.y1, tempSelectionBox.y2)}
+              width={Math.abs(tempSelectionBox.x2 - tempSelectionBox.x1)}
+              height={Math.abs(tempSelectionBox.y2 - tempSelectionBox.y1)}
+              fill="rgba(59, 130, 246, 0.1)"
+              stroke="rgba(59, 130, 246, 0.5)"
+              strokeWidth={2}
+              dash={[5, 5]}
+            />
+          )}
+
           {/* Gate'larni chizish */}
           {gates.map(gate => (
             <PCBGateComponent
               key={gate.id}
               gate={gate}
-              isSelected={selectedGate === gate.id}
+              isSelected={selectedGate === gate.id || selectedGates.includes(gate.id)}
               onDragMove={handleGateDragMove}
               onDragEnd={handleGateDragEnd}
-              onSelect={() => selectGate(gate.id)}
+              onSelect={(e) => {
+                if (e.evt.ctrlKey) {
+                  // Ctrl+Click - toggle selection
+                  toggleGateSelection(gate.id)
+                } else if (e.evt.shiftKey) {
+                  // Shift+Click - add to selection
+                  toggleGateSelection(gate.id)
+                } else {
+                  // Normal click - single select
+                  selectGate(gate.id)
+                }
+              }}
               onUpdateGate={updateGate}
               onWireStart={handleWireStart}
               onWireEnd={handleWireEnd}
@@ -360,6 +505,12 @@ const Canvas = () => {
           <span>Signal oqimi faollashdi</span>
         </div>
       )}
+
+      {/* Subcircuit Creation Modal */}
+      <CreateSubcircuitModal
+        isOpen={isSubcircuitModalOpen}
+        onClose={() => setIsSubcircuitModalOpen(false)}
+      />
     </div>
   )
 }

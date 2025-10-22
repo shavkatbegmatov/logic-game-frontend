@@ -1,4 +1,6 @@
 import { gateLogic, GateTypes, gateConfigs } from './gates'
+import { simulateSubcircuit } from './subcircuits'
+import useSubcircuitStore from '../store/subcircuitStore'
 
 export class SimulationEngine {
   constructor(gates, wires) {
@@ -49,22 +51,48 @@ export class SimulationEngine {
     // Gate'ning kirish signallarini yig'ish
     const inputSignals = this.getGateInputs(gate)
 
-    // Gate logikasini qo'llash
-    const output = gateLogic[gate.type](inputSignals, gate.value)
+    let outputs = []
 
-    // Chiqish signalini saqlash
-    this.gateOutputs[gate.id] = output
+    // SUBCIRCUIT uchun alohida logic
+    if (gate.type === GateTypes.SUBCIRCUIT) {
+      // Subcircuit template'ni olish
+      const subcircuitStore = useSubcircuitStore.getState()
+      const template = subcircuitStore.getTemplate(gate.templateId)
+
+      if (template) {
+        // Subcircuit simulyatsiya
+        outputs = simulateSubcircuit(gate, inputSignals, subcircuitStore.manager)
+      } else {
+        console.error('Subcircuit template topilmadi:', gate.templateId)
+        outputs = new Array(gate.outputPorts?.length || 1).fill(0)
+      }
+
+      // Multiple outputs uchun har birini alohida saqlash
+      gate.outputPorts?.forEach((port, index) => {
+        this.gateOutputs[`${gate.id}_${index}`] = outputs[index] || 0
+      })
+    } else {
+      // Oddiy gate logikasi
+      const output = gateLogic[gate.type](inputSignals, gate.value)
+      outputs = [output]
+      this.gateOutputs[gate.id] = output
+    }
 
     // Gate'dan chiqadigan simlarga signalni uzatish
     const outputWires = this.wires.filter(wire => wire.fromGate === gate.id)
     outputWires.forEach(wire => {
-      this.signals[wire.id] = output
+      // SUBCIRCUIT uchun fromIndex'dan foydalanish
+      if (gate.type === GateTypes.SUBCIRCUIT) {
+        this.signals[wire.id] = outputs[wire.fromIndex || 0] || 0
+      } else {
+        this.signals[wire.id] = outputs[0] || 0
+      }
     })
 
     // Debug: INPUT gate'lar uchun signal uzatishni ko'rsatish
-    if (gate.type === GateTypes.INPUT && output === 1) {
+    if (gate.type === GateTypes.INPUT && outputs[0] === 1) {
       console.log(`⚡ INPUT gate ${gate.id} signal uzatmoqda:`, {
-        output,
+        output: outputs[0],
         outputWires: outputWires.map(w => w.id),
         signals: outputWires.map(w => ({ wireId: w.id, signal: this.signals[w.id] }))
       })
@@ -145,6 +173,17 @@ export class SimulationEngine {
     // Har bir gate'ning minimal kirishlari borligini tekshirish
     this.gates.forEach(gate => {
       if (gate.type === GateTypes.INPUT || gate.type === GateTypes.OUTPUT) return
+
+      // SUBCIRCUIT uchun alohida validatsiya
+      if (gate.type === GateTypes.SUBCIRCUIT) {
+        const subcircuitStore = useSubcircuitStore.getState()
+        const template = subcircuitStore.getTemplate(gate.templateId)
+
+        if (!template) {
+          errors.push(`Subcircuit ${gate.id} template topilmadi`)
+        }
+        return
+      }
 
       const inputCount = this.wires.filter(w => w.toGate === gate.id).length
       const config = gateConfigs[gate.type]

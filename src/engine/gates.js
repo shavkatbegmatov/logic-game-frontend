@@ -9,7 +9,8 @@ export const GateTypes = {
   NOR: 'NOR',
   INPUT: 'INPUT',
   OUTPUT: 'OUTPUT',
-  CLOCK: 'CLOCK'
+  CLOCK: 'CLOCK',
+  SUBCIRCUIT: 'SUBCIRCUIT'
 }
 
 // Gate logikalari
@@ -49,7 +50,13 @@ export const gateLogic = {
 
   [GateTypes.OUTPUT]: (inputs) => inputs[0] || 0,
 
-  [GateTypes.CLOCK]: (_, value) => value || 0
+  [GateTypes.CLOCK]: (_, value) => value || 0,
+
+  [GateTypes.SUBCIRCUIT]: (inputs) => {
+    // Subcircuit logic simulyatsiya paytida alohida bajariladi
+    // Bu yerda placeholder
+    return inputs
+  }
 }
 
 // Gate konfiguratsiyalari
@@ -134,6 +141,15 @@ export const gateConfigs = {
     outputs: 1,
     color: '#0EA5E9',
     symbol: 'CLK'
+  },
+  [GateTypes.SUBCIRCUIT]: {
+    name: 'Subcircuit',
+    description: 'Composite gate / Subcircuit',
+    minInputs: 0,
+    maxInputs: 32,
+    outputs: 32,
+    color: '#7C3AED',
+    symbol: 'SC'
   }
 }
 

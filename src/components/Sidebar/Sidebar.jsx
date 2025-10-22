@@ -1,12 +1,14 @@
-import React from 'react'
-import { Play, Pause, RotateCcw, Save, Upload, Grid, Trash2 } from 'lucide-react'
+import React, { useState } from 'react'
+import { Play, Pause, RotateCcw, Save, Upload, Grid, Trash2, Cpu, Package } from 'lucide-react'
 import useGameStore from '../../store/gameStore'
 import useAchievementStore from '../../store/achievementStore'
 import { GateTypes, gateConfigs } from '../../engine/gates'
 import { runSimulation } from '../../engine/simulation'
 import AchievementDisplay from '../UI/AchievementDisplay'
+import SubcircuitPanel from './SubcircuitPanel'
 
 const Sidebar = () => {
+  const [activeTab, setActiveTab] = useState('gates') // 'gates' yoki 'subcircuits'
   const {
     gates,
     wires,
@@ -99,6 +101,37 @@ const Sidebar = () => {
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="flex border-b border-white/10 bg-white/5">
+        <button
+          onClick={() => setActiveTab('gates')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${
+            activeTab === 'gates'
+              ? 'border-b-2 border-cyan-400 text-cyan-300 bg-cyan-400/10'
+              : 'text-gray-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Grid className="h-4 w-4" />
+          Gates
+        </button>
+        <button
+          onClick={() => setActiveTab('subcircuits')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${
+            activeTab === 'subcircuits'
+              ? 'border-b-2 border-purple-400 text-purple-300 bg-purple-400/10'
+              : 'text-gray-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Cpu className="h-4 w-4" />
+          Subcircuits
+        </button>
+      </div>
+
+      {/* Tab content ni ko'rsatish */}
+      {activeTab === 'subcircuits' ? (
+        <SubcircuitPanel />
+      ) : (
+        <>
       {/* Boshqaruv tugmalari */}
       <div className="p-6 border-b border-white/5">
         <div className="grid grid-cols-2 gap-3">
@@ -252,6 +285,8 @@ const Sidebar = () => {
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   )
 }

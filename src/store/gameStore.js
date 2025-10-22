@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { createSubcircuitFromSelection } from '../engine/subcircuits'
 
 const useGameStore = create((set, get) => ({
   // O'yin holati
@@ -11,6 +12,15 @@ const useGameStore = create((set, get) => ({
   wires: [],
   selectedGate: null,
   selectedWire: null,
+
+  // Multi-selection
+  selectedGates: [],
+  selectionMode: false, // multi-select mode
+  selectionBox: null, // {x1, y1, x2, y2} selection rectangle
+
+  // Subcircuit editing
+  editingSubcircuit: null, // Hozirda tahrirlayotgan subcircuit
+  subcircuitContext: [], // Breadcrumb navigation [{id, name}, ...]
 
   // Signal simulyatsiyasi
   signals: {},
@@ -64,7 +74,128 @@ const useGameStore = create((set, get) => ({
 
   selectGate: (gateId) => set({ selectedGate: gateId, selectedWire: null }),
   selectWire: (wireId) => set({ selectedWire: wireId, selectedGate: null }),
-  clearSelection: () => set({ selectedGate: null, selectedWire: null }),
+  clearSelection: () => set({
+    selectedGate: null,
+    selectedWire: null,
+    selectedGates: [],
+    selectionBox: null
+  }),
+
+  // Multi-selection methods
+  toggleGateSelection: (gateId) => set((state) => {
+    const isSelected = state.selectedGates.includes(gateId);
+    if (isSelected) {
+      return { selectedGates: state.selectedGates.filter(id => id !== gateId) };
+    } else {
+      return { selectedGates: [...state.selectedGates, gateId] };
+    }
+  }),
+
+  selectMultipleGates: (gateIds) => set({
+    selectedGates: gateIds,
+    selectedGate: null,
+    selectedWire: null
+  }),
+
+  addToSelection: (gateId) => set((state) => ({
+    selectedGates: [...state.selectedGates, gateId]
+  })),
+
+  removeFromSelection: (gateId) => set((state) => ({
+    selectedGates: state.selectedGates.filter(id => id !== gateId)
+  })),
+
+  setSelectionMode: (enabled) => set({ selectionMode: enabled }),
+
+  setSelectionBox: (box) => set({ selectionBox: box }),
+
+  getGatesInSelectionBox: (box) => {
+    const { gates } = get();
+    if (!box) return [];
+
+    const minX = Math.min(box.x1, box.x2);
+    const maxX = Math.max(box.x1, box.x2);
+    const minY = Math.min(box.y1, box.y2);
+    const maxY = Math.max(box.y1, box.y2);
+
+    return gates.filter(gate => {
+      const centerX = gate.x + gate.width / 2;
+      const centerY = gate.y + gate.height / 2;
+      return centerX >= minX && centerX <= maxX &&
+             centerY >= minY && centerY <= maxY;
+    });
+  },
+
+  // Subcircuit creation from selection
+  createSubcircuitFromSelected: (name, description) => {
+    const { selectedGates, gates, wires } = get();
+
+    if (selectedGates.length === 0) {
+      console.error('Gate\'lar tanlanmagan');
+      return null;
+    }
+
+    const selectedGateObjects = gates.filter(g => selectedGates.includes(g.id));
+
+    try {
+      const result = createSubcircuitFromSelection(selectedGateObjects, wires, name);
+
+      // Template yaratilgandan so'ng, selected gate'larni o'chirib,
+      // o'rniga subcircuit instance qo'yish mumkin
+
+      return result;
+    } catch (error) {
+      console.error('Subcircuit yaratishda xato:', error);
+      return null;
+    }
+  },
+
+  // Subcircuit editing
+  enterSubcircuit: (subcircuitGate) => set((state) => ({
+    editingSubcircuit: subcircuitGate,
+    subcircuitContext: [...state.subcircuitContext, {
+      id: subcircuitGate.id,
+      name: subcircuitGate.name
+    }],
+    // Subcircuit ichidagi gate va wire'larni yuklash
+    gates: subcircuitGate.internalGates || [],
+    wires: subcircuitGate.internalWires || [],
+    selectedGate: null,
+    selectedWire: null,
+    selectedGates: []
+  })),
+
+  exitSubcircuit: () => set((state) => {
+    // Agar context bo'sh bo'lsa, asosiy canvas'ga qaytish
+    if (state.subcircuitContext.length <= 1) {
+      return {
+        editingSubcircuit: null,
+        subcircuitContext: [],
+        // Asosiy circuit'ni qayta yuklash kerak
+        selectedGate: null,
+        selectedWire: null,
+        selectedGates: []
+      };
+    }
+
+    // Aks holda bir daraja yuqoriga chiqish
+    const newContext = state.subcircuitContext.slice(0, -1);
+    const parentSubcircuit = newContext[newContext.length - 1];
+
+    return {
+      subcircuitContext: newContext,
+      editingSubcircuit: parentSubcircuit,
+      // Parent subcircuit gate va wire'larini yuklash kerak
+      selectedGate: null,
+      selectedWire: null,
+      selectedGates: []
+    };
+  }),
+
+  isEditingSubcircuit: () => {
+    const { editingSubcircuit } = get();
+    return editingSubcircuit !== null;
+  },
 
   // Simulyatsiya
   startSimulation: () => set({ isSimulating: true }),
@@ -83,6 +214,11 @@ const useGameStore = create((set, get) => ({
     signals: {},
     selectedGate: null,
     selectedWire: null,
+    selectedGates: [],
+    selectionBox: null,
+    selectionMode: false,
+    editingSubcircuit: null,
+    subcircuitContext: [],
     isSimulating: false
   }),
 
