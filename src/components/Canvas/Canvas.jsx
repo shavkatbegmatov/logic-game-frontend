@@ -5,6 +5,7 @@ import useAchievementStore from '../../store/achievementStore'
 import PCBGateComponent from '../Gates/PCBGateComponent'
 import SpaceWireComponent from '../Wires/SpaceWireComponent'
 import CreateSubcircuitModal from '../Modals/CreateSubcircuitModal'
+import SubcircuitEditorManager from '../SubcircuitEditor/SubcircuitEditorManager'
 import { createGate, gateConfigs, GateTypes } from '../../engine/gates'
 import { runSimulation } from '../../engine/simulation'
 
@@ -511,6 +512,9 @@ const Canvas = () => {
         isOpen={isSubcircuitModalOpen}
         onClose={() => setIsSubcircuitModalOpen(false)}
       />
+
+      {/* Subcircuit Editor Manager */}
+      <SubcircuitEditorManager />
     </div>
   )
 }
