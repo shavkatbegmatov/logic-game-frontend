@@ -78,11 +78,12 @@ const PCBGateComponent = ({
     if (gate.type === GateTypes.INPUT) {
       const newValue = gate.value === 1 ? 0 : 1
       onUpdateGate(gate.id, { value: newValue })
+      onSelect(e) // Event uzatish - multi-selection uchun
     } else if (gate.type === GateTypes.CLOCK) {
       playSound('clockTick')
-      onSelect()
+      onSelect(e) // Event uzatish - multi-selection uchun
     } else {
-      onSelect()
+      onSelect(e) // Event uzatish - multi-selection uchun
     }
   }
 

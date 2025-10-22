@@ -4,7 +4,6 @@ import useGameStore from '../../store/gameStore'
 import useAchievementStore from '../../store/achievementStore'
 import PCBGateComponent from '../Gates/PCBGateComponent'
 import SpaceWireComponent from '../Wires/SpaceWireComponent'
-import CreateSubcircuitModal from '../Modals/CreateSubcircuitModal'
 import SubcircuitEditorManager from '../SubcircuitEditor/SubcircuitEditorManager'
 import { createGate, gateConfigs, GateTypes } from '../../engine/gates'
 import { runSimulation } from '../../engine/simulation'
@@ -21,9 +20,7 @@ const Canvas = () => {
   const [isDrawingSelection, setIsDrawingSelection] = useState(false)
   const [selectionStart, setSelectionStart] = useState(null)
   const [tempSelectionBox, setTempSelectionBox] = useState(null)
-
-  // Subcircuit modal
-  const [isSubcircuitModalOpen, setIsSubcircuitModalOpen] = useState(false)
+  const [selectionStartedWithShift, setSelectionStartedWithShift] = useState(false)
 
   const {
     gates,
@@ -72,12 +69,7 @@ const Canvas = () => {
       }
 
       // Ctrl+G - tanlangan gate'lardan subcircuit yaratish
-      if (e.ctrlKey && e.key === 'g') {
-        e.preventDefault()
-        if (selectedGates.length > 0) {
-          setIsSubcircuitModalOpen(true)
-        }
-      }
+      // Note: Ctrl+G handling SubcircuitEditorManager'da qilinadi
 
       // Escape - tanlashni bekor qilish
       if (e.key === 'Escape') {
@@ -95,7 +87,7 @@ const Canvas = () => {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectedGates, gates, selectMultipleGates, createSubcircuitFromSelected, clearSelection])
+  }, [selectedGates, gates, wires, selectMultipleGates, clearSelection])
 
   // Simulyatsiya loop
   useEffect(() => {
@@ -236,6 +228,7 @@ const Canvas = () => {
       const position = stage.getPointerPosition()
       setIsDrawingSelection(true)
       setSelectionStart(position)
+      setSelectionStartedWithShift(true) // Shift holatini eslab qolish
       setTempSelectionBox({
         x1: position.x,
         y1: position.y,
@@ -265,10 +258,17 @@ const Canvas = () => {
 
     // Selection box ichidagi gate'larni topish
     const gatesInBox = getGatesInSelectionBox(tempSelectionBox)
-    const gateIds = gatesInBox.map(g => g.id)
+    const newGateIds = gatesInBox.map(g => g.id)
 
-    if (gateIds.length > 0) {
-      selectMultipleGates(gateIds)
+    if (newGateIds.length > 0) {
+      if (selectionStartedWithShift) {
+        // Additive selection - avvalgi selectionga qo'shish
+        const combinedIds = [...new Set([...selectedGates, ...newGateIds])]
+        selectMultipleGates(combinedIds)
+      } else {
+        // Replace selection - faqat yangi gate'larni tanlash
+        selectMultipleGates(newGateIds)
+      }
     }
 
     // Selection state'ni tozalash
@@ -276,6 +276,7 @@ const Canvas = () => {
     setSelectionStart(null)
     setTempSelectionBox(null)
     setSelectionBox(null)
+    setSelectionStartedWithShift(false) // Shift holatini tozalash
   }
 
   // Gate harakatlanishi
@@ -506,12 +507,6 @@ const Canvas = () => {
           <span>Signal oqimi faollashdi</span>
         </div>
       )}
-
-      {/* Subcircuit Creation Modal */}
-      <CreateSubcircuitModal
-        isOpen={isSubcircuitModalOpen}
-        onClose={() => setIsSubcircuitModalOpen(false)}
-      />
 
       {/* Subcircuit Editor Manager */}
       <SubcircuitEditorManager />

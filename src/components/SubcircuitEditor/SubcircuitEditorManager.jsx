@@ -67,6 +67,13 @@ const SubcircuitEditorManager = () => {
     }
   }, [hasChosenEditorMode, isFirstTime])
 
+  // Sync activeCreationFlow with store creationMethod
+  useEffect(() => {
+    if (isEditing && editingMode === 'create' && creationMethod && !activeCreationFlow) {
+      setActiveCreationFlow(creationMethod)
+    }
+  }, [isEditing, editingMode, creationMethod, activeCreationFlow])
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
