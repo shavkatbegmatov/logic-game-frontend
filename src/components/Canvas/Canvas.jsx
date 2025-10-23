@@ -210,25 +210,18 @@ const Canvas = () => {
     e.preventDefault()
   }
 
-  // Canvas click handler
-  const handleStageClick = (e) => {
-    // Agar bo'sh joyga bosilsa, tanlashni bekor qilish
-    if (e.target === e.target.getStage()) {
-      clearSelection()
-    }
-  }
 
   // Selection rectangle handlers
   const handleStageMouseDown = (e) => {
-    // Agar bo'sh joyga bosilsa va Shift tugmasi bosilgan bo'lsa, selection box boshlash
-    if (e.target === e.target.getStage() && e.evt.shiftKey) {
+    // Agar bo'sh joyga bosilsa, selection box boshlash
+    if (e.target === e.target.getStage()) {
       const stage = stageRef.current
       if (!stage) return
 
       const position = stage.getPointerPosition()
       setIsDrawingSelection(true)
       setSelectionStart(position)
-      setSelectionStartedWithShift(true) // Shift holatini eslab qolish
+      setSelectionStartedWithShift(e.evt.shiftKey) // Shift holatini eslab qolish
       setTempSelectionBox({
         x1: position.x,
         y1: position.y,
@@ -256,27 +249,40 @@ const Canvas = () => {
   const handleSelectionMouseUp = (e) => {
     if (!isDrawingSelection || !tempSelectionBox) return
 
-    // Selection box ichidagi gate'larni topish
-    const gatesInBox = getGatesInSelectionBox(tempSelectionBox)
-    const newGateIds = gatesInBox.map(g => g.id)
+    const { x1, y1, x2, y2 } = tempSelectionBox
+    const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2))
 
-    if (newGateIds.length > 0) {
-      if (selectionStartedWithShift) {
-        // Additive selection - avvalgi selectionga qo'shish
-        const combinedIds = [...new Set([...selectedGates, ...newGateIds])]
-        selectMultipleGates(combinedIds)
+    // Agar sichqoncha deyarli harakatlanmagan bo'lsa (click)
+    if (distance < 5) {
+      // va shift bosilmagan bo'lsa, tanlovni tozalash
+      if (!selectionStartedWithShift) {
+        clearSelection()
+      }
+    } else { // Agar drag bo'lgan bo'lsa
+      const gatesInBox = getGatesInSelectionBox(tempSelectionBox)
+      const newGateIds = gatesInBox.map(g => g.id)
+
+      if (newGateIds.length > 0) {
+        if (selectionStartedWithShift) {
+          const combinedIds = [...new Set([...selectedGates, ...newGateIds])]
+          selectMultipleGates(combinedIds)
+        } else {
+          selectMultipleGates(newGateIds)
+        }
       } else {
-        // Replace selection - faqat yangi gate'larni tanlash
-        selectMultipleGates(newGateIds)
+        // Bo'sh joyga drag qilinganda (va shift bosilmagan bo'lsa) tanlovni tozalash
+        if (!selectionStartedWithShift) {
+          clearSelection()
+        }
       }
     }
 
-    // Selection state'ni tozalash
+    // Reset state
     setIsDrawingSelection(false)
     setSelectionStart(null)
     setTempSelectionBox(null)
     setSelectionBox(null)
-    setSelectionStartedWithShift(false) // Shift holatini tozalash
+    setSelectionStartedWithShift(false)
   }
 
   // Gate harakatlanishi
@@ -403,7 +409,6 @@ const Canvas = () => {
         ref={stageRef}
         width={stageSize.width}
         height={stageSize.height}
-        onClick={handleStageClick}
         onMouseDown={handleStageMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleStageMouseUp}

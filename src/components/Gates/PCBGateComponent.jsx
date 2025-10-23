@@ -109,6 +109,21 @@ const PCBGateComponent = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      {/* Selection Indicator */}
+      {isSelected && (
+        <Ring
+          x={gate.width / 2}
+          y={gate.height / 2}
+          innerRadius={gate.width / 1.8}
+          outerRadius={gate.width / 1.8 + 3}
+          fill={SPACE_COLORS.ui.selectionGlow}
+          shadowBlur={15}
+          shadowColor={SPACE_COLORS.ui.selectionGlow}
+          shadowOpacity={1}
+          listening={false} // Don't block mouse events
+        />
+      )}
+
       {/* PCB Board Shadow */}
       <Rect
         x={2}

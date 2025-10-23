@@ -90,7 +90,8 @@ export const SPACE_COLORS = {
     success: '#00FF00',
     warning: '#FFD700',
     danger: '#FF4444',
-    info: '#00BFFF'
+    info: '#00BFFF',
+    selectionGlow: 'rgba(59, 130, 246, 0.9)'
   },
 
   // Effects
