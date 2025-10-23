@@ -586,6 +586,7 @@ const Canvas = () => {
           );
           })}
         </Layer>
+      </Stage>
 
       {/* Simulyatsiya indikatori */}
       {isSimulating && (
