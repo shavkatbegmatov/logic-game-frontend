@@ -8,6 +8,7 @@ const PCBGateComponent = ({
   gate,
   isSelected,
   isPreSelected, // To show highlighting during selection drawing
+  onDragStart,
   onDragMove,
   onDragEnd,
   onSelect,
@@ -93,18 +94,9 @@ const PCBGateComponent = ({
       x={gate.x}
       y={gate.y}
       draggable={true}
-      onDragMove={(e) => {
-        onDragMove(gate.id, {
-          x: e.target.x(),
-          y: e.target.y()
-        })
-      }}
-      onDragEnd={(e) => {
-        onDragEnd(gate.id, {
-          x: e.target.x(),
-          y: e.target.y()
-        })
-      }}
+      onDragStart={(e) => onDragStart(gate.id, e)}
+      onDragMove={(e) => onDragMove(gate.id, e)}
+      onDragEnd={(e) => onDragEnd(gate.id, e)}
       onClick={handleClick}
       onTap={handleClick}
       onMouseEnter={() => setIsHovered(true)}

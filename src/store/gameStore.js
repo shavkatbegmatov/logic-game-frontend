@@ -55,6 +55,17 @@ const useGameStore = create((set, get) => ({
     )
   })),
 
+  updateGatePositions: (positions) => set((state) => {
+    const updatedGates = state.gates.map(gate => {
+      const newPosition = positions.find(p => p.id === gate.id);
+      if (newPosition) {
+        return { ...gate, ...newPosition };
+      }
+      return gate;
+    });
+    return { gates: updatedGates };
+  }),
+
   addWire: (wire) => set((state) => ({
     wires: [...state.wires, {
       ...wire,

@@ -14,7 +14,8 @@ const Canvas = () => {
   const [isDraggingWire, setIsDraggingWire] = useState(false)
   const [wireStart, setWireStart] = useState(null)
   const [tempWireEnd, setTempWireEnd] = useState(null)
-  const [draggingGate, setDraggingGate] = useState(null) // { id, x, y }
+  const [draggedItems, setDraggedItems] = useState({}) // Stores temp positions of dragged gates { [id]: {x, y} }
+  const [dragStartData, setDragStartData] = useState(null) // Stores data for multi-drag operation
 
   // Multi-selection state
   const [isDrawingSelection, setIsDrawingSelection] = useState(false)
@@ -32,6 +33,7 @@ const Canvas = () => {
     selectionMode,
     addGate,
     updateGate,
+    updateGatePositions, // For multi-drag
     addWire,
     selectGate,
     clearSelection,
@@ -292,14 +294,74 @@ const Canvas = () => {
     setPreSelectedGates([]) // Clear pre-selection
   }
 
-  // Gate harakatlanishi
-  const handleGateDragMove = (gateId, newPosition) => {
-    setDraggingGate({ id: gateId, x: newPosition.x, y: newPosition.y })
+  // --- Gate Dragging Logic ---
+
+  const handleGateDragStart = (gateId, e) => {
+    const stage = e.target.getStage()
+    if (!stage) return
+
+    // If the dragged gate is part of a selection, prepare for multi-drag
+    if (selectedGates.length > 1 && selectedGates.includes(gateId)) {
+      setDragStartData({
+        pointer: stage.getPointerPosition(),
+        gates: gates.filter(g => selectedGates.includes(g.id)).map(g => ({ id: g.id, x: g.x, y: g.y }))
+      })
+    }
   }
 
-  const handleGateDragEnd = (gateId, newPosition) => {
-    updateGate(gateId, newPosition)
-    setDraggingGate(null) // Vaqtinchalik pozitsiyani tozalash
+  const handleGateDragMove = (gateId, e) => {
+    const stage = e.target.getStage()
+    if (!stage) return
+
+    const pointer = stage.getPointerPosition()
+
+    // Multi-drag logic
+    if (dragStartData) {
+      const dx = pointer.x - dragStartData.pointer.x
+      const dy = pointer.y - dragStartData.pointer.y
+
+      const newPositions = {}
+      dragStartData.gates.forEach(startGate => {
+        newPositions[startGate.id] = {
+          x: startGate.x + dx,
+          y: startGate.y + dy
+        }
+      })
+      setDraggedItems(newPositions)
+      return
+    }
+
+    // Single-drag logic
+    setDraggedItems({
+      [gateId]: {
+        x: e.target.x(),
+        y: e.target.y()
+      }
+    })
+  }
+
+  const handleGateDragEnd = (gateId, e) => {
+    // Multi-drag final update
+    if (dragStartData) {
+      const pointer = e.target.getStage().getPointerPosition()
+      const dx = pointer.x - dragStartData.pointer.x
+      const dy = pointer.y - dragStartData.pointer.y
+
+      const finalPositions = dragStartData.gates.map(startGate => ({
+        id: startGate.id,
+        x: startGate.x + dx,
+        y: startGate.y + dy
+      }))
+
+      updateGatePositions(finalPositions)
+    } else {
+      // Single-drag final update
+      updateGate(gateId, { x: e.target.x(), y: e.target.y() })
+    }
+
+    // Reset drag states
+    setDraggedItems({})
+    setDragStartData(null)
   }
 
   // Wire ulash boshlash
@@ -430,7 +492,7 @@ const Canvas = () => {
               gates={gates}
               signal={computedSignals[wire.id]}
               isSimulating={isSimulating}
-              draggingGate={draggingGate}
+              draggedItems={draggedItems}
             />
           ))}
 
@@ -487,34 +549,43 @@ const Canvas = () => {
           )}
 
           {/* Gate'larni chizish */}
-          {gates.map(gate => (
-            <PCBGateComponent
-              key={gate.id}
-              gate={gate}
-              isSelected={selectedGate === gate.id || selectedGates.includes(gate.id)}
-              isPreSelected={preSelectedGates.includes(gate.id)}
-              onDragMove={handleGateDragMove}
-              onDragEnd={handleGateDragEnd}
-              onSelect={(e) => {
-                if (e.evt.ctrlKey) {
-                  // Ctrl+Click - toggle selection
-                  toggleGateSelection(gate.id)
-                } else if (e.evt.shiftKey) {
-                  // Shift+Click - add to selection
-                  toggleGateSelection(gate.id)
-                } else {
-                  // Normal click - single select
-                  selectGate(gate.id)
-                }
-              }}
-              onUpdateGate={updateGate}
+          {gates.map(gate => {
+            const draggedPosition = draggedItems[gate.id]
+            const gateProps = {
+              ...gate,
+              x: draggedPosition ? draggedPosition.x : gate.x,
+              y: draggedPosition ? draggedPosition.y : gate.y
+            };
+
+            return (
+              <PCBGateComponent
+                key={gate.id}
+                gate={gateProps}
+                isSelected={selectedGate === gate.id || selectedGates.includes(gate.id)}
+                isPreSelected={preSelectedGates.includes(gate.id)}
+                onDragStart={handleGateDragStart}
+                onDragMove={handleGateDragMove}
+                onDragEnd={handleGateDragEnd}
+                onSelect={(e) => {
+                  if (e.evt.ctrlKey) {
+                    // Ctrl+Click - toggle selection
+                    toggleGateSelection(gate.id)
+                  } else if (e.evt.shiftKey) {
+                    // Shift+Click - add to selection
+                    toggleGateSelection(gate.id)
+                  } else {
+                    // Normal click - single select
+                    selectGate(gate.id)
+                  }
+                }}
+                onUpdateGate={updateGate}
               onWireStart={handleWireStart}
               onWireEnd={handleWireEnd}
               outputSignal={computedSignals[`gate_${gate.id}`] || 0}
             />
-          ))}
+          );
+          })}
         </Layer>
-      </Stage>
 
       {/* Simulyatsiya indikatori */}
       {isSimulating && (
