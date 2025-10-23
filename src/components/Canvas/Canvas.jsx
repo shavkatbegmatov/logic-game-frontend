@@ -27,6 +27,7 @@ const Canvas = () => {
     wires,
     selectedGate,
     selectedGates,
+    preSelectedGates, // For live selection highlighting
     selectionBox,
     selectionMode,
     addGate,
@@ -36,6 +37,7 @@ const Canvas = () => {
     clearSelection,
     toggleGateSelection,
     selectMultipleGates,
+    setPreSelectedGates, // For live selection highlighting
     setSelectionBox,
     getGatesInSelectionBox,
     createSubcircuitFromSelected,
@@ -238,12 +240,17 @@ const Canvas = () => {
     if (!stage) return
 
     const position = stage.getPointerPosition()
-    setTempSelectionBox({
+    const newSelectionBox = {
       x1: selectionStart.x,
       y1: selectionStart.y,
       x2: position.x,
       y2: position.y
-    })
+    }
+    setTempSelectionBox(newSelectionBox)
+
+    // Live-update pre-selected gates
+    const gatesInBox = getGatesInSelectionBox(newSelectionBox)
+    setPreSelectedGates(gatesInBox.map(g => g.id))
   }
 
   const handleSelectionMouseUp = (e) => {
@@ -281,8 +288,8 @@ const Canvas = () => {
     setIsDrawingSelection(false)
     setSelectionStart(null)
     setTempSelectionBox(null)
-    setSelectionBox(null)
     setSelectionStartedWithShift(false)
+    setPreSelectedGates([]) // Clear pre-selection
   }
 
   // Gate harakatlanishi
@@ -485,6 +492,7 @@ const Canvas = () => {
               key={gate.id}
               gate={gate}
               isSelected={selectedGate === gate.id || selectedGates.includes(gate.id)}
+              isPreSelected={preSelectedGates.includes(gate.id)}
               onDragMove={handleGateDragMove}
               onDragEnd={handleGateDragEnd}
               onSelect={(e) => {

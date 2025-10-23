@@ -15,6 +15,7 @@ const useGameStore = create((set, get) => ({
 
   // Multi-selection
   selectedGates: [],
+  preSelectedGates: [], // Gates currently inside the selection rectangle
   selectionMode: false, // multi-select mode
   selectionBox: null, // {x1, y1, x2, y2} selection rectangle
 
@@ -106,6 +107,8 @@ const useGameStore = create((set, get) => ({
   })),
 
   setSelectionMode: (enabled) => set({ selectionMode: enabled }),
+
+  setPreSelectedGates: (gateIds) => set({ preSelectedGates: gateIds }),
 
   setSelectionBox: (box) => set({ selectionBox: box }),
 

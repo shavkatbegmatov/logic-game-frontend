@@ -7,6 +7,7 @@ import useSound from '../../hooks/useSound'
 const PCBGateComponent = ({
   gate,
   isSelected,
+  isPreSelected, // To show highlighting during selection drawing
   onDragMove,
   onDragEnd,
   onSelect,
@@ -140,11 +141,14 @@ const PCBGateComponent = ({
         width={gate.width}
         height={gate.height}
         fill={SPACE_COLORS.pcbDarkGreen}
-        stroke={isSelected ? gateTheme.trace : SPACE_COLORS.copperTrace}
-        strokeWidth={isSelected ? 3 : 2}
+        stroke={
+          isPreSelected ? SPACE_COLORS.ui.selectionGlow :
+          (isSelected ? gateTheme.trace : SPACE_COLORS.copperTrace)
+        }
+        strokeWidth={isPreSelected || isSelected ? 2.5 : 2}
         cornerRadius={4}
-        shadowBlur={isHovered ? 15 : 8}
-        shadowColor={getMainColor()}
+        shadowBlur={isHovered || isPreSelected ? 15 : 8}
+        shadowColor={isPreSelected ? SPACE_COLORS.ui.selectionGlow : getMainColor()}
         shadowOpacity={isHovered ? 0.8 : 0.4}
       />
 
