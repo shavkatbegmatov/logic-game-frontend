@@ -225,7 +225,13 @@ const SubcircuitEditorManager = () => {
 
   // Render appropriate editor mode
   const renderEditor = () => {
-    if (!isEditing) return null
+    // Faqat edit mode'da editor'ni ko'rsatish (creation mode'da emas)
+    if (!isEditing || editingMode !== 'edit') {
+      console.log('renderEditor: Not rendering', { isEditing, editingMode })
+      return null
+    }
+
+    console.log('renderEditor: Rendering editor with mode:', editorMode)
 
     const props = {
       onClose: handleExitEditMode,
@@ -259,10 +265,30 @@ const SubcircuitEditorManager = () => {
     const props = {
       onComplete: (template) => {
         console.log('Creation flow completed with template:', template)
+
+        // Template'ni library'ga qo'shish
         addTemplate(template)
+
+        // Creation flow'ni to'xtatish
         setActiveCreationFlow(null)
-        stopEditing()
+
+        // Template'ni edit qilish uchun tayyorlash
+        const subcircuitForEditing = {
+          ...template,
+          internalGates: template.internalCircuit?.gates || [],
+          internalWires: template.internalCircuit?.wires || [],
+          inputPorts: template.inputs || [],
+          outputPorts: template.outputs || []
+        }
+
+        console.log('Opening editor for template:', subcircuitForEditing)
+
+        // Edit mode'ga o'tish (creation mode'dan exit qilib, edit mode'ga o'tamiz)
+        startEditing('edit', subcircuitForEditing)
+
+        // Tanlashni tozalash
         clearSelection()
+
         if (enableSounds) SoundManager.playSuccess()
       },
       onCancel: () => {
