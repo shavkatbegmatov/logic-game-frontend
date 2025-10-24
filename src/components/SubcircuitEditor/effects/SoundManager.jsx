@@ -119,4 +119,6 @@ SoundManager.playError = () => soundService.playError()
 SoundManager.playTransition = () => soundService.playTransition()
 SoundManager.playCancel = () => soundService.playCancel()
 
+// Export soundService directly for use in other components
+export { soundService }
 export default SoundManager

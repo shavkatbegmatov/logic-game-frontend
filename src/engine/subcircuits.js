@@ -489,8 +489,341 @@ export function batchCreateSubcircuits(selections, allWires, options = {}) {
   return results
 }
 
+/**
+ * SubcircuitManager Class
+ * Template'larni boshqarish uchun
+ */
+export class SubcircuitManager {
+  constructor() {
+    this.globalTemplates = new Map()  // Global kutubxona
+    this.customTemplates = new Map()  // Loyihaga xos template'lar
+  }
+
+  /**
+   * Template qo'shish
+   */
+  addTemplate(template, isGlobal = false) {
+    if (!template || !template.id) {
+      console.error('Invalid template:', template)
+      return false
+    }
+
+    const targetMap = isGlobal ? this.globalTemplates : this.customTemplates
+
+    // Eski template'ni o'chirish (agar mavjud bo'lsa)
+    this.globalTemplates.delete(template.id)
+    this.customTemplates.delete(template.id)
+
+    // Yangi joyga qo'shish
+    targetMap.set(template.id, template)
+    template.isGlobal = isGlobal
+
+    return true
+  }
+
+  /**
+   * Template olish
+   */
+  getTemplate(templateId) {
+    return this.globalTemplates.get(templateId) || this.customTemplates.get(templateId) || null
+  }
+
+  /**
+   * Template o'chirish
+   */
+  removeTemplate(templateId) {
+    // Faqat custom template'larni o'chirish mumkin
+    if (this.globalTemplates.has(templateId)) {
+      console.warn('Cannot remove global template:', templateId)
+      return false
+    }
+
+    return this.customTemplates.delete(templateId)
+  }
+
+  /**
+   * Template yangilash
+   */
+  updateTemplate(templateId, updates) {
+    const template = this.getTemplate(templateId)
+
+    if (!template) {
+      console.error('Template not found:', templateId)
+      return null
+    }
+
+    // Global template'larni yangilash mumkin emas
+    if (template.isGlobal) {
+      console.warn('Cannot update global template:', templateId)
+      return null
+    }
+
+    // Update properties
+    Object.assign(template, updates)
+    template.updatedAt = new Date().toISOString()
+
+    return template
+  }
+
+  /**
+   * Barcha template'larni olish
+   */
+  getAllTemplates() {
+    const templates = []
+
+    // Global templates first
+    this.globalTemplates.forEach(template => templates.push(template))
+
+    // Then custom templates
+    this.customTemplates.forEach(template => templates.push(template))
+
+    return templates
+  }
+
+  /**
+   * Kategoriya bo'yicha template'larni olish
+   */
+  getTemplatesByCategory(category) {
+    return this.getAllTemplates().filter(template => template.category === category)
+  }
+
+  /**
+   * Template'larni eksport qilish
+   */
+  exportLibrary(templateIds = null) {
+    const templates = []
+
+    if (templateIds) {
+      // Faqat ko'rsatilgan template'lar
+      templateIds.forEach(id => {
+        const template = this.getTemplate(id)
+        if (template) {
+          templates.push(template.toJSON())
+        }
+      })
+    } else {
+      // Barcha custom template'lar
+      this.customTemplates.forEach(template => {
+        templates.push(template.toJSON())
+      })
+    }
+
+    return {
+      version: '1.0.0',
+      exportDate: new Date().toISOString(),
+      templates: templates
+    }
+  }
+
+  /**
+   * Template'larni import qilish
+   */
+  importLibrary(libraryData) {
+    const results = {
+      imported: [],
+      errors: []
+    }
+
+    if (!libraryData || !libraryData.templates) {
+      results.errors.push('Invalid library data')
+      return results
+    }
+
+    libraryData.templates.forEach(templateData => {
+      try {
+        const template = SubcircuitTemplate.fromJSON(templateData)
+        const validation = template.validate()
+
+        if (validation.valid) {
+          // Check for name conflicts
+          const existing = this.getAllTemplates().find(t => t.name === template.name)
+
+          if (existing) {
+            template.name = `${template.name} (Imported)`
+          }
+
+          this.addTemplate(template, false)
+          results.imported.push(template.name)
+        } else {
+          results.errors.push(`Failed to import ${templateData.name}: ${validation.errors.join(', ')}`)
+        }
+      } catch (error) {
+        results.errors.push(`Error importing template: ${error.message}`)
+      }
+    })
+
+    return results
+  }
+}
+
+/**
+ * Create default templates
+ * Asosiy mantiqiy gate'lardan tashkil topgan template'lar
+ */
+export function createDefaultTemplates() {
+  const templates = []
+
+  // AND Gate Template
+  templates.push(new SubcircuitTemplate({
+    id: 'default-and-gate',
+    name: 'AND Gate Module',
+    description: 'Ikki kirishli AND mantiqiy gate',
+    icon: 'AND',
+    category: 'logic',
+    isGlobal: true,
+    inputs: [
+      { name: 'A', index: 0, connectedGate: 'input-0', connectedIndex: 0 },
+      { name: 'B', index: 1, connectedGate: 'input-1', connectedIndex: 0 }
+    ],
+    outputs: [
+      { name: 'Y', index: 0, connectedGate: 'and-0', connectedIndex: 0 }
+    ],
+    internalCircuit: {
+      gates: [
+        { id: 'input-0', type: 'INPUT', x: 50, y: 100, value: 0 },
+        { id: 'input-1', type: 'INPUT', x: 50, y: 200, value: 0 },
+        { id: 'and-0', type: 'AND', x: 200, y: 150, inputs: [0, 0], outputs: [0] },
+        { id: 'output-0', type: 'OUTPUT', x: 350, y: 150, value: 0 }
+      ],
+      wires: [
+        { id: 'w1', fromGate: 'input-0', fromIndex: 0, toGate: 'and-0', toIndex: 0 },
+        { id: 'w2', fromGate: 'input-1', fromIndex: 0, toGate: 'and-0', toIndex: 1 },
+        { id: 'w3', fromGate: 'and-0', fromIndex: 0, toGate: 'output-0', toIndex: 0 }
+      ]
+    }
+  }))
+
+  // OR Gate Template
+  templates.push(new SubcircuitTemplate({
+    id: 'default-or-gate',
+    name: 'OR Gate Module',
+    description: 'Ikki kirishli OR mantiqiy gate',
+    icon: 'OR',
+    category: 'logic',
+    isGlobal: true,
+    inputs: [
+      { name: 'A', index: 0, connectedGate: 'input-0', connectedIndex: 0 },
+      { name: 'B', index: 1, connectedGate: 'input-1', connectedIndex: 0 }
+    ],
+    outputs: [
+      { name: 'Y', index: 0, connectedGate: 'or-0', connectedIndex: 0 }
+    ],
+    internalCircuit: {
+      gates: [
+        { id: 'input-0', type: 'INPUT', x: 50, y: 100, value: 0 },
+        { id: 'input-1', type: 'INPUT', x: 50, y: 200, value: 0 },
+        { id: 'or-0', type: 'OR', x: 200, y: 150, inputs: [0, 0], outputs: [0] },
+        { id: 'output-0', type: 'OUTPUT', x: 350, y: 150, value: 0 }
+      ],
+      wires: [
+        { id: 'w1', fromGate: 'input-0', fromIndex: 0, toGate: 'or-0', toIndex: 0 },
+        { id: 'w2', fromGate: 'input-1', fromIndex: 0, toGate: 'or-0', toIndex: 1 },
+        { id: 'w3', fromGate: 'or-0', fromIndex: 0, toGate: 'output-0', toIndex: 0 }
+      ]
+    }
+  }))
+
+  // XOR Gate Template
+  templates.push(new SubcircuitTemplate({
+    id: 'default-xor-gate',
+    name: 'XOR Gate Module',
+    description: 'Ikki kirishli XOR mantiqiy gate',
+    icon: 'XOR',
+    category: 'logic',
+    isGlobal: true,
+    inputs: [
+      { name: 'A', index: 0, connectedGate: 'input-0', connectedIndex: 0 },
+      { name: 'B', index: 1, connectedGate: 'input-1', connectedIndex: 0 }
+    ],
+    outputs: [
+      { name: 'Y', index: 0, connectedGate: 'xor-0', connectedIndex: 0 }
+    ],
+    internalCircuit: {
+      gates: [
+        { id: 'input-0', type: 'INPUT', x: 50, y: 100, value: 0 },
+        { id: 'input-1', type: 'INPUT', x: 50, y: 200, value: 0 },
+        { id: 'xor-0', type: 'XOR', x: 200, y: 150, inputs: [0, 0], outputs: [0] },
+        { id: 'output-0', type: 'OUTPUT', x: 350, y: 150, value: 0 }
+      ],
+      wires: [
+        { id: 'w1', fromGate: 'input-0', fromIndex: 0, toGate: 'xor-0', toIndex: 0 },
+        { id: 'w2', fromGate: 'input-1', fromIndex: 0, toGate: 'xor-0', toIndex: 1 },
+        { id: 'w3', fromGate: 'xor-0', fromIndex: 0, toGate: 'output-0', toIndex: 0 }
+      ]
+    }
+  }))
+
+  // NOT Gate Template
+  templates.push(new SubcircuitTemplate({
+    id: 'default-not-gate',
+    name: 'NOT Gate Module',
+    description: 'Inverter mantiqiy gate',
+    icon: 'NOT',
+    category: 'logic',
+    isGlobal: true,
+    inputs: [
+      { name: 'A', index: 0, connectedGate: 'input-0', connectedIndex: 0 }
+    ],
+    outputs: [
+      { name: 'Y', index: 0, connectedGate: 'not-0', connectedIndex: 0 }
+    ],
+    internalCircuit: {
+      gates: [
+        { id: 'input-0', type: 'INPUT', x: 50, y: 150, value: 0 },
+        { id: 'not-0', type: 'NOT', x: 200, y: 150, inputs: [0], outputs: [1] },
+        { id: 'output-0', type: 'OUTPUT', x: 350, y: 150, value: 0 }
+      ],
+      wires: [
+        { id: 'w1', fromGate: 'input-0', fromIndex: 0, toGate: 'not-0', toIndex: 0 },
+        { id: 'w2', fromGate: 'not-0', fromIndex: 0, toGate: 'output-0', toIndex: 0 }
+      ]
+    }
+  }))
+
+  // Half Adder Template
+  templates.push(new SubcircuitTemplate({
+    id: 'default-half-adder',
+    name: 'Half Adder',
+    description: 'Yarim qo\'shuvchi circuit',
+    icon: 'HA',
+    category: 'arithmetic',
+    isGlobal: true,
+    inputs: [
+      { name: 'A', index: 0, connectedGate: 'input-0', connectedIndex: 0 },
+      { name: 'B', index: 1, connectedGate: 'input-1', connectedIndex: 0 }
+    ],
+    outputs: [
+      { name: 'Sum', index: 0, connectedGate: 'xor-0', connectedIndex: 0 },
+      { name: 'Carry', index: 1, connectedGate: 'and-0', connectedIndex: 0 }
+    ],
+    internalCircuit: {
+      gates: [
+        { id: 'input-0', type: 'INPUT', x: 50, y: 100, value: 0 },
+        { id: 'input-1', type: 'INPUT', x: 50, y: 200, value: 0 },
+        { id: 'xor-0', type: 'XOR', x: 200, y: 100, inputs: [0, 0], outputs: [0] },
+        { id: 'and-0', type: 'AND', x: 200, y: 200, inputs: [0, 0], outputs: [0] },
+        { id: 'output-0', type: 'OUTPUT', x: 350, y: 100, value: 0 },
+        { id: 'output-1', type: 'OUTPUT', x: 350, y: 200, value: 0 }
+      ],
+      wires: [
+        { id: 'w1', fromGate: 'input-0', fromIndex: 0, toGate: 'xor-0', toIndex: 0 },
+        { id: 'w2', fromGate: 'input-1', fromIndex: 0, toGate: 'xor-0', toIndex: 1 },
+        { id: 'w3', fromGate: 'input-0', fromIndex: 0, toGate: 'and-0', toIndex: 0 },
+        { id: 'w4', fromGate: 'input-1', fromIndex: 0, toGate: 'and-0', toIndex: 1 },
+        { id: 'w5', fromGate: 'xor-0', fromIndex: 0, toGate: 'output-0', toIndex: 0 },
+        { id: 'w6', fromGate: 'and-0', fromIndex: 0, toGate: 'output-1', toIndex: 0 }
+      ]
+    }
+  }))
+
+  return templates
+}
+
+// Default export - barcha funksiyalar allaqachon eksport qilingan
 export default {
   SubcircuitTemplate,
+  SubcircuitManager,
+  createDefaultTemplates,
   createSubcircuitFromSelection,
   simulateSubcircuit,
   migrateTemplate,

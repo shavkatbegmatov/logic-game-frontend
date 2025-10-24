@@ -19,8 +19,9 @@ const EditorModeSelector = React.lazy(() => import('./ui/EditorModeSelector'))
 const EditorToolbar = React.lazy(() => import('./ui/EditorToolbar'))
 const BreadcrumbNav = React.lazy(() => import('./ui/BreadcrumbNav'))
 
-const SoundManager = React.lazy(() => import('./effects/SoundManager'))
 const AnimationController = React.lazy(() => import('./effects/AnimationController'))
+const SoundManager = React.lazy(() => import('./effects/SoundManager'))
+import { soundService } from './effects/SoundManager'
 
 const SubcircuitEditorManager = () => {
   const {
@@ -144,7 +145,7 @@ const SubcircuitEditorManager = () => {
 
     if (selectedGates.length === 0) {
       console.error('No gates selected for subcircuit creation')
-      if (enableSounds) SoundManager.playError()
+      if (enableSounds) soundService.playError()
       return
     }
 
@@ -214,7 +215,7 @@ const SubcircuitEditorManager = () => {
     // Ma'lumotlarni store'ga saqlashdan oldin tekshirish
     if (selectedGateObjects.length === 0) {
       console.error('Gate objects not found for selected IDs')
-      if (enableSounds) SoundManager.playError()
+      if (enableSounds) soundService.playError()
       return
     }
 
@@ -275,14 +276,14 @@ const SubcircuitEditorManager = () => {
       })
     }, 0)
 
-    if (enableSounds) SoundManager.playClick()
+    if (enableSounds) soundService.playClick()
   }, [selectedGates, gates, wires, startCreation, enableSounds])
 
   // Handle entering edit mode
   const handleEnterEditMode = useCallback((subcircuitGate) => {
     const template = getTemplate(subcircuitGate.templateId)
     if (!template) {
-      if (enableSounds) SoundManager.playError()
+      if (enableSounds) soundService.playError()
       console.error('Subcircuit template topilmadi')
       return
     }
@@ -292,7 +293,7 @@ const SubcircuitEditorManager = () => {
       template
     })
 
-    if (enableSounds) SoundManager.playTransition()
+    if (enableSounds) soundService.playTransition()
   }, [getTemplate, startEditing, enableSounds])
 
   // Handle exiting edit mode
@@ -307,7 +308,7 @@ const SubcircuitEditorManager = () => {
 
     stopEditing()
     clearSelection()
-    if (enableSounds) SoundManager.playTransition()
+    if (enableSounds) soundService.playTransition()
   }, [stopEditing, clearSelection, enableSounds])
 
   // Render appropriate editor mode
@@ -377,13 +378,13 @@ const SubcircuitEditorManager = () => {
         // Tanlashni tozalash
         clearSelection()
 
-        if (enableSounds) SoundManager.playSuccess()
+        if (enableSounds) soundService.playSuccess()
       },
       onCancel: () => {
         console.warn('Creation flow cancelled, resetting state')
         setActiveCreationFlow(null)
         stopEditing()
-        if (enableSounds) SoundManager.playCancel()
+        if (enableSounds) soundService.playCancel()
       }
     }
 
@@ -418,7 +419,7 @@ const SubcircuitEditorManager = () => {
           onSelect={(mode) => {
             useUserPreferencesStore.getState().setEditorMode(mode)
             setShowModeSelector(false)
-            if (enableSounds) SoundManager.playSuccess()
+            if (enableSounds) soundService.playSuccess()
           }}
           onSkip={() => {
             setShowModeSelector(false)
@@ -458,7 +459,7 @@ const SubcircuitEditorManager = () => {
             position="bottom"
             onSave={() => {
               // Save logic
-              if (enableSounds) SoundManager.playSuccess()
+              if (enableSounds) soundService.playSuccess()
             }}
             onCancel={handleExitEditMode}
             onUndo={() => useSubcircuitEditorStore.getState().undo()}
