@@ -308,6 +308,37 @@ export function createSubcircuitFromSelection(selectedGates, allWires, name = 'N
     y: gate.y - minY
   }));
 
+  const bounds = normalizedGates.reduce(
+    (acc, gate) => {
+      const gateWidth = gate.width ?? 80
+      const gateHeight = gate.height ?? 60
+
+      return {
+        minX: Math.min(acc.minX, gate.x),
+        minY: Math.min(acc.minY, gate.y),
+        maxX: Math.max(acc.maxX, gate.x + gateWidth),
+        maxY: Math.max(acc.maxY, gate.y + gateHeight)
+      }
+    },
+    {
+      minX: normalizedGates.length > 0 ? normalizedGates[0].x : 0,
+      minY: normalizedGates.length > 0 ? normalizedGates[0].y : 0,
+      maxX: normalizedGates.length > 0 ? normalizedGates[0].x + (normalizedGates[0].width ?? 80) : 0,
+      maxY: normalizedGates.length > 0 ? normalizedGates[0].y + (normalizedGates[0].height ?? 60) : 0
+    }
+  )
+
+  const internalBounds = {
+    minX: bounds.minX,
+    minY: bounds.minY,
+    maxX: bounds.maxX,
+    maxY: bounds.maxY,
+    width: bounds.maxX - bounds.minX,
+    height: bounds.maxY - bounds.minY
+  }
+  internalBounds.centerX = internalBounds.minX + internalBounds.width / 2
+  internalBounds.centerY = internalBounds.minY + internalBounds.height / 2
+
   // Subcircuit template yaratish
   const template = new SubcircuitTemplate({
     name: name,
@@ -318,7 +349,8 @@ export function createSubcircuitFromSelection(selectedGates, allWires, name = 'N
     outputs: outputs,
     internalCircuit: {
       gates: normalizedGates,
-      wires: internalWires
+      wires: internalWires,
+      bounds: internalBounds
     }
   });
 

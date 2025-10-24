@@ -148,11 +148,65 @@ const SubcircuitEditorManager = () => {
       return
     }
 
-    const selectedGateObjects = gates.filter(g => selectedGates.includes(g.id))
-    const selectedWireObjects = wires.filter(w => {
-      const selectedIds = new Set(selectedGates)
-      return selectedIds.has(w.fromGate) || selectedIds.has(w.toGate)
-    })
+    const selectedIds = new Set(selectedGates)
+
+    const selectedGateObjects = gates
+      .filter(g => selectedIds.has(g.id))
+      .map(g => {
+        const {
+          id,
+          type,
+          x,
+          y,
+          width,
+          height,
+          inputs = [],
+          outputs = [],
+          value = 0,
+          rotation = 0,
+          flipped = false,
+          ...rest
+        } = g
+
+        return {
+          id,
+          type,
+          x,
+          y,
+          width,
+          height,
+          inputs: Array.isArray(inputs) ? [...inputs] : [],
+          outputs: Array.isArray(outputs) ? [...outputs] : [],
+          value,
+          rotation,
+          flipped,
+          ...rest
+        }
+      })
+
+    const selectedWireObjects = wires
+      .filter(w => selectedIds.has(w.fromGate) || selectedIds.has(w.toGate))
+      .map(w => {
+        const {
+          id,
+          fromGate,
+          toGate,
+          fromIndex = 0,
+          toIndex = 0,
+          signal = 0,
+          ...rest
+        } = w
+
+        return {
+          id,
+          fromGate,
+          toGate,
+          fromIndex,
+          toIndex,
+          signal,
+          ...rest
+        }
+      })
 
     console.log('Selected gate objects:', selectedGateObjects)
     console.log('Selected wire objects:', selectedWireObjects)
@@ -164,12 +218,45 @@ const SubcircuitEditorManager = () => {
       return
     }
 
+    const boundaryBox = selectedGateObjects.reduce(
+      (acc, gate) => {
+        const gateWidth = gate.width ?? 80
+        const gateHeight = gate.height ?? 60
+
+        return {
+          minX: Math.min(acc.minX, gate.x),
+          minY: Math.min(acc.minY, gate.y),
+          maxX: Math.max(acc.maxX, gate.x + gateWidth),
+          maxY: Math.max(acc.maxY, gate.y + gateHeight)
+        }
+      },
+      {
+        minX: Infinity,
+        minY: Infinity,
+        maxX: -Infinity,
+        maxY: -Infinity
+      }
+    )
+
+    const normalizedBoundaryBox = {
+      minX: boundaryBox.minX === Infinity ? 0 : boundaryBox.minX,
+      minY: boundaryBox.minY === Infinity ? 0 : boundaryBox.minY,
+      maxX: boundaryBox.maxX === -Infinity ? 0 : boundaryBox.maxX,
+      maxY: boundaryBox.maxY === -Infinity ? 0 : boundaryBox.maxY
+    }
+
+    normalizedBoundaryBox.width = normalizedBoundaryBox.maxX - normalizedBoundaryBox.minX
+    normalizedBoundaryBox.height = normalizedBoundaryBox.maxY - normalizedBoundaryBox.minY
+    normalizedBoundaryBox.centerX = normalizedBoundaryBox.minX + normalizedBoundaryBox.width / 2
+    normalizedBoundaryBox.centerY = normalizedBoundaryBox.minY + normalizedBoundaryBox.height / 2
+
     const methodToUse = method || 'quick'
 
     // Store'ga ma'lumotlarni saqlash
     startCreation(methodToUse, {
       selectedGates: selectedGateObjects,
-      selectedWires: selectedWireObjects
+      selectedWires: selectedWireObjects,
+      boundaryBox: normalizedBoundaryBox
     })
 
     // Store yangilanishini kutish, keyin activeCreationFlow o'rnatish
@@ -277,6 +364,7 @@ const SubcircuitEditorManager = () => {
           ...template,
           internalGates: template.internalCircuit?.gates || [],
           internalWires: template.internalCircuit?.wires || [],
+          internalBounds: template.internalCircuit?.bounds || null,
           inputPorts: template.inputs || [],
           outputPorts: template.outputs || []
         }

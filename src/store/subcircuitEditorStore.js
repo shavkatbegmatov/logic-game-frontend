@@ -37,6 +37,7 @@ const useSubcircuitEditorStore = create(
     // Canvas state
     internalGates: [],
     internalWires: [],
+    internalBounds: null,
     selectedInternalGates: [],
     selectedInternalWires: [],
 
@@ -89,6 +90,7 @@ const useSubcircuitEditorStore = create(
       if (subcircuit) {
         state.internalGates = [...(subcircuit.internalGates || [])]
         state.internalWires = [...(subcircuit.internalWires || [])]
+        state.internalBounds = subcircuit.internalBounds || null
         state.tempPorts.inputs = [...(subcircuit.inputPorts || [])]
         state.tempPorts.outputs = [...(subcircuit.outputPorts || [])]
       }
@@ -97,7 +99,8 @@ const useSubcircuitEditorStore = create(
       state.history.present = {
         gates: [...state.internalGates],
         wires: [...state.internalWires],
-        ports: { ...state.tempPorts }
+        ports: { ...state.tempPorts },
+        bounds: state.internalBounds ? { ...state.internalBounds } : null
       }
     }),
 
@@ -109,6 +112,7 @@ const useSubcircuitEditorStore = create(
       state.editingContext = []
       state.internalGates = []
       state.internalWires = []
+      state.internalBounds = null
       state.selectedInternalGates = []
       state.selectedInternalWires = []
       state.creationStep = 0
@@ -274,7 +278,8 @@ const useSubcircuitEditorStore = create(
       const currentState = {
         gates: [...state.internalGates],
         wires: [...state.internalWires],
-        ports: { ...state.tempPorts }
+        ports: { ...state.tempPorts },
+        bounds: state.internalBounds ? { ...state.internalBounds } : null
       }
 
       // Add to past
@@ -306,6 +311,7 @@ const useSubcircuitEditorStore = create(
       state.internalGates = [...previousState.gates]
       state.internalWires = [...previousState.wires]
       state.tempPorts = { ...previousState.ports }
+      state.internalBounds = previousState.bounds ? { ...previousState.bounds } : null
     }),
 
     redo: () => set(state => {
@@ -322,6 +328,7 @@ const useSubcircuitEditorStore = create(
       state.internalGates = [...nextState.gates]
       state.internalWires = [...nextState.wires]
       state.tempPorts = { ...nextState.ports }
+      state.internalBounds = nextState.bounds ? { ...nextState.bounds } : null
     }),
 
     // Preview
@@ -465,6 +472,7 @@ const useSubcircuitEditorStore = create(
       state.tempPorts = { inputs: [], outputs: [] }
       state.internalGates = []
       state.internalWires = []
+      state.internalBounds = null
       state.selectedInternalGates = []
       state.selectedInternalWires = []
       state.previewCircuit = null

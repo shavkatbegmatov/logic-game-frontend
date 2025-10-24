@@ -9,6 +9,7 @@ const FullModalMode = ({ onClose, theme, enableAnimations }) => {
     editingSubcircuit,
     internalGates,
     internalWires,
+    internalBounds,
     tempPorts
   } = useSubcircuitEditorStore()
 
@@ -29,7 +30,7 @@ const FullModalMode = ({ onClose, theme, enableAnimations }) => {
     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
 
     // Grid chizish
-    ctx.strokeStyle = 'rgba(100, 116, 139, 0.1)'
+    ctx.strokeStyle = 'rgba(100, 116, 139, 0.12)'
     ctx.lineWidth = 1
     for (let x = 0; x <= CANVAS_WIDTH; x += GRID_SIZE) {
       ctx.beginPath()
@@ -44,40 +45,86 @@ const FullModalMode = ({ onClose, theme, enableAnimations }) => {
       ctx.stroke()
     }
 
-    // Wire'larni chizish (gates'dan oldin)
-    if (internalWires && internalWires.length > 0) {
-      internalWires.forEach(wire => {
-        const fromGate = internalGates?.find(g => g.id === wire.fromGate)
-        const toGate = internalGates?.find(g => g.id === wire.toGate)
-
-        if (fromGate && toGate) {
-          ctx.strokeStyle = '#3b82f6'
-          ctx.lineWidth = 2
-          ctx.beginPath()
-          ctx.moveTo(fromGate.x + 60, fromGate.y + 30)
-          ctx.lineTo(toGate.x, toGate.y + 30)
-          ctx.stroke()
-        }
-      })
-    }
-
-    // Gatelarni chizish
     if (internalGates && internalGates.length > 0) {
+      const bounds = internalBounds || internalGates.reduce(
+        (acc, gate) => {
+          const gateWidth = gate.width ?? 80
+          const gateHeight = gate.height ?? 60
+          return {
+            minX: Math.min(acc.minX, gate.x),
+            minY: Math.min(acc.minY, gate.y),
+            maxX: Math.max(acc.maxX, gate.x + gateWidth),
+            maxY: Math.max(acc.maxY, gate.y + gateHeight)
+          }
+        },
+        {
+          minX: internalGates[0].x,
+          minY: internalGates[0].y,
+          maxX: internalGates[0].x + (internalGates[0].width ?? 80),
+          maxY: internalGates[0].y + (internalGates[0].height ?? 60)
+        }
+      )
+
+      const padding = 120
+      const width = Math.max(bounds.maxX - bounds.minX, 1)
+      const height = Math.max(bounds.maxY - bounds.minY, 1)
+      const scaleX = (CANVAS_WIDTH - padding) / width
+      const scaleY = (CANVAS_HEIGHT - padding) / height
+      const scale = Math.min(scaleX, scaleY, 1.5)
+      const offsetX = (CANVAS_WIDTH - width * scale) / 2 - (bounds.minX * scale)
+      const offsetY = (CANVAS_HEIGHT - height * scale) / 2 - (bounds.minY * scale)
+
+      ctx.save()
+      ctx.translate(offsetX, offsetY)
+      ctx.scale(scale, scale)
+
+      // Wire'larni chizish (gates'dan oldin)
+      if (internalWires && internalWires.length > 0) {
+        internalWires.forEach(wire => {
+          const fromGate = internalGates?.find(g => g.id === wire.fromGate)
+          const toGate = internalGates?.find(g => g.id === wire.toGate)
+
+          if (fromGate && toGate) {
+            const fromWidth = fromGate.width ?? 80
+            const fromHeight = fromGate.height ?? 60
+            const toHeight = toGate.height ?? 60
+
+            ctx.strokeStyle = '#38bdf8'
+            ctx.lineWidth = 2 / scale
+            ctx.beginPath()
+            ctx.moveTo(fromGate.x + fromWidth, fromGate.y + fromHeight / 2)
+            ctx.bezierCurveTo(
+              fromGate.x + fromWidth + 40,
+              fromGate.y + fromHeight / 2,
+              toGate.x - 40,
+              toGate.y + toHeight / 2,
+              toGate.x,
+              toGate.y + toHeight / 2
+            )
+            ctx.stroke()
+          }
+        })
+      }
+
+      // Gatelarni chizish
       internalGates.forEach(gate => {
-        // Gate body
+        const gateWidth = gate.width ?? 80
+        const gateHeight = gate.height ?? 60
+
         ctx.fillStyle = '#334155'
         ctx.strokeStyle = '#64748b'
-        ctx.lineWidth = 2
-        ctx.fillRect(gate.x, gate.y, 60, 60)
-        ctx.strokeRect(gate.x, gate.y, 60, 60)
+        ctx.lineWidth = 2 / scale
+        ctx.fillRect(gate.x, gate.y, gateWidth, gateHeight)
+        ctx.strokeRect(gate.x, gate.y, gateWidth, gateHeight)
 
-        // Gate type text
         ctx.fillStyle = '#ffffff'
-        ctx.font = 'bold 12px monospace'
+        ctx.font = `${12 / scale}px monospace`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        ctx.fillText(gate.type || 'GATE', gate.x + 30, gate.y + 30)
+        ctx.fillText(gate.type || 'GATE', gate.x + gateWidth / 2, gate.y + gateHeight / 2)
       })
+
+      ctx.restore()
     }
 
     // Agar gatelar yo'q bo'lsa
@@ -89,7 +136,7 @@ const FullModalMode = ({ onClose, theme, enableAnimations }) => {
       ctx.fillText('No gates in this subcircuit', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2)
     }
 
-  }, [internalGates, internalWires])
+  }, [internalGates, internalWires, internalBounds])
 
   return (
     <motion.div
