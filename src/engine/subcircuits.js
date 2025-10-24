@@ -1,91 +1,106 @@
-// Subcircuit (Composite Gate) Engine
+// Subcircuit (Composite Gate) Engine - REFACTORED VERSION
 // Bu fayl subcircuit'larning asosiy funksionalligini ta'minlaydi
 
-// Subcircuit template modeli
+import { nanoid } from 'nanoid'
+import {
+  validateTemplate,
+  validateSelection,
+  validateGate,
+  validateWire,
+  sanitizeGates,
+  sanitizeWires,
+  calculateSafeBounds,
+  validateConnectivity
+} from './validation'
+import {
+  createPortMapping,
+  optimizePorts,
+  PortDirection
+} from './portMapping'
+
+/**
+ * Subcircuit Template Class - Refactored
+ * Robust validation, port stability, va migration support bilan
+ */
 export class SubcircuitTemplate {
   constructor(config = {}) {
-    this.id = config.id || Date.now() + Math.random();
-    this.name = config.name || 'Untitled Subcircuit';
-    this.description = config.description || '';
-    this.icon = config.icon || 'SC'; // IC chip ustidagi label
-    this.category = config.category || 'custom';
-    this.version = config.version || '1.0.0';
-    this.author = config.author || 'anonymous';
-    this.createdAt = config.createdAt || new Date().toISOString();
-    this.updatedAt = config.updatedAt || new Date().toISOString();
+    this.id = config.id || nanoid(12)
+    this.name = config.name || 'Untitled Subcircuit'
+    this.description = config.description || ''
+    this.icon = config.icon || 'SC'
+    this.category = config.category || 'custom'
+    this.version = config.version || '1.0.0'
+    this.author = config.author || 'anonymous'
+    this.createdAt = config.createdAt || new Date().toISOString()
+    this.updatedAt = config.updatedAt || new Date().toISOString()
 
-    // Input/Output portlari
-    this.inputs = config.inputs || []; // [{name: 'A', index: 0}, ...]
-    this.outputs = config.outputs || []; // [{name: 'Y', index: 0}, ...]
+    // Input/Output portlari - Enhanced format
+    this.inputs = config.inputs || []
+    this.outputs = config.outputs || []
 
     // Ichki circuit
     this.internalCircuit = config.internalCircuit || {
       gates: [],
-      wires: []
-    };
+      wires: [],
+      bounds: null
+    }
 
-    // Template turi (global yoki loyihaga xos)
-    this.isGlobal = config.isGlobal || false;
+    // Template metadata
+    this.isGlobal = config.isGlobal || false
+    this.isPublic = config.isPublic || false
+    this.usageCount = config.usageCount || 0
+    this.tags = config.tags || []
 
-    // Visual sozlamalar
-    this.width = config.width || 120; // IC chip kengligi
-    this.height = config.height || Math.max(80, Math.max(this.inputs.length, this.outputs.length) * 30);
+    // Visual settings
+    this.width = config.width || 120
+    this.height = config.height || Math.max(80, Math.max(this.inputs.length, this.outputs.length) * 30)
 
-    // Metadata
-    this.tags = config.tags || [];
-    this.isPublic = config.isPublic || false;
-    this.usageCount = config.usageCount || 0;
+    // Performance hints
+    this.performanceHints = config.performanceHints || {
+      canCache: true,
+      estimatedGateCount: this.internalCircuit.gates?.length || 0,
+      hasRecursion: false,
+      complexity: 'simple' // simple, moderate, complex
+    }
+
+    // Validation cache
+    this._validationCache = null
+    this._lastValidation = null
   }
 
-  // Template validatsiya
+  /**
+   * Enhanced validation with caching
+   */
   validate() {
-    const errors = [];
-
-    if (!this.name || this.name.trim() === '') {
-      errors.push('Subcircuit nomi kiritilishi kerak');
+    // Check cache
+    const now = Date.now()
+    if (this._validationCache && this._lastValidation && (now - this._lastValidation < 5000)) {
+      return this._validationCache
     }
 
-    if (this.inputs.length === 0 && this.outputs.length === 0) {
-      errors.push('Kamida bitta input yoki output bo\'lishi kerak');
-    }
+    // Perform validation
+    const result = validateTemplate(this)
 
-    if (this.inputs.length > 32) {
-      errors.push('Maximum 32 ta input bo\'lishi mumkin');
-    }
+    // Cache result
+    this._validationCache = result
+    this._lastValidation = now
 
-    if (this.outputs.length > 32) {
-      errors.push('Maximum 32 ta output bo\'lishi mumkin');
-    }
-
-    // Ichki circuit validatsiya
-    if (!this.internalCircuit || !this.internalCircuit.gates || !this.internalCircuit.wires) {
-      errors.push('Ichki circuit strukturasi noto\'g\'ri');
-    }
-
-    // Port nomlarining unikalligi
-    const inputNames = new Set();
-    for (const input of this.inputs) {
-      if (inputNames.has(input.name)) {
-        errors.push(`Takroriy input nomi: ${input.name}`);
-      }
-      inputNames.add(input.name);
-    }
-
-    const outputNames = new Set();
-    for (const output of this.outputs) {
-      if (outputNames.has(output.name)) {
-        errors.push(`Takroriy output nomi: ${output.name}`);
-      }
-      outputNames.add(output.name);
-    }
-
-    return errors;
+    return result
   }
 
-  // Template'dan instance yaratish
+  /**
+   * Create instance from template
+   */
   createInstance(x = 100, y = 100) {
+    // Validate template first
+    const validation = this.validate()
+    if (!validation.valid) {
+      console.error('Template validation failed:', validation.errors)
+      return null
+    }
+
     return {
-      id: Date.now() + Math.random(),
+      id: nanoid(12),
       type: 'SUBCIRCUIT',
       templateId: this.id,
       name: this.name,
@@ -96,21 +111,46 @@ export class SubcircuitTemplate {
       height: this.height,
       inputs: new Array(this.inputs.length).fill(0),
       outputs: new Array(this.outputs.length).fill(0),
-      inputPorts: this.inputs.map(p => ({...p})),
-      outputPorts: this.outputs.map(p => ({...p})),
-      // Ichki holat
-      internalGates: JSON.parse(JSON.stringify(this.internalCircuit.gates)),
-      internalWires: JSON.parse(JSON.stringify(this.internalCircuit.wires)),
-      internalSignals: {},
-      // Vizual sozlamalar
+      inputPorts: this.inputs.map(p => ({ ...p })),
+      outputPorts: this.outputs.map(p => ({ ...p })),
       rotation: 0,
       flipped: false,
-      selected: false,
-      highlighted: false
-    };
+      value: 0,
+      state: {},
+      performanceHints: { ...this.performanceHints }
+    }
   }
 
-  // Template'ni JSON'ga eksport qilish
+  /**
+   * Clone template
+   */
+  clone(newName = null) {
+    const cloned = new SubcircuitTemplate({
+      ...this,
+      id: nanoid(12),
+      name: newName || `${this.name} (Copy)`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      usageCount: 0
+    })
+
+    // Deep clone internal circuit
+    cloned.internalCircuit = {
+      gates: this.internalCircuit.gates.map(g => ({ ...g })),
+      wires: this.internalCircuit.wires.map(w => ({ ...w })),
+      bounds: this.internalCircuit.bounds ? { ...this.internalCircuit.bounds } : null
+    }
+
+    // Deep clone ports
+    cloned.inputs = this.inputs.map(p => ({ ...p }))
+    cloned.outputs = this.outputs.map(p => ({ ...p }))
+
+    return cloned
+  }
+
+  /**
+   * Serialize to JSON
+   */
   toJSON() {
     return {
       id: this.id,
@@ -126,409 +166,333 @@ export class SubcircuitTemplate {
       outputs: this.outputs,
       internalCircuit: this.internalCircuit,
       isGlobal: this.isGlobal,
+      isPublic: this.isPublic,
+      usageCount: this.usageCount,
+      tags: this.tags,
       width: this.width,
       height: this.height,
-      tags: this.tags,
-      isPublic: this.isPublic,
-      usageCount: this.usageCount
-    };
+      performanceHints: this.performanceHints
+    }
   }
 
-  // JSON'dan template import qilish
+  /**
+   * Deserialize from JSON
+   */
   static fromJSON(json) {
-    return new SubcircuitTemplate(json);
-  }
-}
-
-// Subcircuit Manager - template'larni boshqarish
-export class SubcircuitManager {
-  constructor() {
-    this.templates = new Map();
-    this.globalTemplates = new Map();
-    this.customTemplates = new Map();
-    this.categories = new Set(['logic', 'arithmetic', 'memory', 'io', 'custom']);
+    return new SubcircuitTemplate(json)
   }
 
-  // Template qo'shish
-  addTemplate(template, isGlobal = false) {
-    const errors = template.validate();
-    if (errors.length > 0) {
-      throw new Error(`Template validatsiya xatosi: ${errors.join(', ')}`);
+  /**
+   * Update internal circuit
+   */
+  updateInternalCircuit(gates, wires) {
+    // Sanitize and validate
+    const sanitizedGates = sanitizeGates(gates)
+    const sanitizedWires = sanitizeWires(wires)
+
+    // Validate connectivity
+    const connectivity = validateConnectivity(sanitizedGates, sanitizedWires)
+    if (!connectivity.valid) {
+      console.error('Connectivity validation failed:', connectivity.errors)
+      return false
     }
 
-    this.templates.set(template.id, template);
+    // Calculate bounds
+    const bounds = calculateSafeBounds(sanitizedGates)
 
-    if (isGlobal) {
-      this.globalTemplates.set(template.id, template);
-    } else {
-      this.customTemplates.set(template.id, template);
+    // Update
+    this.internalCircuit = {
+      gates: sanitizedGates,
+      wires: sanitizedWires,
+      bounds
     }
 
-    // Kategoriyani qo'shish
-    if (template.category && !this.categories.has(template.category)) {
-      this.categories.add(template.category);
-    }
+    // Update metadata
+    this.updatedAt = new Date().toISOString()
+    this.performanceHints.estimatedGateCount = sanitizedGates.length
 
-    return template;
+    // Invalidate cache
+    this._validationCache = null
+    this._lastValidation = null
+
+    return true
   }
 
-  // Template olish
-  getTemplate(id) {
-    return this.templates.get(id);
-  }
-
-  // Barcha template'larni olish
-  getAllTemplates() {
-    return Array.from(this.templates.values());
-  }
-
-  // Kategoriya bo'yicha template'larni olish
-  getTemplatesByCategory(category) {
-    return this.getAllTemplates().filter(t => t.category === category);
-  }
-
-  // Template o'chirish
-  removeTemplate(id) {
-    const template = this.templates.get(id);
-    if (template) {
-      this.templates.delete(id);
-      this.globalTemplates.delete(id);
-      this.customTemplates.delete(id);
-      return true;
-    }
-    return false;
-  }
-
-  // Template yangilash
-  updateTemplate(id, updates) {
-    const template = this.templates.get(id);
-    if (template) {
-      Object.assign(template, updates);
-      template.updatedAt = new Date().toISOString();
-      return template;
-    }
-    return null;
-  }
-
-  // Library eksport qilish
-  exportLibrary(templateIds = null) {
-    const templatesToExport = templateIds
-      ? templateIds.map(id => this.templates.get(id)).filter(Boolean)
-      : this.getAllTemplates();
-
+  /**
+   * Get statistics
+   */
+  getStats() {
     return {
-      version: '1.0.0',
-      exportDate: new Date().toISOString(),
-      templates: templatesToExport.map(t => t.toJSON())
-    };
-  }
-
-  // Library import qilish
-  importLibrary(libraryData) {
-    const imported = [];
-    const errors = [];
-
-    if (!libraryData.templates || !Array.isArray(libraryData.templates)) {
-      throw new Error('Noto\'g\'ri library formati');
+      gateCount: this.internalCircuit.gates?.length || 0,
+      wireCount: this.internalCircuit.wires?.length || 0,
+      inputCount: this.inputs.length,
+      outputCount: this.outputs.length,
+      complexity: this.performanceHints.complexity,
+      canCache: this.performanceHints.canCache
     }
-
-    for (const templateData of libraryData.templates) {
-      try {
-        const template = SubcircuitTemplate.fromJSON(templateData);
-        this.addTemplate(template, templateData.isGlobal);
-        imported.push(template);
-      } catch (error) {
-        errors.push(`Template "${templateData.name}" import xatosi: ${error.message}`);
-      }
-    }
-
-    return { imported, errors };
   }
 }
 
-// Tanlangan gate'lardan subcircuit yaratish
-export function createSubcircuitFromSelection(selectedGates, allWires, name = 'New Subcircuit') {
-  if (!selectedGates || selectedGates.length === 0) {
-    throw new Error('Gate\'lar tanlanmagan');
-  }
+/**
+ * Create subcircuit from selected gates - REFACTORED
+ * Smart port mapping va robust validation bilan
+ */
+export function createSubcircuitFromSelection(selectedGates, allWires, name = null, options = {}) {
+  const {
+    autoDetectPorts = true,
+    optimizePorts = true,
+    validateResult = true,
+    smartNaming = true
+  } = options
 
-  const selectedGateIds = new Set(selectedGates.map(g => g.id));
-
-  // Ichki va tashqi wire'larni ajratish
-  const internalWires = [];
-  const externalInputs = [];
-  const externalOutputs = [];
-
-  for (const wire of allWires) {
-    const fromSelected = selectedGateIds.has(wire.fromGate);
-    const toSelected = selectedGateIds.has(wire.toGate);
-
-    if (fromSelected && toSelected) {
-      // Ichki wire
-      internalWires.push(wire);
-    } else if (!fromSelected && toSelected) {
-      // Tashqi input
-      externalInputs.push({
-        wire: wire,
-        targetGate: wire.toGate,
-        targetIndex: wire.toIndex
-      });
-    } else if (fromSelected && !toSelected) {
-      // Tashqi output
-      externalOutputs.push({
-        wire: wire,
-        sourceGate: wire.fromGate,
-        sourceIndex: wire.fromIndex
-      });
+  // Step 1: Validate selection
+  const selectionValidation = validateSelection(selectedGates, allWires, selectedGates, allWires)
+  if (!selectionValidation.valid) {
+    console.error('Selection validation failed:', selectionValidation.errors)
+    return {
+      success: false,
+      errors: selectionValidation.errors,
+      warnings: selectionValidation.warnings
     }
   }
 
-  // Input/Output portlarni yaratish
-  const inputs = externalInputs.map((ext, index) => ({
-    name: `IN${index}`,
-    index: index,
-    connectedGate: ext.targetGate,
-    connectedIndex: ext.targetIndex
-  }));
+  // Step 2: Sanitize input data
+  const sanitizedGates = sanitizeGates(selectedGates)
+  const selectedGateIds = new Set(sanitizedGates.map(g => g.id))
 
-  const outputs = externalOutputs.map((ext, index) => ({
-    name: `OUT${index}`,
-    index: index,
-    connectedGate: ext.sourceGate,
-    connectedIndex: ext.sourceIndex
-  }));
+  // Step 3: Create port mapping
+  const portMapping = createPortMapping(sanitizedGates, allWires, {
+    autoDetect: autoDetectPorts,
+    optimize: optimizePorts,
+    validate: validateResult
+  })
 
-  // Pozitsiyalarni normalize qilish (0,0 dan boshlash)
-  const minX = Math.min(...selectedGates.map(g => g.x));
-  const minY = Math.min(...selectedGates.map(g => g.y));
+  if (!portMapping.validation.valid) {
+    console.error('Port mapping validation failed:', portMapping.validation.errors)
+    return {
+      success: false,
+      errors: portMapping.validation.errors,
+      warnings: portMapping.validation.warnings
+    }
+  }
 
-  const normalizedGates = selectedGates.map(gate => ({
+  // Step 4: Filter internal wires
+  const internalWires = allWires.filter(wire => {
+    return selectedGateIds.has(wire.fromGate) && selectedGateIds.has(wire.toGate)
+  })
+
+  // Step 5: Normalize gate positions
+  const bounds = calculateSafeBounds(sanitizedGates)
+  const normalizedGates = sanitizedGates.map(gate => ({
     ...gate,
-    x: gate.x - minX,
-    y: gate.y - minY
-  }));
+    x: gate.x - bounds.minX,
+    y: gate.y - bounds.minY
+  }))
 
-  const bounds = normalizedGates.reduce(
-    (acc, gate) => {
-      const gateWidth = gate.width ?? 80
-      const gateHeight = gate.height ?? 60
+  // Step 6: Generate smart name if needed
+  const finalName = name || generateSmartName(sanitizedGates)
 
-      return {
-        minX: Math.min(acc.minX, gate.x),
-        minY: Math.min(acc.minY, gate.y),
-        maxX: Math.max(acc.maxX, gate.x + gateWidth),
-        maxY: Math.max(acc.maxY, gate.y + gateHeight)
-      }
-    },
-    {
-      minX: normalizedGates.length > 0 ? normalizedGates[0].x : 0,
-      minY: normalizedGates.length > 0 ? normalizedGates[0].y : 0,
-      maxX: normalizedGates.length > 0 ? normalizedGates[0].x + (normalizedGates[0].width ?? 80) : 0,
-      maxY: normalizedGates.length > 0 ? normalizedGates[0].y + (normalizedGates[0].height ?? 60) : 0
-    }
-  )
-
-  const internalBounds = {
-    minX: bounds.minX,
-    minY: bounds.minY,
-    maxX: bounds.maxX,
-    maxY: bounds.maxY,
-    width: bounds.maxX - bounds.minX,
-    height: bounds.maxY - bounds.minY
-  }
-  internalBounds.centerX = internalBounds.minX + internalBounds.width / 2
-  internalBounds.centerY = internalBounds.minY + internalBounds.height / 2
-
-  // Subcircuit template yaratish
+  // Step 7: Create template
   const template = new SubcircuitTemplate({
-    name: name,
-    description: `${selectedGates.length} ta gate'dan iborat subcircuit`,
-    icon: name.substring(0, 3).toUpperCase(),
+    name: finalName,
+    description: `Created from ${sanitizedGates.length} gates`,
+    icon: finalName.substring(0, 3).toUpperCase(),
     category: 'custom',
-    inputs: inputs,
-    outputs: outputs,
+    inputs: portMapping.legacy.inputs,
+    outputs: portMapping.legacy.outputs,
     internalCircuit: {
       gates: normalizedGates,
-      wires: internalWires,
-      bounds: internalBounds
+      wires: sanitizeWires(internalWires),
+      bounds: {
+        ...bounds,
+        minX: 0,
+        minY: 0,
+        maxX: bounds.width,
+        maxY: bounds.height
+      }
+    },
+    width: Math.max(120, Math.min(200, bounds.width / 2)),
+    height: Math.max(80, Math.max(portMapping.inputPorts.length, portMapping.outputPorts.length) * 30),
+    performanceHints: {
+      canCache: true,
+      estimatedGateCount: normalizedGates.length,
+      hasRecursion: false,
+      complexity: getComplexity(normalizedGates.length, internalWires.length)
     }
-  });
+  })
 
+  // Step 8: Final validation
+  if (validateResult) {
+    const finalValidation = template.validate()
+    if (!finalValidation.valid) {
+      console.error('Template validation failed:', finalValidation.errors)
+      return {
+        success: false,
+        errors: finalValidation.errors,
+        warnings: finalValidation.warnings
+      }
+    }
+  }
+
+  // Return success result
   return {
-    template: template,
-    externalInputs: externalInputs,
-    externalOutputs: externalOutputs
-  };
+    success: true,
+    template,
+    portMapping,
+    stats: {
+      gateCount: normalizedGates.length,
+      wireCount: internalWires.length,
+      inputCount: portMapping.inputPorts.length,
+      outputCount: portMapping.outputPorts.length
+    },
+    warnings: [...selectionValidation.warnings, ...portMapping.validation.warnings]
+  }
 }
 
-// Subcircuit simulyatsiya funksiyasi
+/**
+ * Generate smart name for subcircuit
+ */
+function generateSmartName(gates) {
+  const gateTypes = [...new Set(gates.map(g => g.type))]
+
+  if (gateTypes.length === 1) {
+    return `${gateTypes[0]} Module`
+  } else if (gateTypes.length === 2) {
+    return `${gateTypes[0]}-${gateTypes[1]} Circuit`
+  } else {
+    const dominant = getMostFrequentGateType(gates)
+    return `${dominant} Complex`
+  }
+}
+
+/**
+ * Get most frequent gate type
+ */
+function getMostFrequentGateType(gates) {
+  const counts = {}
+  gates.forEach(gate => {
+    counts[gate.type] = (counts[gate.type] || 0) + 1
+  })
+
+  let maxCount = 0
+  let dominant = 'Mixed'
+
+  Object.entries(counts).forEach(([type, count]) => {
+    if (count > maxCount) {
+      maxCount = count
+      dominant = type
+    }
+  })
+
+  return dominant
+}
+
+/**
+ * Get complexity rating
+ */
+function getComplexity(gateCount, wireCount) {
+  const total = gateCount + wireCount
+
+  if (total < 10) return 'simple'
+  if (total < 50) return 'moderate'
+  return 'complex'
+}
+
+/**
+ * Simulate subcircuit - PLACEHOLDER
+ * To'liq implementation subcircuitSimulation.js da bo'ladi
+ */
 export function simulateSubcircuit(subcircuitGate, inputSignals, templateManager) {
-  const template = templateManager.getTemplate(subcircuitGate.templateId);
+  const template = templateManager.getTemplate(subcircuitGate.templateId)
+
   if (!template) {
-    console.error('Subcircuit template topilmadi:', subcircuitGate.templateId);
-    return new Array(subcircuitGate.outputs.length).fill(0);
+    console.error('Template topilmadi:', subcircuitGate.templateId)
+    return new Array(subcircuitGate.outputs.length).fill(0)
   }
 
-  // INPUT gate'larni yangilash
-  const internalGates = [...subcircuitGate.internalGates];
-  const internalWires = [...subcircuitGate.internalWires];
-
-  // Tashqi input signallarini ichki INPUT gate'larga ulash
-  for (let i = 0; i < template.inputs.length; i++) {
-    const inputPort = template.inputs[i];
-    const signal = inputSignals[i] || 0;
-
-    // INPUT port bilan bog'langan ichki gate'ni topish
-    const connectedWires = internalWires.filter(w =>
-      w.fromGate === `INPUT_${inputPort.index}`
-    );
-
-    // Signal'ni yangilash
-    for (const wire of connectedWires) {
-      wire.signal = signal;
-    }
+  // Validate inputs
+  if (inputSignals.length !== template.inputs.length) {
+    console.error('Input signal count mismatch')
+    return new Array(template.outputs.length).fill(0)
   }
 
-  // Ichki simulyatsiyani bajarish (recursive)
-  // Bu yerda SimulationEngine'dan foydalanish kerak
-  // Hozircha soddalashtirilgan versiya
+  // TODO: Full simulation will be implemented in subcircuitSimulation.js
+  console.warn('Subcircuit simulation not yet implemented - returning zeros')
 
-  const outputSignals = new Array(template.outputs.length).fill(0);
-
-  // OUTPUT gate'lardan signallarni olish
-  for (let i = 0; i < template.outputs.length; i++) {
-    const outputPort = template.outputs[i];
-
-    // OUTPUT port bilan bog'langan ichki gate'ni topish
-    const connectedWires = internalWires.filter(w =>
-      w.toGate === `OUTPUT_${outputPort.index}`
-    );
-
-    if (connectedWires.length > 0) {
-      outputSignals[i] = connectedWires[0].signal || 0;
-    }
-  }
-
-  return outputSignals;
+  return new Array(template.outputs.length).fill(0)
 }
 
-// Default kutubxona template'lari
-export function createDefaultTemplates() {
-  const templates = [];
+/**
+ * Migrate old template format to new format
+ */
+export function migrateTemplate(oldTemplate) {
+  // Check if already migrated
+  if (oldTemplate.performanceHints) {
+    return oldTemplate
+  }
 
-  // Half Adder
-  templates.push(new SubcircuitTemplate({
-    name: 'Half Adder',
-    description: '1-bit half adder (A + B = Sum, Carry)',
-    icon: 'HA',
-    category: 'arithmetic',
-    isGlobal: true,
-    inputs: [
-      { name: 'A', index: 0 },
-      { name: 'B', index: 1 }
-    ],
-    outputs: [
-      { name: 'Sum', index: 0 },
-      { name: 'Carry', index: 1 }
-    ]
-  }));
+  // Create new template with migration
+  const migrated = new SubcircuitTemplate({
+    ...oldTemplate,
+    performanceHints: {
+      canCache: true,
+      estimatedGateCount: oldTemplate.internalCircuit?.gates?.length || 0,
+      hasRecursion: false,
+      complexity: 'simple'
+    }
+  })
 
-  // Full Adder
-  templates.push(new SubcircuitTemplate({
-    name: 'Full Adder',
-    description: '1-bit full adder (A + B + Cin = Sum, Cout)',
-    icon: 'FA',
-    category: 'arithmetic',
-    isGlobal: true,
-    inputs: [
-      { name: 'A', index: 0 },
-      { name: 'B', index: 1 },
-      { name: 'Cin', index: 2 }
-    ],
-    outputs: [
-      { name: 'Sum', index: 0 },
-      { name: 'Cout', index: 1 }
-    ]
-  }));
+  // Ensure ports have proper structure
+  migrated.inputs = migrated.inputs.map((input, index) => {
+    if (typeof input === 'string') {
+      return {
+        name: input,
+        index: index,
+        connectedGate: null,
+        connectedIndex: 0
+      }
+    }
+    return input
+  })
 
-  // SR Latch
-  templates.push(new SubcircuitTemplate({
-    name: 'SR Latch',
-    description: 'Set-Reset Latch memory element',
-    icon: 'SR',
-    category: 'memory',
-    isGlobal: true,
-    inputs: [
-      { name: 'S', index: 0 },
-      { name: 'R', index: 1 }
-    ],
-    outputs: [
-      { name: 'Q', index: 0 },
-      { name: 'Q\'', index: 1 }
-    ]
-  }));
+  migrated.outputs = migrated.outputs.map((output, index) => {
+    if (typeof output === 'string') {
+      return {
+        name: output,
+        index: index,
+        connectedGate: null,
+        connectedIndex: 0
+      }
+    }
+    return output
+  })
 
-  // D Flip-Flop
-  templates.push(new SubcircuitTemplate({
-    name: 'D Flip-Flop',
-    description: 'Data Flip-Flop with clock',
-    icon: 'DFF',
-    category: 'memory',
-    isGlobal: true,
-    inputs: [
-      { name: 'D', index: 0 },
-      { name: 'CLK', index: 1 }
-    ],
-    outputs: [
-      { name: 'Q', index: 0 },
-      { name: 'Q\'', index: 1 }
-    ]
-  }));
+  return migrated
+}
 
-  // Multiplexer 2:1
-  templates.push(new SubcircuitTemplate({
-    name: '2:1 MUX',
-    description: '2-to-1 Multiplexer',
-    icon: 'MX2',
-    category: 'logic',
-    isGlobal: true,
-    inputs: [
-      { name: 'I0', index: 0 },
-      { name: 'I1', index: 1 },
-      { name: 'S', index: 2 }
-    ],
-    outputs: [
-      { name: 'Y', index: 0 }
-    ]
-  }));
+/**
+ * Batch create subcircuits
+ */
+export function batchCreateSubcircuits(selections, allWires, options = {}) {
+  const results = []
 
-  // Decoder 2:4
-  templates.push(new SubcircuitTemplate({
-    name: '2:4 Decoder',
-    description: '2-to-4 line decoder',
-    icon: 'DEC',
-    category: 'logic',
-    isGlobal: true,
-    inputs: [
-      { name: 'A0', index: 0 },
-      { name: 'A1', index: 1 },
-      { name: 'EN', index: 2 }
-    ],
-    outputs: [
-      { name: 'Y0', index: 0 },
-      { name: 'Y1', index: 1 },
-      { name: 'Y2', index: 2 },
-      { name: 'Y3', index: 3 }
-    ]
-  }));
+  selections.forEach((selection, index) => {
+    const result = createSubcircuitFromSelection(
+      selection.gates,
+      allWires,
+      selection.name || `Subcircuit ${index + 1}`,
+      options
+    )
+    results.push(result)
+  })
 
-  return templates;
+  return results
 }
 
 export default {
   SubcircuitTemplate,
-  SubcircuitManager,
   createSubcircuitFromSelection,
   simulateSubcircuit,
-  createDefaultTemplates
-};
+  migrateTemplate,
+  batchCreateSubcircuits
+}

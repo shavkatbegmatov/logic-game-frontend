@@ -45,27 +45,46 @@ const QuickCreate = ({ onComplete, onCancel }) => {
         : `Complex Circuit ${Date.now() % 1000}`
 
       try {
+        // Yangi refactored engine ishlatish
         const result = createSubcircuitFromSelection(
           selectedGates,
           selectedWires || [],
-          smartName
+          smartName,
+          {
+            autoDetectPorts: true,
+            optimizePorts: true,
+            validateResult: true,
+            smartNaming: true
+          }
         )
 
-        console.log('QuickCreate: Subcircuit created successfully')
+        console.log('QuickCreate: Subcircuit creation result:', result)
 
-        if (result && result.template) {
-          result.template.description = `Auto-generated from ${selectedGates.length} gates`
-          result.template.icon = smartName.substring(0, 3).toUpperCase()
-          result.template.category = 'custom'
+        if (result && result.success && result.template) {
+          // Show warnings if any
+          if (result.warnings && result.warnings.length > 0) {
+            console.warn('QuickCreate warnings:', result.warnings)
+          }
 
           SoundManager.playSuccess()
 
           setTimeout(() => {
-            console.log('QuickCreate: Calling onComplete')
+            console.log('QuickCreate: Calling onComplete with template')
             onComplete(result.template)
           }, 800)
+        } else if (result && !result.success) {
+          // Xatoliklarni ko'rsatish
+          console.error('QuickCreate: Creation failed', result.errors)
+          SoundManager.playError()
+
+          // Foydalanuvchiga xatolik haqida xabar berish mumkin
+          if (result.errors && result.errors.length > 0) {
+            alert(`Subcircuit yaratishda xatolik:\n${result.errors.join('\n')}`)
+          }
+
+          onCancel()
         } else {
-          console.error('QuickCreate: Result yoki template mavjud emas')
+          console.error('QuickCreate: Unexpected result structure')
           SoundManager.playError()
           onCancel()
         }
