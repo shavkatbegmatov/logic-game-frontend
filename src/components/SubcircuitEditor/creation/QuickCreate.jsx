@@ -6,34 +6,52 @@ import { createSubcircuitFromSelection } from '../../../engine/subcircuits'
 import SoundManager from '../effects/SoundManager'
 
 const QuickCreate = ({ onComplete, onCancel }) => {
-  const { creationData, updateCreationData } = useSubcircuitEditorStore()
+  const [isProcessing, setIsProcessing] = React.useState(false)
+  const [retryCount, setRetryCount] = React.useState(0)
+  const hasStarted = React.useRef(false)
 
   useEffect(() => {
+    // Faqat bir marta ishga tushirish
+    if (hasStarted.current) return
+    hasStarted.current = true
+
     // Auto-create with smart defaults
     const autoCreate = async () => {
-      // creationData validatsiyasi
-      if (!creationData || !creationData.selectedGates) {
-        console.warn('QuickCreate: creationData yoki selectedGates mavjud emas')
-        // Biroz kutib, yana tekshirib ko'ramiz
-        setTimeout(() => {
-          const currentData = useSubcircuitEditorStore.getState().creationData
-          if (!currentData || !currentData.selectedGates || currentData.selectedGates.length === 0) {
-            console.error('QuickCreate: Gate\'lar topilmadi')
-            SoundManager.playError()
-            onCancel()
-          }
-        }, 100)
-        return
+      console.log('QuickCreate: autoCreate started')
+      setIsProcessing(true)
+
+      // Store'dan to'g'ridan-to'g'ri ma'lumot olish
+      const storeState = useSubcircuitEditorStore.getState()
+      const { creationData, isEditing, editingMode } = storeState
+
+      console.log('QuickCreate: Store state:', {
+        isEditing,
+        editingMode,
+        hasCreationData: !!creationData,
+        selectedGatesCount: creationData?.selectedGates?.length || 0
+      })
+
+      // Ma'lumotlar hali yuklanmagan bo'lsa, kutamiz
+      if (!creationData || !creationData.selectedGates || creationData.selectedGates.length === 0) {
+        if (retryCount < 3) {
+          console.warn(`QuickCreate: Ma'lumot topilmadi, retry ${retryCount + 1}/3`)
+          setRetryCount(retryCount + 1)
+          setTimeout(() => {
+            hasStarted.current = false
+            setIsProcessing(false)
+          }, 200)
+          return
+        } else {
+          console.error('QuickCreate: Gate\'lar topilmadi, bekor qilinmoqda')
+          SoundManager.playError()
+          onCancel()
+          return
+        }
       }
 
       const { selectedGates, selectedWires } = creationData
 
-      if (selectedGates.length === 0) {
-        console.error('QuickCreate: Tanlangan gate\'lar bo\'sh')
-        SoundManager.playError()
-        onCancel()
-        return
-      }
+      console.log('QuickCreate: Processing gates:', selectedGates.length)
 
       // Generate smart name based on gates
       const gateTypes = [...new Set(selectedGates.map(g => g.type))]
@@ -49,6 +67,8 @@ const QuickCreate = ({ onComplete, onCancel }) => {
           smartName
         )
 
+        console.log('QuickCreate: Subcircuit created successfully')
+
         if (result && result.template) {
           // Quick customization
           result.template.description = `Auto-generated from ${selectedGates.length} gates`
@@ -60,10 +80,11 @@ const QuickCreate = ({ onComplete, onCancel }) => {
 
           // Complete after brief animation
           setTimeout(() => {
+            console.log('QuickCreate: Calling onComplete')
             onComplete(result.template)
-          }, 500)
+          }, 800)
         } else {
-          console.error('QuickCreate: Subcircuit yaratishda xato')
+          console.error('QuickCreate: Result yoki template mavjud emas')
           SoundManager.playError()
           onCancel()
         }
@@ -74,13 +95,13 @@ const QuickCreate = ({ onComplete, onCancel }) => {
       }
     }
 
-    // Kichik timeout qo'shamiz, store yangilanishini kutish uchun
+    // Ma'lumotlar tayyor bo'lguncha kichik kutish
     const timeoutId = setTimeout(() => {
       autoCreate()
-    }, 50)
+    }, 100)
 
     return () => clearTimeout(timeoutId)
-  }, [creationData, onComplete, onCancel])
+  }, [retryCount, onComplete, onCancel])
 
   return (
     <motion.div
@@ -104,9 +125,13 @@ const QuickCreate = ({ onComplete, onCancel }) => {
         transition={{ delay: 0.3 }}
         className="absolute mt-48 text-center"
       >
-        <p className="text-lg font-semibold text-white">Quick Creating...</p>
+        <p className="text-lg font-semibold text-white">
+          {isProcessing ? 'Creating Subcircuit...' : 'Preparing...'}
+        </p>
         <p className="mt-1 text-sm text-gray-400">
-          {creationData.selectedGates?.length || 0} gates
+          {isProcessing && useSubcircuitEditorStore.getState().creationData?.selectedGates?.length
+            ? `${useSubcircuitEditorStore.getState().creationData.selectedGates.length} gates`
+            : 'Loading...'}
         </p>
       </motion.div>
     </motion.div>

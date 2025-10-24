@@ -69,8 +69,23 @@ const SubcircuitEditorManager = () => {
 
   // Sync activeCreationFlow with store creationMethod
   useEffect(() => {
+    console.log('SubcircuitEditorManager: Sync effect', {
+      isEditing,
+      editingMode,
+      creationMethod,
+      activeCreationFlow,
+      shouldSync: isEditing && editingMode === 'create' && creationMethod && !activeCreationFlow
+    })
+
     if (isEditing && editingMode === 'create' && creationMethod && !activeCreationFlow) {
+      console.log('SubcircuitEditorManager: Setting activeCreationFlow to', creationMethod)
       setActiveCreationFlow(creationMethod)
+    }
+
+    // Agar editing to'xtatilsa, activeCreationFlow'ni tozalash
+    if (!isEditing && activeCreationFlow) {
+      console.log('SubcircuitEditorManager: Clearing activeCreationFlow')
+      setActiveCreationFlow(null)
     }
   }, [isEditing, editingMode, creationMethod, activeCreationFlow])
 
@@ -149,12 +164,30 @@ const SubcircuitEditorManager = () => {
       return
     }
 
-    startCreation(method || 'quick', {
+    const methodToUse = method || 'quick'
+
+    // Store'ga ma'lumotlarni saqlash
+    startCreation(methodToUse, {
       selectedGates: selectedGateObjects,
       selectedWires: selectedWireObjects
     })
 
-    setActiveCreationFlow(method || 'quick')
+    // Store yangilanishini kutish, keyin activeCreationFlow o'rnatish
+    setTimeout(() => {
+      console.log('handleCreateSubcircuit: Setting activeCreationFlow to', methodToUse)
+      setActiveCreationFlow(methodToUse)
+
+      // Store holatini tekshirish
+      const storeState = useSubcircuitEditorStore.getState()
+      console.log('handleCreateSubcircuit: Store state after creation:', {
+        isEditing: storeState.isEditing,
+        editingMode: storeState.editingMode,
+        creationMethod: storeState.creationMethod,
+        hasCreationData: !!storeState.creationData,
+        selectedGatesInStore: storeState.creationData?.selectedGates?.length || 0
+      })
+    }, 0)
+
     if (enableSounds) SoundManager.playClick()
   }, [selectedGates, gates, wires, startCreation, enableSounds])
 
@@ -216,11 +249,16 @@ const SubcircuitEditorManager = () => {
 
   // Render creation flow
   const renderCreationFlow = () => {
-    if (!activeCreationFlow) return null
+    if (!activeCreationFlow) {
+      console.log('renderCreationFlow: No activeCreationFlow')
+      return null
+    }
+
+    console.log('renderCreationFlow: Rendering', activeCreationFlow)
 
     const props = {
       onComplete: (template) => {
-        console.log('QuickCreate completed with template:', template)
+        console.log('Creation flow completed with template:', template)
         addTemplate(template)
         setActiveCreationFlow(null)
         stopEditing()
@@ -228,7 +266,7 @@ const SubcircuitEditorManager = () => {
         if (enableSounds) SoundManager.playSuccess()
       },
       onCancel: () => {
-        console.warn('QuickCreate cancelled, resetting state')
+        console.warn('Creation flow cancelled, resetting state')
         setActiveCreationFlow(null)
         stopEditing()
         if (enableSounds) SoundManager.playCancel()
@@ -245,6 +283,7 @@ const SubcircuitEditorManager = () => {
       case 'visual':
         return <VisualBoundaryCreate {...props} />
       default:
+        console.warn('renderCreationFlow: Unknown method, using QuickCreate')
         return <QuickCreate {...props} />
     }
   }
