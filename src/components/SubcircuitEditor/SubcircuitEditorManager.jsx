@@ -124,7 +124,11 @@ const SubcircuitEditorManager = () => {
 
   // Handle subcircuit creation
   const handleCreateSubcircuit = useCallback((method) => {
+    console.log('handleCreateSubcircuit called with method:', method)
+    console.log('Selected gates count:', selectedGates.length)
+
     if (selectedGates.length === 0) {
+      console.error('No gates selected for subcircuit creation')
       if (enableSounds) SoundManager.playError()
       return
     }
@@ -135,12 +139,22 @@ const SubcircuitEditorManager = () => {
       return selectedIds.has(w.fromGate) || selectedIds.has(w.toGate)
     })
 
-    startCreation(method, {
+    console.log('Selected gate objects:', selectedGateObjects)
+    console.log('Selected wire objects:', selectedWireObjects)
+
+    // Ma'lumotlarni store'ga saqlashdan oldin tekshirish
+    if (selectedGateObjects.length === 0) {
+      console.error('Gate objects not found for selected IDs')
+      if (enableSounds) SoundManager.playError()
+      return
+    }
+
+    startCreation(method || 'quick', {
       selectedGates: selectedGateObjects,
       selectedWires: selectedWireObjects
     })
 
-    setActiveCreationFlow(method)
+    setActiveCreationFlow(method || 'quick')
     if (enableSounds) SoundManager.playClick()
   }, [selectedGates, gates, wires, startCreation, enableSounds])
 
@@ -206,6 +220,7 @@ const SubcircuitEditorManager = () => {
 
     const props = {
       onComplete: (template) => {
+        console.log('QuickCreate completed with template:', template)
         addTemplate(template)
         setActiveCreationFlow(null)
         stopEditing()
@@ -213,6 +228,7 @@ const SubcircuitEditorManager = () => {
         if (enableSounds) SoundManager.playSuccess()
       },
       onCancel: () => {
+        console.warn('QuickCreate cancelled, resetting state')
         setActiveCreationFlow(null)
         stopEditing()
         if (enableSounds) SoundManager.playCancel()

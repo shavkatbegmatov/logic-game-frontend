@@ -11,9 +11,26 @@ const QuickCreate = ({ onComplete, onCancel }) => {
   useEffect(() => {
     // Auto-create with smart defaults
     const autoCreate = async () => {
+      // creationData validatsiyasi
+      if (!creationData || !creationData.selectedGates) {
+        console.warn('QuickCreate: creationData yoki selectedGates mavjud emas')
+        // Biroz kutib, yana tekshirib ko'ramiz
+        setTimeout(() => {
+          const currentData = useSubcircuitEditorStore.getState().creationData
+          if (!currentData || !currentData.selectedGates || currentData.selectedGates.length === 0) {
+            console.error('QuickCreate: Gate\'lar topilmadi')
+            SoundManager.playError()
+            onCancel()
+          }
+        }, 100)
+        return
+      }
+
       const { selectedGates, selectedWires } = creationData
 
-      if (!selectedGates || selectedGates.length === 0) {
+      if (selectedGates.length === 0) {
+        console.error('QuickCreate: Tanlangan gate\'lar bo\'sh')
+        SoundManager.playError()
         onCancel()
         return
       }
@@ -28,7 +45,7 @@ const QuickCreate = ({ onComplete, onCancel }) => {
       try {
         const result = createSubcircuitFromSelection(
           selectedGates,
-          selectedWires,
+          selectedWires || [],
           smartName
         )
 
@@ -45,6 +62,10 @@ const QuickCreate = ({ onComplete, onCancel }) => {
           setTimeout(() => {
             onComplete(result.template)
           }, 500)
+        } else {
+          console.error('QuickCreate: Subcircuit yaratishda xato')
+          SoundManager.playError()
+          onCancel()
         }
       } catch (error) {
         console.error('Quick create xatosi:', error)
@@ -53,8 +74,13 @@ const QuickCreate = ({ onComplete, onCancel }) => {
       }
     }
 
-    autoCreate()
-  }, [])
+    // Kichik timeout qo'shamiz, store yangilanishini kutish uchun
+    const timeoutId = setTimeout(() => {
+      autoCreate()
+    }, 50)
+
+    return () => clearTimeout(timeoutId)
+  }, [creationData, onComplete, onCancel])
 
   return (
     <motion.div

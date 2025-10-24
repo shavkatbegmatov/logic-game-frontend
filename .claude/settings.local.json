@@ -13,7 +13,8 @@
       "Bash(rename \"D:\\PROJECTS\\!LOGIC_GAME\\logic-game-frontend\\src\\store\\achievementStore.js\" achievementStore.jsx)",
       "Bash(cmd /c \"ren \"\"D:\\PROJECTS\\!LOGIC_GAME\\logic-game-frontend\\src\\store\\achievementStore.js\"\" achievementStore.jsx\")",
       "Bash(dir:*)",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

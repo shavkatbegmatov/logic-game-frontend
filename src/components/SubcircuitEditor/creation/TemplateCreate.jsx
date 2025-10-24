@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Package, Clock, Cpu, Memory, Shield, Wifi, Layers, Search, Star, TrendingUp } from 'lucide-react'
+import { Package, Clock, Cpu, HardDrive, Shield, Wifi, Layers, Search, Star, TrendingUp } from 'lucide-react'
 import { createSubcircuitFromSelection } from '../../../engine/subcircuits'
 import SoundManager from '../effects/SoundManager'
 import useSubcircuitEditorStore from '../../../store/subcircuitEditorStore'
@@ -104,7 +104,7 @@ const TemplateCreate = ({ onComplete, onCancel }) => {
     { id: 'arithmetic', name: 'Arithmetic', icon: Cpu },
     { id: 'selection', name: 'Selection', icon: Package },
     { id: 'conversion', name: 'Conversion', icon: Wifi },
-    { id: 'memory', name: 'Memory', icon: Memory },
+    { id: 'memory', name: 'Memory', icon: HardDrive },
     { id: 'sequential', name: 'Sequential', icon: Clock }
   ]
 
