@@ -16,52 +16,10 @@ class SoundManager {
   async init() {
     if (this.initialized) return;
 
-    // Load all sound effects
-    this.sounds = {
-      gateClick: new Howl({
-        src: [`/sounds/${SOUNDS.gateClick}`],
-        volume: 0.5,
-        preload: true,
-      }),
-      wireConnect: new Howl({
-        src: [`/sounds/${SOUNDS.wireConnect}`],
-        volume: 0.6,
-        preload: true,
-      }),
-      signalPass: new Howl({
-        src: [`/sounds/${SOUNDS.signalPass}`],
-        volume: 0.4,
-        loop: true,
-      }),
-      achievement: new Howl({
-        src: [`/sounds/${SOUNDS.achievement}`],
-        volume: 0.8,
-        preload: true,
-      }),
-      levelComplete: new Howl({
-        src: [`/sounds/${SOUNDS.levelComplete}`],
-        volume: 1.0,
-        preload: true,
-      }),
-      error: new Howl({
-        src: [`/sounds/${SOUNDS.error}`],
-        volume: 0.6,
-        preload: true,
-      }),
-      ambientSpace: new Howl({
-        src: [`/sounds/${SOUNDS.ambientSpace}`],
-        volume: this.ambientVolume,
-        loop: true,
-        preload: true,
-      }),
-      clockTick: new Howl({
-        src: [`/sounds/${SOUNDS.clockTick}`],
-        volume: 0.3,
-        preload: true,
-      }),
-    };
+    // Skip loading sound files - use only synthetic sounds
+    // This prevents 404 errors when sound files are not present
+    this.sounds = {};
 
-    // For now, we'll use placeholder sounds - you can replace with actual sound files
     // Creating synthetic sounds as placeholders
     this.createSyntheticSounds();
 

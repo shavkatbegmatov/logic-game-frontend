@@ -3,6 +3,7 @@ import useUserPreferencesStore from '../../store/userPreferencesStore'
 import useSubcircuitEditorStore from '../../store/subcircuitEditorStore'
 import useGameStore from '../../store/gameStore'
 import useSubcircuitStore from '../../store/subcircuitStore'
+import SoundManager from './effects/SoundManager'
 
 // Lazy imports with fallbacks
 const InlineCanvasMode = React.lazy(() => import('./modes/InlineCanvasMode'))
@@ -18,8 +19,6 @@ const VisualBoundaryCreate = React.lazy(() => import('./creation/VisualBoundaryC
 const EditorModeSelector = React.lazy(() => import('./ui/EditorModeSelector'))
 const EditorToolbar = React.lazy(() => import('./ui/EditorToolbar'))
 const BreadcrumbNav = React.lazy(() => import('./ui/BreadcrumbNav'))
-
-const SoundManager = React.lazy(() => import('./effects/SoundManager'))
 const AnimationController = React.lazy(() => import('./effects/AnimationController'))
 
 const SubcircuitEditorManager = () => {

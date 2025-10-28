@@ -14,7 +14,8 @@
       "Bash(cmd /c \"ren \"\"D:\\PROJECTS\\!LOGIC_GAME\\logic-game-frontend\\src\\store\\achievementStore.js\"\" achievementStore.jsx\")",
       "Bash(dir:*)",
       "Bash(powershell -Command:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
