@@ -69,26 +69,31 @@ const SubcircuitEditorManager = () => {
   }, [hasChosenEditorMode, isFirstTime])
 
   // Sync activeCreationFlow with store creationMethod
+  // FIXED: Removed activeCreationFlow from dependency array to prevent infinite loop
   useEffect(() => {
-    console.log('SubcircuitEditorManager: Sync effect', {
-      isEditing,
-      editingMode,
-      creationMethod,
-      activeCreationFlow,
-      shouldSync: isEditing && editingMode === 'create' && creationMethod && !activeCreationFlow
-    })
-
-    if (isEditing && editingMode === 'create' && creationMethod && !activeCreationFlow) {
-      console.log('SubcircuitEditorManager: Setting activeCreationFlow to', creationMethod)
-      setActiveCreationFlow(creationMethod)
+    // Set activeCreationFlow when entering create mode
+    if (isEditing && editingMode === 'create' && creationMethod) {
+      setActiveCreationFlow(prev => {
+        // Only update if it's different to avoid unnecessary re-renders
+        if (prev !== creationMethod) {
+          console.log('SubcircuitEditorManager: Setting activeCreationFlow to', creationMethod)
+          return creationMethod
+        }
+        return prev
+      })
     }
 
-    // Agar editing to'xtatilsa, activeCreationFlow'ni tozalash
-    if (!isEditing && activeCreationFlow) {
-      console.log('SubcircuitEditorManager: Clearing activeCreationFlow')
-      setActiveCreationFlow(null)
+    // Clear activeCreationFlow when exiting edit mode
+    if (!isEditing) {
+      setActiveCreationFlow(prev => {
+        if (prev !== null) {
+          console.log('SubcircuitEditorManager: Clearing activeCreationFlow')
+          return null
+        }
+        return prev
+      })
     }
-  }, [isEditing, editingMode, creationMethod, activeCreationFlow])
+  }, [isEditing, editingMode, creationMethod])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -315,11 +320,8 @@ const SubcircuitEditorManager = () => {
   const renderEditor = () => {
     // Faqat edit mode'da editor'ni ko'rsatish (creation mode'da emas)
     if (!isEditing || editingMode !== 'edit') {
-      console.log('renderEditor: Not rendering', { isEditing, editingMode })
       return null
     }
-
-    console.log('renderEditor: Rendering editor with mode:', editorMode)
 
     const props = {
       onClose: handleExitEditMode,
@@ -344,11 +346,8 @@ const SubcircuitEditorManager = () => {
   // Render creation flow
   const renderCreationFlow = () => {
     if (!activeCreationFlow) {
-      console.log('renderCreationFlow: No activeCreationFlow')
       return null
     }
-
-    console.log('renderCreationFlow: Rendering', activeCreationFlow)
 
     const props = {
       onComplete: (template) => {
