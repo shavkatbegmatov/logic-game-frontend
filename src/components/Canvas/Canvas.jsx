@@ -7,6 +7,7 @@ import SpaceWireComponent from '../Wires/SpaceWireComponent'
 import SubcircuitEditorManager from '../SubcircuitEditor/SubcircuitEditorManager'
 import { createGate, gateConfigs, GateTypes } from '../../engine/gates'
 import { runSimulation } from '../../engine/simulation'
+import { normalizeKeyEvent } from '../../utils/keyboard'
 
 const Canvas = () => {
   const stageRef = useRef(null)
@@ -65,8 +66,11 @@ const Canvas = () => {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
+      const combo = normalizeKeyEvent(e)
+      if (!combo) return
+
       // Ctrl+A - barcha gate'larni tanlash
-      if (e.ctrlKey && e.key === 'a') {
+      if (combo === 'ctrl+a') {
         e.preventDefault()
         const allGateIds = gates.map(g => g.id)
         selectMultipleGates(allGateIds)
@@ -76,7 +80,7 @@ const Canvas = () => {
       // Note: Ctrl+G handling SubcircuitEditorManager'da qilinadi
 
       // Escape - tanlashni bekor qilish
-      if (e.key === 'Escape') {
+      if (combo === 'escape') {
         clearSelection()
         setIsDrawingSelection(false)
         setTempSelectionBox(null)

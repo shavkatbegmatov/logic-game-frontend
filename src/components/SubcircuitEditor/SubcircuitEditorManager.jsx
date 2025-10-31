@@ -22,6 +22,7 @@ const BreadcrumbNav = React.lazy(() => import('./ui/BreadcrumbNav'))
 const AnimationController = React.lazy(() => import('./effects/AnimationController'))
 const SoundManager = React.lazy(() => import('./effects/SoundManager'))
 import { soundService } from './effects/SoundManager'
+import { normalizeKeyEvent, normalizeShortcutString } from '../../utils/keyboard'
 
 const SubcircuitEditorManager = () => {
   const {
@@ -95,55 +96,6 @@ const SubcircuitEditorManager = () => {
     }
   }, [isEditing, editingMode, creationMethod])
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      const key = `${e.ctrlKey ? 'ctrl+' : ''}${e.shiftKey ? 'shift+' : ''}${e.altKey ? 'alt+' : ''}${e.key.toLowerCase()}`
-
-      // Create subcircuit shortcut
-      if (key === shortcuts.createSubcircuit && selectedGates.length > 0) {
-        e.preventDefault()
-        handleCreateSubcircuit(creationFlow)
-      }
-
-      // Quick create shortcut
-      if (key === shortcuts.quickCreate && selectedGates.length > 0) {
-        e.preventDefault()
-        handleCreateSubcircuit('quick')
-      }
-
-      // Exit edit mode
-      if (key === shortcuts.exitEditMode && isEditing) {
-        e.preventDefault()
-        handleExitEditMode()
-      }
-
-      // Enter edit mode
-      if (key === shortcuts.enterEditMode && selectedGates.length === 1) {
-        const selectedGate = gates.find(g => g.id === selectedGates[0])
-        if (selectedGate?.type === 'SUBCIRCUIT') {
-          e.preventDefault()
-          handleEnterEditMode(selectedGate)
-        }
-      }
-
-      // Undo/Redo
-      if (key === shortcuts.undo && isEditing) {
-        e.preventDefault()
-        useSubcircuitEditorStore.getState().undo()
-      }
-
-      if (key === shortcuts.redo && isEditing) {
-        e.preventDefault()
-        useSubcircuitEditorStore.getState().redo()
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [shortcuts, selectedGates, isEditing, gates, creationFlow])
-
-  // Handle subcircuit creation
   const handleCreateSubcircuit = useCallback((method) => {
     console.log('handleCreateSubcircuit called with method:', method)
     console.log('Selected gates count:', selectedGates.length)
@@ -154,10 +106,12 @@ const SubcircuitEditorManager = () => {
       return
     }
 
-    const selectedIds = new Set(selectedGates)
+    const gateMap = new Map(gates.map(g => [String(g.id), g]))
+    const selectedIds = new Set(selectedGates.map(id => String(id)))
 
-    const selectedGateObjects = gates
-      .filter(g => selectedIds.has(g.id))
+    const selectedGateObjects = selectedGates
+      .map(id => gateMap.get(String(id)))
+      .filter(Boolean)
       .map(g => {
         const {
           id,
@@ -175,12 +129,12 @@ const SubcircuitEditorManager = () => {
         } = g
 
         return {
-          id,
+          id: id,
           type,
           x,
           y,
-          width,
-          height,
+          width: width ?? 80,
+          height: height ?? 60,
           inputs: Array.isArray(inputs) ? [...inputs] : [],
           outputs: Array.isArray(outputs) ? [...outputs] : [],
           value,
@@ -191,7 +145,7 @@ const SubcircuitEditorManager = () => {
       })
 
     const selectedWireObjects = wires
-      .filter(w => selectedIds.has(w.fromGate) || selectedIds.has(w.toGate))
+      .filter(w => selectedIds.has(String(w.fromGate)) || selectedIds.has(String(w.toGate)))
       .map(w => {
         const {
           id,
@@ -205,8 +159,8 @@ const SubcircuitEditorManager = () => {
 
         return {
           id,
-          fromGate,
-          toGate,
+          fromGate: fromGate,
+          toGate: toGate,
           fromIndex,
           toIndex,
           signal,
@@ -217,7 +171,6 @@ const SubcircuitEditorManager = () => {
     console.log('Selected gate objects:', selectedGateObjects)
     console.log('Selected wire objects:', selectedWireObjects)
 
-    // Ma'lumotlarni store'ga saqlashdan oldin tekshirish
     if (selectedGateObjects.length === 0) {
       console.error('Gate objects not found for selected IDs')
       if (enableSounds) soundService.playError()
@@ -258,19 +211,16 @@ const SubcircuitEditorManager = () => {
 
     const methodToUse = method || 'quick'
 
-    // Store'ga ma'lumotlarni saqlash
     startCreation(methodToUse, {
       selectedGates: selectedGateObjects,
       selectedWires: selectedWireObjects,
       boundaryBox: normalizedBoundaryBox
     })
 
-    // Store yangilanishini kutish, keyin activeCreationFlow o'rnatish
     setTimeout(() => {
       console.log('handleCreateSubcircuit: Setting activeCreationFlow to', methodToUse)
       setActiveCreationFlow(methodToUse)
 
-      // Store holatini tekshirish
       const storeState = useSubcircuitEditorStore.getState()
       console.log('handleCreateSubcircuit: Store state after creation:', {
         isEditing: storeState.isEditing,
@@ -284,7 +234,6 @@ const SubcircuitEditorManager = () => {
     if (enableSounds) soundService.playClick()
   }, [selectedGates, gates, wires, startCreation, enableSounds])
 
-  // Handle entering edit mode
   const handleEnterEditMode = useCallback((subcircuitGate) => {
     const template = getTemplate(subcircuitGate.templateId)
     if (!template) {
@@ -301,9 +250,7 @@ const SubcircuitEditorManager = () => {
     if (enableSounds) soundService.playTransition()
   }, [getTemplate, startEditing, enableSounds])
 
-  // Handle exiting edit mode
   const handleExitEditMode = useCallback(() => {
-    // Check for unsaved changes
     const { isDirty } = useSubcircuitEditorStore.getState()
     if (isDirty) {
       if (!confirm('Saqllanmagan o\'zgarishlar bor. Chiqishni xohlaysizmi?')) {
@@ -316,6 +263,77 @@ const SubcircuitEditorManager = () => {
     if (enableSounds) soundService.playTransition()
   }, [stopEditing, clearSelection, enableSounds])
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const createShortcut = normalizeShortcutString(shortcuts.createSubcircuit)
+    const quickShortcut = normalizeShortcutString(shortcuts.quickCreate)
+    const exitShortcut = normalizeShortcutString(shortcuts.exitEditMode)
+    const enterShortcut = normalizeShortcutString(shortcuts.enterEditMode)
+    const undoShortcut = normalizeShortcutString(shortcuts.undo)
+    const redoShortcut = normalizeShortcutString(shortcuts.redo)
+
+    const handleKeyDown = (e) => {
+      const combo = normalizeKeyEvent(e)
+      if (!combo) return
+
+      // Create subcircuit shortcut
+      if (combo === createShortcut && selectedGates.length > 0) {
+        e.preventDefault()
+        handleCreateSubcircuit(creationFlow)
+        return
+      }
+
+      // Quick create shortcut
+      if (combo === quickShortcut && selectedGates.length > 0) {
+        e.preventDefault()
+        handleCreateSubcircuit('quick')
+        return
+      }
+
+      // Exit edit mode
+      if (combo === exitShortcut && isEditing) {
+        e.preventDefault()
+        handleExitEditMode()
+        return
+      }
+
+      // Enter edit mode
+      if (combo === enterShortcut && selectedGates.length === 1) {
+        const selectedGate = gates.find(g => g.id === selectedGates[0])
+        if (selectedGate?.type === 'SUBCIRCUIT') {
+          e.preventDefault()
+          handleEnterEditMode(selectedGate)
+        }
+        return
+      }
+
+      // Undo/Redo
+      if (combo === undoShortcut && isEditing) {
+        e.preventDefault()
+        useSubcircuitEditorStore.getState().undo()
+        return
+      }
+
+      if (combo === redoShortcut && isEditing) {
+        e.preventDefault()
+        useSubcircuitEditorStore.getState().redo()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [
+    shortcuts,
+    selectedGates,
+    isEditing,
+    gates,
+    creationFlow,
+    handleCreateSubcircuit,
+    handleExitEditMode,
+    handleEnterEditMode
+  ])
+
+  // Handle subcircuit creation
   // Render appropriate editor mode
   const renderEditor = () => {
     // Faqat edit mode'da editor'ni ko'rsatish (creation mode'da emas)
