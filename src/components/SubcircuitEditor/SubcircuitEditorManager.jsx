@@ -274,6 +274,7 @@ const SubcircuitEditorManager = () => {
 
     const handleKeyDown = (e) => {
       const combo = normalizeKeyEvent(e)
+      console.log('Keydown combo:', combo, 'Selected gates:', selectedGates.length);
       if (!combo) return
 
       // Create subcircuit shortcut
