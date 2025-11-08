@@ -170,7 +170,7 @@ const useGameStore = create((set, get) => ({
   },
 
   setPreSelectedGates: (gateIds) => {
-    logAction('setPreSelectedGates', { gateIds });
+    // logAction('setPreSelectedGates', { gateIds }); // This is too noisy during selection
     set({ preSelectedGates: gateIds });
   },
 
