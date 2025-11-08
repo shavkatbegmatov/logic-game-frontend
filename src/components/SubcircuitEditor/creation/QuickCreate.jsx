@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { Zap } from 'lucide-react'
 import useSubcircuitEditorStore from '../../../store/subcircuitEditorStore'
 import { createSubcircuitFromSelection } from '../../../engine/subcircuits'
-import SoundManager from '../effects/SoundManager'
+import { soundService } from '../effects/SoundManager'
 
 const QuickCreate = ({ onComplete, onCancel }) => {
   const [isProcessing, setIsProcessing] = React.useState(false)
@@ -26,8 +26,7 @@ const QuickCreate = ({ onComplete, onCancel }) => {
           setIsProcessing(false)
         }, 200)
       } else {
-        console.error('QuickCreate: Gate\'lar topilmadi, bekor qilinmoqda')
-        SoundManager.playError()
+soundService.playError()
         onCancel()
       }
       return
@@ -66,7 +65,7 @@ const QuickCreate = ({ onComplete, onCancel }) => {
             console.warn('QuickCreate warnings:', result.warnings)
           }
 
-          SoundManager.playSuccess()
+          soundService.playSuccess()
 
           setTimeout(() => {
             console.log('QuickCreate: Calling onComplete with template')

@@ -112,13 +112,6 @@ const SoundManager = () => {
   return null
 }
 
-// Export static methods for use in other components
-SoundManager.playClick = () => soundService.playClick()
-SoundManager.playSuccess = () => soundService.playSuccess()
-SoundManager.playError = () => soundService.playError()
-SoundManager.playTransition = () => soundService.playTransition()
-SoundManager.playCancel = () => soundService.playCancel()
-
 // Export soundService directly for use in other components
 export { soundService }
 export default SoundManager

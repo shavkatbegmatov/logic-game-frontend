@@ -218,9 +218,6 @@ const SubcircuitEditorManager = () => {
     })
 
     setTimeout(() => {
-      console.log('handleCreateSubcircuit: Setting activeCreationFlow to', methodToUse)
-      setActiveCreationFlow(methodToUse)
-
       const storeState = useSubcircuitEditorStore.getState()
       console.log('handleCreateSubcircuit: Store state after creation:', {
         isEditing: storeState.isEditing,
