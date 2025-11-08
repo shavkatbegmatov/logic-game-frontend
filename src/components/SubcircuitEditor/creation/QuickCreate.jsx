@@ -51,7 +51,8 @@ const QuickCreate = ({ onComplete, onCancel }) => {
         if (result && result.success && result.template) {
           if (result.warnings && result.warnings.length > 0) {
             console.warn('QuickCreate ogohlantirishlari:', result.warnings)
-            toast.warning(`Subcircuit yaratildi, lekin ${result.warnings.length} ta ogohlantirish bor.`);
+            // Use default toast for warnings
+            toast(`Subcircuit yaratildi, lekin ${result.warnings.length} ta ogohlantirish bor.`);
           }
           soundService.playSuccess()
           toast.success(`"${result.template.name}" subcircuit yaratildi!`);
