@@ -450,26 +450,19 @@ const useSubcircuitEditorStore = create(
       state.lastSaved = new Date()
     }),
 
-  updateInternalGateState: (gateId, updates) => set(state => {
-    if (!state.editingSubcircuit) return {}
+    updateInternalGateState: (gateId, updates) => set(state => {
+      if (!state.editingSubcircuit) return
 
-    const updatedGates = state.editingSubcircuit.internalCircuit.gates.map(gate =>
-      gate.id === gateId ? { ...gate, ...updates } : gate
-    )
-
-    return {
-      editingSubcircuit: {
-        ...state.editingSubcircuit,
-        internalCircuit: {
-          ...state.editingSubcircuit.internalCircuit,
-          gates: updatedGates
-        }
+      const gate = state.editingSubcircuit.internalCircuit.gates.find(g => g.id === gateId)
+      if (gate) {
+        Object.assign(gate, updates)
+        state.isDirty = true
       }
-    }
-  }),
+    }),
 
-  // Reset all state
-  reset: () => set(initialState)
-}))
+    // Reset all state
+    reset: () => set(initialState)
+  }))
+)
 
 export default useSubcircuitEditorStore
