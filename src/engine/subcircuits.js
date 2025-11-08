@@ -284,11 +284,13 @@ export function createSubcircuitFromSelection(selectedGates, allWires, name = nu
 
   // Step 5: Normalize gate positions
   const bounds = calculateSafeBounds(sanitizedGates)
-  const normalizedGates = sanitizedGates.map(gate => ({
-    ...gate,
-    x: gate.x - bounds.minX,
-    y: gate.y - bounds.minY
-  }))
+  const normalizedGates = sanitizedGates
+    .filter(gate => gate.type !== 'INPUT' && gate.type !== 'OUTPUT')
+    .map(gate => ({
+      ...gate,
+      x: gate.x - bounds.minX,
+      y: gate.y - bounds.minY
+    }))
 
   // Step 6: Generate smart name if needed
   const finalName = name || generateSmartName(sanitizedGates)

@@ -108,22 +108,54 @@ export const GatePortConfigs = {
  * Tanlangan gate'lardan tashqi ulanishlarni aniqlaydi
  */
 export function autoDetectPorts(selectedGates, allWires) {
-  const selectedGateIds = new Set(selectedGates.map(g => g.id))
-  const externalInputs = []
-  const externalOutputs = []
-  const internalWires = []
+  const selectedGateIds = new Set(selectedGates.map(g => g.id));
+  const gateMap = new Map(selectedGates.map(g => [g.id, g]));
+  const externalInputs = [];
+  const externalOutputs = [];
+  const internalWires = [];
 
   // Wire'larni kategoriyalarga ajratish
   for (const wire of allWires) {
-    const fromSelected = selectedGateIds.has(wire.fromGate)
-    const toSelected = selectedGateIds.has(wire.toGate)
+    const fromSelected = selectedGateIds.has(wire.fromGate);
+    const toSelected = selectedGateIds.has(wire.toGate);
 
     if (fromSelected && toSelected) {
-      // Ikkalasi ham tanlangan - ichki wire
-      internalWires.push(wire)
+      const fromGate = gateMap.get(wire.fromGate);
+      const toGate = gateMap.get(wire.toGate);
+
+      // Agar sim tanlangan OUTPUT'ga ulansa, bu tashqi chiqish portini belgilaydi
+      if (toGate && toGate.type === 'OUTPUT') {
+        if (fromGate) {
+          externalOutputs.push({
+            wireId: wire.id,
+            sourceGateId: wire.fromGate,
+            sourceGateType: fromGate.type,
+            sourcePortIndex: wire.fromIndex || 0,
+            isVirtual: true,
+            definedByGate: toGate,
+          });
+        }
+      }
+      // Agar sim tanlangan INPUT'dan boshlansa, bu tashqi kirish portini belgilaydi
+      else if (fromGate && fromGate.type === 'INPUT') {
+        if (toGate) {
+          externalInputs.push({
+            wireId: wire.id,
+            targetGateId: wire.toGate,
+            targetGateType: toGate.type,
+            targetPortIndex: wire.toIndex || 0,
+            isVirtual: true,
+            definedByGate: fromGate,
+          });
+        }
+      }
+      // Aks holda, bu haqiqiy ichki sim
+      else {
+        internalWires.push(wire);
+      }
     } else if (!fromSelected && toSelected) {
       // Tashqaridan ichkariga - input
-      const targetGate = selectedGates.find(g => g.id === wire.toGate)
+      const targetGate = gateMap.get(wire.toGate);
       if (targetGate) {
         externalInputs.push({
           wireId: wire.id,
@@ -132,11 +164,11 @@ export function autoDetectPorts(selectedGates, allWires) {
           targetPortIndex: wire.toIndex || 0,
           sourceGateId: wire.fromGate,
           signal: wire.signal || 0
-        })
+        });
       }
     } else if (fromSelected && !toSelected) {
       // Ichkaridan tashqariga - output
-      const sourceGate = selectedGates.find(g => g.id === wire.fromGate)
+      const sourceGate = gateMap.get(wire.fromGate);
       if (sourceGate) {
         externalOutputs.push({
           wireId: wire.id,
@@ -145,7 +177,7 @@ export function autoDetectPorts(selectedGates, allWires) {
           sourcePortIndex: wire.fromIndex || 0,
           targetGateId: wire.toGate,
           signal: wire.signal || 0
-        })
+        });
       }
     }
   }
@@ -159,7 +191,7 @@ export function autoDetectPorts(selectedGates, allWires) {
       outputCount: externalOutputs.length,
       internalWireCount: internalWires.length
     }
-  }
+  };
 }
 
 /**
