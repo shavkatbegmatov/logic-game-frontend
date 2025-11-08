@@ -9,6 +9,8 @@ import { createGate, gateConfigs, GateTypes } from '../../engine/gates'
 import { runSimulation } from '../../engine/simulation'
 import { normalizeKeyEvent } from '../../utils/keyboard'
 
+const log = (message, ...args) => console.log(`%c[CANVAS] ${message}`, 'color: #9C27B0;', ...args);
+
 const Canvas = () => {
   const stageRef = useRef(null)
   const [stageSize, setStageSize] = useState({ width: window.innerWidth - 280, height: window.innerHeight - 60 })
@@ -53,25 +55,33 @@ const Canvas = () => {
 
   // Canvas o'lchamini yangilash
   React.useEffect(() => {
+    log('Canvas o\'lchamini kuzatuvchi effekt ishga tushdi.');
     const handleResize = () => {
+      log('Oyna o\'lchami o\'zgardi.');
       setStageSize({
         width: window.innerWidth - 280,
         height: window.innerHeight - 60
       })
     }
     window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
+    return () => {
+      log('Canvas o\'lchamini kuzatuvchi effekt tozalanmoqda.');
+      window.removeEventListener('resize', handleResize)
+    }
   }, [])
 
   // Keyboard shortcuts
   useEffect(() => {
+    log('Klaviatura tugmalarini kuzatuvchi effekt ishga tushdi.');
     const handleKeyDown = (e) => {
       const combo = normalizeKeyEvent(e)
       if (!combo) return
+      log(`Tugma bosildi: ${combo}`);
 
       // Ctrl+A - barcha gate'larni tanlash
       if (combo === 'ctrl+a') {
         e.preventDefault()
+        log('Barcha elementlarni tanlash (Ctrl+A).');
         const allGateIds = gates.map(g => g.id)
         selectMultipleGates(allGateIds)
       }
@@ -81,110 +91,84 @@ const Canvas = () => {
 
       // Escape - tanlashni bekor qilish
       if (combo === 'escape') {
+        log('Tanlovni bekor qilish (Escape).');
         clearSelection()
         setIsDrawingSelection(false)
         setTempSelectionBox(null)
       }
-
-      // Delete - tanlangan gate'larni o'chirish (agar kerak bo'lsa)
-      // if (e.key === 'Delete' && selectedGates.length > 0) {
-      //   selectedGates.forEach(id => removeGate(id))
-      //   clearSelection()
-      // }
     }
 
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    return () => {
+      log('Klaviatura tugmalarini kuzatuvchi effekt tozalanmoqda.');
+      window.removeEventListener('keydown', handleKeyDown)
+    }
   }, [selectedGates, gates, wires, selectMultipleGates, clearSelection])
 
   // Simulyatsiya loop
   useEffect(() => {
-    if (!isSimulating) return
+    if (!isSimulating) {
+      log('Simulyatsiya to\'xtatilgan, loop ishga tushmadi.');
+      return
+    }
 
+    log('Simulyatsiya loopi boshlandi.');
     const simulationInterval = setInterval(() => {
+      log('Simulyatsiya qadami (tick).');
       const result = runSimulation(gates, wires)
 
       if (result.success) {
-        // Signallarni yangilash
         const newSignals = {}
-
-        // Wire signallari
-        Object.keys(result.signals).forEach(key => {
-          newSignals[key] = result.signals[key]
-        })
-
-        // Gate output signallari
-        Object.keys(result.gateOutputs).forEach(key => {
-          newSignals[`gate_${key}`] = result.gateOutputs[key]
-        })
-
-        // Debug: INPUT gate'lar va ularning signal'larini ko'rsatish
-        console.log('🔍 Simulyatsiya signals:', {
-          wireSignals: result.signals,
-          gateOutputs: result.gateOutputs,
-          inputGates: gates.filter(g => g.type === 'INPUT').map(g => ({ id: g.id, value: g.value }))
-        })
-
+        Object.keys(result.signals).forEach(key => { newSignals[key] = result.signals[key] })
+        Object.keys(result.gateOutputs).forEach(key => { newSignals[`gate_${key}`] = result.gateOutputs[key] })
         updateSignals(newSignals)
       }
     }, 100) // Har 100ms da yangilash
 
-    return () => clearInterval(simulationInterval)
+    return () => {
+      log('Simulyatsiya loopi to\'xtatilmoqda.');
+      clearInterval(simulationInterval)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSimulating, gates, wires])
 
   // Simulyatsiya faol bo'lmaganda ham signal'larni hisoblash (useMemo)
-  // Bu signal'larni har safar gates/wires o'zgarganda qayta hisoblaydi
-  // Lekin store'ga yozmaydi, shuning uchun cheksiz loop bo'lmaydi
   const computedSignals = useMemo(() => {
-    // Agar simulyatsiya faol bo'lsa, store'dagi signal'lardan foydalanish
+    log('Statik signallar hisoblanmoqda (computedSignals).', { isSimulating });
     if (isSimulating) {
       return signals
     }
-
-    // Agar gate yoki wire yo'q bo'lsa, bo'sh object qaytarish
-    if (gates.length === 0 || wires.length === 0) {
+    if (gates.length === 0) {
       return {}
     }
-
-    // Signal'larni hisoblash
     const result = runSimulation(gates, wires)
-
     if (result.success) {
       const newSignals = {}
-
-      // Wire signallari
-      Object.keys(result.signals).forEach(key => {
-        newSignals[key] = result.signals[key]
-      })
-
-      // Gate output signallari
-      Object.keys(result.gateOutputs).forEach(key => {
-        newSignals[`gate_${key}`] = result.gateOutputs[key]
-      })
-
+      Object.keys(result.signals).forEach(key => { newSignals[key] = result.signals[key] })
+      Object.keys(result.gateOutputs).forEach(key => { newSignals[`gate_${key}`] = result.gateOutputs[key] })
       return newSignals
     }
-
     return {}
   }, [gates, wires, isSimulating, signals])
 
-  // Clock gate'lar uchun interval - periodik signal generatori
+  // Clock gate'lar uchun interval
   useEffect(() => {
     const clockGates = gates.filter(g => g.type === GateTypes.CLOCK)
-
-    // Agar Clock gate'lar yo'q bo'lsa, hech narsa qilmaslik
     if (clockGates.length === 0) return
 
-    // Har 500ms da Clock gate'larning value'sini almashtirish
+    log('CLOCK elementlari uchun interval ishga tushdi.');
     const clockInterval = setInterval(() => {
+      log('CLOCK signali o\'zgarmoqda.');
       clockGates.forEach(gate => {
         const newValue = gate.value === 1 ? 0 : 1
         updateGate(gate.id, { value: newValue })
       })
-    }, 500) // 500ms = 0.5 soniya (2Hz chastota)
+    }, 500)
 
-    return () => clearInterval(clockInterval)
+    return () => {
+      log('CLOCK intervali tozalanmoqda.');
+      clearInterval(clockInterval)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gates])
 
@@ -197,15 +181,13 @@ const Canvas = () => {
     const gateType = e.dataTransfer.getData('gateType')
     if (!gateType) return
 
-    // Konva koordinatalarini olish
     stage.setPointersPositions(e)
     const position = stage.getPointerPosition()
+    log(`Element tashlandi (drop): ${gateType}`, { position });
 
-    // Yangi gate yaratish
     const newGate = createGate(gateType, position.x, position.y)
     addGate(newGate)
 
-    // Update achievement statistics
     updateStats('gatesPlaced', prev => prev + 1)
     updateStats('gateTypesUsed', prev => {
       const types = new Set(prev)
@@ -221,59 +203,43 @@ const Canvas = () => {
 
   // Selection rectangle handlers
   const handleStageMouseDown = (e) => {
-    // Agar bo'sh joyga bosilsa, selection box boshlash
     if (e.target === e.target.getStage()) {
-      const stage = stageRef.current
-      if (!stage) return
-
-      const position = stage.getPointerPosition()
+      const position = e.target.getStage().getPointerPosition()
+      log('Tanlash to\'rtburchagi chizish boshlandi.', { position, shift: e.evt.shiftKey });
       setIsDrawingSelection(true)
       setSelectionStart(position)
-      setSelectionStartedWithShift(e.evt.shiftKey) // Shift holatini eslab qolish
-      setTempSelectionBox({
-        x1: position.x,
-        y1: position.y,
-        x2: position.x,
-        y2: position.y
-      })
+      setSelectionStartedWithShift(e.evt.shiftKey)
+      setTempSelectionBox({ x1: position.x, y1: position.y, x2: position.x, y2: position.y })
     }
   }
 
   const handleSelectionMouseMove = (e) => {
     if (!isDrawingSelection || !selectionStart) return
 
-    const stage = stageRef.current
-    if (!stage) return
-
-    const position = stage.getPointerPosition()
-    const newSelectionBox = {
-      x1: selectionStart.x,
-      y1: selectionStart.y,
-      x2: position.x,
-      y2: position.y
-    }
+    const position = e.target.getStage().getPointerPosition()
+    const newSelectionBox = { x1: selectionStart.x, y1: selectionStart.y, x2: position.x, y2: position.y }
     setTempSelectionBox(newSelectionBox)
 
-    // Live-update pre-selected gates
     const gatesInBox = getGatesInSelectionBox(newSelectionBox)
     setPreSelectedGates(gatesInBox.map(g => g.id))
   }
 
   const handleSelectionMouseUp = (e) => {
     if (!isDrawingSelection || !tempSelectionBox) return
+    log('Tanlash to\'rtburchagi chizish tugadi.');
 
     const { x1, y1, x2, y2 } = tempSelectionBox
     const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2))
 
-    // Agar sichqoncha deyarli harakatlanmagan bo'lsa (click)
     if (distance < 5) {
-      // va shift bosilmagan bo'lsa, tanlovni tozalash
       if (!selectionStartedWithShift) {
+        log('Oddiy bosish (click) aniqlandi, tanlov tozalanmoqda.');
         clearSelection()
       }
-    } else { // Agar drag bo'lgan bo'lsa
+    } else {
       const gatesInBox = getGatesInSelectionBox(tempSelectionBox)
       const newGateIds = gatesInBox.map(g => g.id)
+      log('Tanlangan elementlar:', { ids: newGateIds, shift: selectionStartedWithShift });
 
       if (newGateIds.length > 0) {
         if (selectionStartedWithShift) {
@@ -283,29 +249,28 @@ const Canvas = () => {
           selectMultipleGates(newGateIds)
         }
       } else {
-        // Bo'sh joyga drag qilinganda (va shift bosilmagan bo'lsa) tanlovni tozalash
         if (!selectionStartedWithShift) {
           clearSelection()
         }
       }
     }
 
-    // Reset state
     setIsDrawingSelection(false)
     setSelectionStart(null)
     setTempSelectionBox(null)
     setSelectionStartedWithShift(false)
-    setPreSelectedGates([]) // Clear pre-selection
+    setPreSelectedGates([])
   }
 
   // --- Gate Dragging Logic ---
 
   const handleGateDragStart = (gateId, e) => {
+    log(`Elementni sudrash boshlandi: ${gateId}`);
     const stage = e.target.getStage()
     if (!stage) return
 
-    // If the dragged gate is part of a selection, prepare for multi-drag
     if (selectedGates.length > 1 && selectedGates.includes(gateId)) {
+      log('Ko\'p sonli elementlarni sudrash rejimi faollashtirildi.');
       setDragStartData({
         pointer: stage.getPointerPosition(),
         gates: gates.filter(g => selectedGates.includes(g.id)).map(g => ({ id: g.id, x: g.x, y: g.y }))
@@ -319,61 +284,48 @@ const Canvas = () => {
 
     const pointer = stage.getPointerPosition()
 
-    // Multi-drag logic
     if (dragStartData) {
       const dx = pointer.x - dragStartData.pointer.x
       const dy = pointer.y - dragStartData.pointer.y
-
       const newPositions = {}
       dragStartData.gates.forEach(startGate => {
-        newPositions[startGate.id] = {
-          x: startGate.x + dx,
-          y: startGate.y + dy
-        }
+        newPositions[startGate.id] = { x: startGate.x + dx, y: startGate.y + dy }
       })
       setDraggedItems(newPositions)
       return
     }
 
-    // Single-drag logic
-    setDraggedItems({
-      [gateId]: {
-        x: e.target.x(),
-        y: e.target.y()
-      }
-    })
+    setDraggedItems({ [gateId]: { x: e.target.x(), y: e.target.y() } })
   }
 
   const handleGateDragEnd = (gateId, e) => {
-    // Multi-drag final update
+    log(`Elementni sudrash tugadi: ${gateId}`);
     if (dragStartData) {
+      log('Ko\'p sonli elementlarning oxirgi pozitsiyalari yangilanmoqda.');
       const pointer = e.target.getStage().getPointerPosition()
       const dx = pointer.x - dragStartData.pointer.x
       const dy = pointer.y - dragStartData.pointer.y
-
       const finalPositions = dragStartData.gates.map(startGate => ({
         id: startGate.id,
         x: startGate.x + dx,
         y: startGate.y + dy
       }))
-
       updateGatePositions(finalPositions)
     } else {
-      // Single-drag final update
       updateGate(gateId, { x: e.target.x(), y: e.target.y() })
     }
 
-    // Reset drag states
     setDraggedItems({})
     setDragStartData(null)
   }
 
   // Wire ulash boshlash
   const handleWireStart = (gateId, connectionType, connectionIndex) => {
+    log('Sim ulash boshlandi.', { gateId, connectionType, connectionIndex });
     setIsDraggingWire(true)
     setWireStart({
       gateId,
-      type: connectionType, // 'input' yoki 'output'
+      type: connectionType,
       index: connectionIndex
     })
   }
@@ -381,36 +333,30 @@ const Canvas = () => {
   // Wire ulashni tugatish
   const handleWireEnd = (gateId, connectionType, connectionIndex) => {
     if (!isDraggingWire || !wireStart) return
+    log('Sim ulash tugadi.', { gateId, connectionType, connectionIndex });
 
-    // Mantiqiy tekshiruvlar
-    if (wireStart.gateId === gateId) {
-      // O'ziga o'zini ulash mumkin emas
+    if (wireStart.gateId === gateId || wireStart.type === connectionType) {
+      log('Simni ulash bekor qilindi (noto\'g\'ri ulanish).');
       cancelWireCreation()
       return
     }
 
-    if (wireStart.type === connectionType) {
-      // Input-input yoki output-output ulash mumkin emas
-      cancelWireCreation()
-      return
-    }
-
-    // Wire yaratish
     const wire = {
       fromGate: wireStart.type === 'output' ? wireStart.gateId : gateId,
       fromIndex: wireStart.type === 'output' ? wireStart.index : connectionIndex,
       toGate: wireStart.type === 'input' ? wireStart.gateId : gateId,
       toIndex: wireStart.type === 'input' ? wireStart.index : connectionIndex
     }
-
+    log('Yangi sim yaratildi:', { wire });
     addWire(wire)
     cancelWireCreation()
-
-    // Update achievement statistics
     updateStats('wiresConnected', prev => prev + 1)
   }
 
+
+
   const cancelWireCreation = () => {
+    log('Sim yaratish jarayoni bekor qilindi.');
     setIsDraggingWire(false)
     setWireStart(null)
     setTempWireEnd(null)
@@ -418,35 +364,23 @@ const Canvas = () => {
 
   // Mouse harakati (vaqtinchalik wire ko'rsatish uchun)
   const handleMouseMove = (e) => {
-    // Selection box drawing
     if (isDrawingSelection) {
       handleSelectionMouseMove(e)
       return
     }
-
-    // Wire creation
     if (!isDraggingWire) return
-
-    const stage = stageRef.current
-    const position = stage.getPointerPosition()
-    setTempWireEnd(position)
+    setTempWireEnd(e.target.getStage().getPointerPosition())
   }
 
   const handleStageMouseUp = (e) => {
-    // Selection box tugallash
     if (isDrawingSelection) {
       handleSelectionMouseUp(e)
       return
     }
-
-    // Wire creation tugallash
     if (!isDraggingWire) return
-
-    const target = e.target
-    if (target && target.getClassName && target.getClassName() === 'Circle') {
+    if (e.target && e.target.getClassName && e.target.getClassName() === 'Circle') {
       return
     }
-
     cancelWireCreation()
   }
 
@@ -507,13 +441,14 @@ const Canvas = () => {
 
             let startX, startY
             if (wireStart.type === 'output') {
-              // Chiqish nuqtasidan boshlangan
-              startX = gate.x + gate.width + 5
-              startY = gate.y + gate.height / 2
-            } else {
-              // Kirish nuqtasidan boshlangan
               const config = gateConfigs[gate.type]
-              const inputCount = config.maxInputs || 2
+              const outputCount = config.outputs || 1
+              const spacing = gate.height / (outputCount + 1)
+              startX = gate.x + gate.width + 5
+              startY = gate.y + spacing * (wireStart.index + 1)
+            } else {
+              const config = gateConfigs[gate.type]
+              const inputCount = config.maxInputs || config.minInputs || 2
               const spacing = gate.height / (inputCount + 1)
               startX = gate.x - 5
               startY = gate.y + spacing * (wireStart.index + 1)
@@ -571,23 +506,19 @@ const Canvas = () => {
                 onDragMove={handleGateDragMove}
                 onDragEnd={handleGateDragEnd}
                 onSelect={(e) => {
-                  if (e.evt.ctrlKey) {
-                    // Ctrl+Click - toggle selection
-                    toggleGateSelection(gate.id)
-                  } else if (e.evt.shiftKey) {
-                    // Shift+Click - add to selection
+                  log(`Element tanlandi (click): ${gate.id}`, { ctrl: e.evt.ctrlKey, shift: e.evt.shiftKey });
+                  if (e.evt.ctrlKey || e.evt.shiftKey) {
                     toggleGateSelection(gate.id)
                   } else {
-                    // Normal click - single select
                     selectGate(gate.id)
                   }
                 }}
                 onUpdateGate={updateGate}
-              onWireStart={handleWireStart}
-              onWireEnd={handleWireEnd}
-              outputSignal={computedSignals[`gate_${gate.id}`] || 0}
-            />
-          );
+                onWireStart={handleWireStart}
+                onWireEnd={handleWireEnd}
+                outputSignal={computedSignals[`gate_${gate.id}`] || 0}
+              />
+            );
           })}
         </Layer>
       </Stage>

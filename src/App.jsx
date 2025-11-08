@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import Canvas from './components/Canvas/Canvas'
 import Sidebar from './components/Sidebar/Sidebar'
 import Toolbar from './components/Toolbar/Toolbar'
@@ -6,6 +6,10 @@ import SpaceBackground from './components/SpaceBackground/SpaceBackground'
 import { Toaster } from 'react-hot-toast'
 
 function App() {
+  useEffect(() => {
+    console.log('%c[APP] Ilova ishga tushdi va asosiy komponentlar o\'rnatildi.', 'color: #4CAF50; font-weight: bold;');
+  }, []);
+
   return (
     <div className="relative flex h-screen overflow-hidden text-slate-100">
       {/* Space Background with animated stars and nebula */}

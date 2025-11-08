@@ -7,6 +7,8 @@ import { runSimulation } from '../../engine/simulation'
 import AchievementDisplay from '../UI/AchievementDisplay'
 import SubcircuitPanel from './SubcircuitPanel'
 
+const log = (message, ...args) => console.log(`%c[SIDEBAR] ${message}`, 'color: #03A9F4;', ...args);
+
 const Sidebar = () => {
   const [activeTab, setActiveTab] = useState('gates') // 'gates' yoki 'subcircuits'
   const {
@@ -25,6 +27,7 @@ const Sidebar = () => {
 
   // Simulyatsiyani boshqarish
   const handleSimulation = () => {
+    log(`Simulyatsiya tugmasi bosildi. Hozirgi holat: ${isSimulating ? 'ishlamoqda' : 'to\'xtatilgan'}`);
     if (isSimulating) {
       stopSimulation()
     } else {
@@ -33,6 +36,7 @@ const Sidebar = () => {
         updateSignals(result.signals)
         startSimulation()
       } else {
+        log('Simulyatsiyani boshlashda xatolik:', result.errors);
         alert('Xatolik: ' + result.errors.map(e => e.message).join(', '))
       }
     }
@@ -40,6 +44,7 @@ const Sidebar = () => {
 
   // Sxemani saqlash
   const handleSave = () => {
+    log('Sxemani saqlash boshlandi.');
     const circuit = saveCircuit()
     const json = JSON.stringify(circuit, null, 2)
     const blob = new Blob([json], { type: 'application/json' })
@@ -48,28 +53,46 @@ const Sidebar = () => {
     a.href = url
     a.download = `circuit_${Date.now()}.json`
     a.click()
+    log('Saqlash uchun fayl yaratildi.');
   }
 
   // Sxemani yuklash
   const handleLoad = (e) => {
     const file = e.target.files[0]
-    if (!file) return
+    if (!file) {
+      log('Fayl yuklash bekor qilindi.');
+      return
+    }
+    log(`Fayl yuklanmoqda: ${file.name}`);
 
     const reader = new FileReader()
     reader.onload = (event) => {
       try {
         const circuit = JSON.parse(event.target.result)
         loadCircuit(circuit)
+        log('Sxema muvaffaqiyatli yuklandi.');
       } catch (error) {
+        log('Faylni o\'qishda yoki parse qilishda xatolik:', error);
         alert('Faylni yuklashda xatolik!')
       }
     }
     reader.readAsText(file)
   }
 
+  const handleReset = () => {
+    log('Canvasni tozalash tugmasi bosildi.');
+    resetCanvas();
+  }
+
   // Gate'ni drag qilish
   const handleDragStart = (e, gateType) => {
+    log(`Elementni sudrash boshlandi: ${gateType}`);
     e.dataTransfer.setData('gateType', gateType)
+  }
+
+  const handleTabChange = (tab) => {
+    log(`Tab o'zgartirildi: ${tab}`);
+    setActiveTab(tab);
   }
 
   const energyLevel = Math.min(100, Math.round(gates.length * 12 + wires.length * 6))
@@ -104,7 +127,7 @@ const Sidebar = () => {
       {/* Tabs */}
       <div className="flex border-b border-white/10 bg-white/5">
         <button
-          onClick={() => setActiveTab('gates')}
+          onClick={() => handleTabChange('gates')}
           className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${
             activeTab === 'gates'
               ? 'border-b-2 border-cyan-400 text-cyan-300 bg-cyan-400/10'
@@ -115,7 +138,7 @@ const Sidebar = () => {
           Gates
         </button>
         <button
-          onClick={() => setActiveTab('subcircuits')}
+          onClick={() => handleTabChange('subcircuits')}
           className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${
             activeTab === 'subcircuits'
               ? 'border-b-2 border-purple-400 text-purple-300 bg-purple-400/10'
@@ -157,7 +180,7 @@ const Sidebar = () => {
           </button>
 
           <button
-            onClick={resetCanvas}
+            onClick={handleReset}
             className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-slate-100 transition-all hover:border-white/20 hover:bg-white/15"
           >
             <RotateCcw size={18} />
