@@ -450,39 +450,26 @@ const useSubcircuitEditorStore = create(
       state.lastSaved = new Date()
     }),
 
-    // Reset
-    reset: () => set(state => {
-      state.isEditing = false
-      state.editingMode = null
-      state.editingSubcircuit = null
-      state.editingContext = []
-      state.creationMethod = null
-      state.creationStep = 0
-      state.creationData = {
-        selectedGates: [],
-        selectedWires: [],
-        boundaryBox: null,
-        templateId: null,
-        name: '',
-        description: '',
-        icon: '',
-        category: 'custom',
-        isGlobal: false
+  updateInternalGateState: (gateId, updates) => set(state => {
+    if (!state.editingSubcircuit) return {}
+
+    const updatedGates = state.editingSubcircuit.internalCircuit.gates.map(gate =>
+      gate.id === gateId ? { ...gate, ...updates } : gate
+    )
+
+    return {
+      editingSubcircuit: {
+        ...state.editingSubcircuit,
+        internalCircuit: {
+          ...state.editingSubcircuit.internalCircuit,
+          gates: updatedGates
+        }
       }
-      state.tempPorts = { inputs: [], outputs: [] }
-      state.internalGates = []
-      state.internalWires = []
-      state.internalBounds = null
-      state.selectedInternalGates = []
-      state.selectedInternalWires = []
-      state.previewCircuit = null
-      state.previewSignals = {}
-      state.history = { past: [], present: null, future: [] }
-      state.isDirty = false
-      state.validationErrors = []
-      state.validationWarnings = []
-    })
-  }))
-)
+    }
+  }),
+
+  // Reset all state
+  reset: () => set(initialState)
+}))
 
 export default useSubcircuitEditorStore
