@@ -4,6 +4,7 @@ import { Zap } from 'lucide-react'
 import useSubcircuitEditorStore from '../../../store/subcircuitEditorStore'
 import { createSubcircuitFromSelection } from '../../../engine/subcircuits'
 import { soundService } from '../effects/SoundManager'
+import toast from 'react-hot-toast'
 
 const QuickCreate = ({ onComplete, onCancel }) => {
   const [isProcessing, setIsProcessing] = useState(false)
@@ -18,6 +19,7 @@ const QuickCreate = ({ onComplete, onCancel }) => {
     if (!creationData || selectedGates.length === 0) {
       console.error("QuickCreate: Yaratish uchun ma'lumotlar topilmadi. Jarayon bekor qilinmoqda.");
       soundService.playError()
+      toast.error("Subcircuit yaratish uchun ma'lumotlar topilmadi.");
       onCancel()
       return
     }
@@ -49,8 +51,10 @@ const QuickCreate = ({ onComplete, onCancel }) => {
         if (result && result.success && result.template) {
           if (result.warnings && result.warnings.length > 0) {
             console.warn('QuickCreate ogohlantirishlari:', result.warnings)
+            toast.warning(`Subcircuit yaratildi, lekin ${result.warnings.length} ta ogohlantirish bor.`);
           }
           soundService.playSuccess()
+          toast.success(`"${result.template.name}" subcircuit yaratildi!`);
           // Animatsiya tugashi uchun kichik pauza
           setTimeout(() => {
             onComplete(result.template)
@@ -59,12 +63,13 @@ const QuickCreate = ({ onComplete, onCancel }) => {
           const errorMsg = result?.errors?.join('\n') || 'Noma\'lum xatolik';
           console.error('QuickCreate: Yaratishda xatolik:', errorMsg)
           soundService.playError()
-          alert(`Subcircuit yaratishda xatolik:\n${errorMsg}`)
+          toast.error(`Subcircuit yaratishda xatolik:\n${errorMsg}`, { duration: 6000 });
           onCancel()
         }
       } catch (error) {
         console.error('QuickCreate: Kutilmagan xato:', error)
         soundService.playError()
+        toast.error("Subcircuit yaratishda kutilmagan tizim xatosi yuz berdi.");
         onCancel()
       }
     }
