@@ -20,6 +20,10 @@ const Canvas = () => {
   const [draggedItems, setDraggedItems] = useState({}) // Stores temp positions of dragged gates { [id]: {x, y} }
   const [dragStartData, setDragStartData] = useState(null) // Stores data for multi-drag operation
 
+  // Dragging performance optimization
+  const latestDraggedItems = useRef({});
+  const updateScheduled = useRef(false);
+
   // Multi-selection state
   const [isDrawingSelection, setIsDrawingSelection] = useState(false)
   const [selectionStart, setSelectionStart] = useState(null)
@@ -114,7 +118,7 @@ const Canvas = () => {
 
     log('Simulyatsiya loopi boshlandi.');
     const simulationInterval = setInterval(() => {
-      log('Simulyatsiya qadami (tick).');
+      // log('Simulyatsiya qadami (tick).'); // This is too noisy
       const result = runSimulation(gates, wires)
 
       if (result.success) {
@@ -158,7 +162,7 @@ const Canvas = () => {
 
     log('CLOCK elementlari uchun interval ishga tushdi.');
     const clockInterval = setInterval(() => {
-      log('CLOCK signali o\'zgarmoqda.');
+      // log('CLOCK signali o\'zgarmoqda.'); // This is too noisy
       clockGates.forEach(gate => {
         const newValue = gate.value === 1 ? 0 : 1
         updateGate(gate.id, { value: newValue })
@@ -279,24 +283,41 @@ const Canvas = () => {
   }
 
   const handleGateDragMove = (gateId, e) => {
-    const stage = e.target.getStage()
-    if (!stage) return
+    const stage = e.target.getStage();
+    if (!stage) return;
 
-    const pointer = stage.getPointerPosition()
+    const pointer = stage.getPointerPosition();
 
+    // Calculate new positions
     if (dragStartData) {
-      const dx = pointer.x - dragStartData.pointer.x
-      const dy = pointer.y - dragStartData.pointer.y
-      const newPositions = {}
+      const dx = pointer.x - dragStartData.pointer.x;
+      const dy = pointer.y - dragStartData.pointer.y;
+      const newPositions = {};
       dragStartData.gates.forEach(startGate => {
-        newPositions[startGate.id] = { x: startGate.x + dx, y: startGate.y + dy }
-      })
-      setDraggedItems(newPositions)
-      return
+        newPositions[startGate.id] = {
+          x: startGate.x + dx,
+          y: startGate.y + dy,
+        };
+      });
+      latestDraggedItems.current = newPositions;
+    } else {
+      latestDraggedItems.current = {
+        [gateId]: {
+          x: e.target.x(),
+          y: e.target.y(),
+        },
+      };
     }
 
-    setDraggedItems({ [gateId]: { x: e.target.x(), y: e.target.y() } })
-  }
+    // Throttle state updates using requestAnimationFrame
+    if (!updateScheduled.current) {
+      updateScheduled.current = true;
+      requestAnimationFrame(() => {
+        setDraggedItems(latestDraggedItems.current);
+        updateScheduled.current = false;
+      });
+    }
+  };
 
   const handleGateDragEnd = (gateId, e) => {
     log(`Elementni sudrash tugadi: ${gateId}`);
@@ -315,6 +336,8 @@ const Canvas = () => {
       updateGate(gateId, { x: e.target.x(), y: e.target.y() })
     }
 
+    // Reset drag states
+    latestDraggedItems.current = {};
     setDraggedItems({})
     setDragStartData(null)
   }
