@@ -146,7 +146,7 @@ export function validatePort(port) {
   }
 
   // Connected gate validation
-  if (port.connectedGate && typeof port.connectedGate !== 'string') {
+  if (port.connectedGateId && typeof port.connectedGateId !== 'string') {
     errors.push('Connected gate ID must be a string')
   }
 

@@ -277,20 +277,18 @@ export function createSubcircuitFromSelection(selectedGates, allWires, name = nu
     }
   }
 
-  // Step 4: Filter internal wires
-  const internalWires = allWires.filter(wire => {
-    return selectedGateIds.has(wire.fromGate) && selectedGateIds.has(wire.toGate)
-  })
+  // Step 4: Use the correctly filtered internal wires from port mapping
+  const internalWires = portMapping.internalWires;
 
   // Step 5: Normalize gate positions
-  const bounds = calculateSafeBounds(sanitizedGates)
+  const bounds = calculateSafeBounds(sanitizedGates);
   const normalizedGates = sanitizedGates
     .filter(gate => gate.type !== 'INPUT' && gate.type !== 'OUTPUT')
     .map(gate => ({
       ...gate,
       x: gate.x - bounds.minX,
       y: gate.y - bounds.minY
-    }))
+    }));
 
   // Step 6: Generate smart name if needed
   const finalName = name || generateSmartName(sanitizedGates)
