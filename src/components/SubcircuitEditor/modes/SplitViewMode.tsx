@@ -42,7 +42,7 @@ const SplitViewMode = ({ onClose }) => {
   const [tempWireEnd, setTempWireEnd] = useState<{ x: number; y: number } | null>(null)
   const [draggingGate, setDraggingGate] = useState<null | { id: string | number; x: number; y: number }>(null)
 
-  const handleWireStart = useCallback((gateId, type, index) => {
+  const handleWireStart = useCallback((gateId: string | number, type: 'input' | 'output', index: number) => {
     setIsDraggingWire(true)
     setWireStart({ gateId, type, index })
   }, [])
@@ -53,7 +53,7 @@ const SplitViewMode = ({ onClose }) => {
     setTempWireEnd(null)
   }, [])
 
-  const handleWireEnd = useCallback((gateId, type, index) => {
+  const handleWireEnd = useCallback((gateId: string | number, type: 'input' | 'output', index: number) => {
     if (!isDraggingWire || !wireStart) return
     if (wireStart.gateId === gateId || wireStart.type === type) {
       cancelWire()
