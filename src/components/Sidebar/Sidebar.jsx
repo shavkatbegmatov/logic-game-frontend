@@ -125,29 +125,31 @@ const Sidebar = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-white/10 bg-white/5 px-6 gap-2">
-        <button
-          onClick={() => handleTabChange('gates')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${
-            activeTab === 'gates'
-              ? 'border-b-2 border-cyan-400 text-cyan-300 bg-cyan-400/10'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          <Grid className="h-4 w-4" />
-          Gates
-        </button>
-        <button
-          onClick={() => handleTabChange('subcircuits')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${
-            activeTab === 'subcircuits'
-              ? 'border-b-2 border-purple-400 text-purple-300 bg-purple-400/10'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          <Cpu className="h-4 w-4" />
-          Subcircuits
-        </button>
+      <div className="flex border-b border-white/10 bg-white/5 px-4">
+        <div className="flex w-full gap-2 px-2">
+          <button
+            onClick={() => handleTabChange('gates')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors rounded-t-lg ${
+              activeTab === 'gates'
+                ? 'border-b-2 border-cyan-400 text-cyan-300 bg-cyan-400/10'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Grid className="h-4 w-4" />
+            Gates
+          </button>
+          <button
+            onClick={() => handleTabChange('subcircuits')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors rounded-t-lg ${
+              activeTab === 'subcircuits'
+                ? 'border-b-2 border-purple-400 text-purple-300 bg-purple-400/10'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Cpu className="h-4 w-4" />
+            Subcircuits
+          </button>
+        </div>
       </div>
 
       {/* Tab content ni ko'rsatish */}
