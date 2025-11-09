@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react'
+import React, { useRef, useState } from 'react'
 import { Group, Rect, Text, Circle, Line } from 'react-konva'
 
 const PCBSubcircuitComponent = ({
@@ -7,14 +7,14 @@ const PCBSubcircuitComponent = ({
   onDragMove,
   onDragEnd,
   onSelect,
-  onUpdateGate,
+  onUpdateGate: _onUpdateGate,
   onWireStart,
   onWireEnd,
   onDoubleClick,
   outputSignals = []
 }) => {
   const groupRef = useRef()
-  const [isDragging, setIsDragging] = useState(false)
+  const [_isDragging, setIsDragging] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
 
   // IC chip style parametrlari
@@ -46,7 +46,7 @@ const PCBSubcircuitComponent = ({
     setIsDragging(true)
   }
 
-  const handleDragMove = (e) => {
+  const handleDragMove = () => {
     const node = groupRef.current
     if (node) {
       const newPos = {
@@ -57,7 +57,7 @@ const PCBSubcircuitComponent = ({
     }
   }
 
-  const handleDragEndInternal = (e) => {
+  const handleDragEndInternal = () => {
     setIsDragging(false)
     const node = groupRef.current
     if (node) {
@@ -91,7 +91,7 @@ const PCBSubcircuitComponent = ({
     onWireEnd && onWireEnd(gate.id, 'input', index)
   }
 
-  const handleOutputMouseUp = (index) => (e) => {
+  const handleOutputMouseUp = (_: number) => (e: any) => {
     e.cancelBubble = true
     // Output'ga wire tugamaydi
   }
