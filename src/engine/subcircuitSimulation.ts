@@ -351,7 +351,7 @@ export class SubcircuitSimulationEngine {
       })
 
       // Propagate signals through wires
-      template.internalCircuit.wires.forEach(wire => {
+      template.internalCircuit.wires.forEach((wire: any) => {
         const fromOutput = gateOutputs.get(wire.fromGate) || 0
         const toState = gateStates.get(wire.toGate)
 
