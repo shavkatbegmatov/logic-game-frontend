@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Settings as SettingsIcon, X, Columns, Maximize2, Layers, Square } from 'lucide-react'
 import useUserPreferencesStore from '../../store/userPreferencesStore'
@@ -29,6 +29,16 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
     { id: 'template', name: 'Template', desc: 'Andozadan yaratish' },
     { id: 'visual', name: 'Visual', desc: 'Vizual tanlash' },
   ] as const), [])
+
+  // Close on Escape
+  useEffect(() => {
+    if (!isOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [isOpen, onClose])
 
   return (
     <AnimatePresence>
