@@ -17,7 +17,11 @@
       "Bash(npm run build:*)",
       "Bash(curl:*)",
       "Bash(awk:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npx tsc:*)",
+      "Bash(for f in portMapping simulation subcircuitSimulation)",
+      "Bash(do cp $f.js $f.ts)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []
