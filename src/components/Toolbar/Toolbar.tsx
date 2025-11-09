@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Zap, Grid, HelpCircle, Settings, BookOpen, Play, Pause, Rocket, Cpu } from 'lucide-react'
 import useGameStore from '../../store/gameStore'
 import useSound from '../../hooks/useSound'
+import SettingsModal from '../Settings/SettingsModal'
 
 const Toolbar = () => {
   const {
@@ -14,6 +15,8 @@ const Toolbar = () => {
   } = useGameStore()
 
   const { playSound } = useSound()
+
+  const [showSettings, setShowSettings] = useState(false)
 
   return (
     <div className="relative flex h-16 items-center justify-between border-b border-white/5 bg-slate-950/40 px-6 backdrop-blur-2xl shadow-[0_15px_35px_-20px_rgba(15,23,42,0.6)]">
@@ -112,12 +115,15 @@ const Toolbar = () => {
           <HelpCircle size={20} />
         </button>
         <button
+          onClick={() => setShowSettings(true)}
           className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-200 transition-colors hover:border-white/20 hover:bg-white/10"
           title="Sozlamalar"
         >
           <Settings size={20} />
         </button>
       </div>
+
+      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
     </div>
   )
 }

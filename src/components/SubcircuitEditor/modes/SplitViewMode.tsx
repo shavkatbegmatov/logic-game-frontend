@@ -2,9 +2,9 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Columns, ZoomIn, ZoomOut, RotateCcw, X } from 'lucide-react'
 import { Stage, Layer, Rect } from 'react-konva'
-import useSubcircuitEditorStore from '@/store/subcircuitEditorStore'
-import useGameStore from '@/store/gameStore'
-import { gateConfigs } from '@/engine/gates'
+import useSubcircuitEditorStore from '../../../store/subcircuitEditorStore'
+import useGameStore from '../../../store/gameStore'
+import { gateConfigs } from '../../../engine/gates'
 import PCBGateComponent from '../../Gates/PCBGateComponent'
 import WireComponent from '../../Wires/WireComponent'
 
@@ -36,7 +36,7 @@ const SplitViewMode = ({ onClose }) => {
     return () => window.removeEventListener('resize', resize)
   }, [])
 
-  // Wire creation state (internal)
+  // Interactive wiring/dragging state
   const [isDraggingWire, setIsDraggingWire] = useState(false)
   const [wireStart, setWireStart] = useState<null | { gateId: string | number; type: 'input' | 'output'; index: number }>(null)
   const [tempWireEnd, setTempWireEnd] = useState<{ x: number; y: number } | null>(null)
