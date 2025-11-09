@@ -33,7 +33,9 @@ const ParticleSystem = () => {
               enable: true,
               mode: 'repulse',
             },
-            resize: true,
+            resize: {
+              enable: true,
+            },
           },
           modes: {
             push: {
@@ -72,7 +74,6 @@ const ParticleSystem = () => {
           number: {
             density: {
               enable: true,
-              area: 800,
             },
             value: 50,
           },
@@ -82,7 +83,7 @@ const ParticleSystem = () => {
             animation: {
               enable: true,
               speed: 1,
-              minimumValue: 0.1,
+              min: 0.1,
               sync: false,
             },
           },
@@ -95,7 +96,7 @@ const ParticleSystem = () => {
             animation: {
               enable: true,
               speed: 2,
-              minimumValue: 0.1,
+              min: 0.1,
               sync: false,
             },
           },
@@ -103,11 +104,11 @@ const ParticleSystem = () => {
         detectRetina: true,
         style: {
           position: 'absolute',
-          top: 0,
-          left: 0,
+          top: '0',
+          left: '0',
           width: '100%',
           height: '100%',
-          zIndex: -1,
+          zIndex: '-1',
         },
       }}
     />
