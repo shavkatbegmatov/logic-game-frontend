@@ -79,7 +79,6 @@ const ParticleSystem = () => {
           },
           opacity: {
             value: 0.5,
-            random: true,
             animation: {
               enable: true,
               speed: 1,
@@ -91,7 +90,6 @@ const ParticleSystem = () => {
           },
           size: {
             value: { min: 1, max: 3 },
-            random: true,
             animation: {
               enable: true,
               speed: 2,
