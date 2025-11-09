@@ -1,29 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm create:*)",
-      "Bash(npm init:*)",
-      "Bash(npm install:*)",
-      "Bash(npx tailwindcss init:*)",
-      "Bash(npm run dev:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git push)",
-      "Bash(timeout /t 3 /nobreak)",
-      "Bash(rename \"D:\\PROJECTS\\!LOGIC_GAME\\logic-game-frontend\\src\\store\\achievementStore.js\" achievementStore.jsx)",
-      "Bash(cmd /c \"ren \"\"D:\\PROJECTS\\!LOGIC_GAME\\logic-game-frontend\\src\\store\\achievementStore.js\"\" achievementStore.jsx\")",
-      "Bash(dir:*)",
-      "Bash(powershell -Command:*)",
-      "Bash(npm run build:*)",
-      "Bash(curl:*)",
-      "Bash(awk:*)",
-      "Bash(cat:*)",
-      "Bash(npx tsc:*)",
-      "Bash(for f in portMapping simulation subcircuitSimulation)",
-      "Bash(do cp $f.js $f.ts)",
-      "Bash(done)",
-      "Bash(for f in achievementStore gameStore subcircuitStore subcircuitEditorStore)",
-      "Bash(do cp $f.* $f.ts)"
+      "Bash(while read f)",
+      "Bash(do cp \"$f\" \"$f%.jsx.tsx\")",
+      "Bash(find src/components -name \"*.jsx\" -exec sh -c 'cp \"\"\"\"$0\"\"\"\" \"\"\"\"${0%.jsx}.tsx\"\"\"\"' {})"
     ],
     "deny": [],
     "ask": []
