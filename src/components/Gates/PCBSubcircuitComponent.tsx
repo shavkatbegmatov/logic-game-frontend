@@ -76,17 +76,17 @@ const PCBSubcircuitComponent = ({
   }
 
   // Input/Output connection handlers
-  const handleInputMouseDown = (index) => (e) => {
+  const handleInputMouseDown = (index: number) => (e: any) => {
     e.cancelBubble = true
     onWireEnd && onWireEnd(gate.id, 'input', index)
   }
 
-  const handleOutputMouseDown = (index) => (e) => {
+  const handleOutputMouseDown = (index: number) => (e: any) => {
     e.cancelBubble = true
     onWireStart && onWireStart(gate.id, 'output', index)
   }
 
-  const handleInputMouseUp = (index) => (e) => {
+  const handleInputMouseUp = (index: number) => (e: any) => {
     e.cancelBubble = true
     onWireEnd && onWireEnd(gate.id, 'input', index)
   }
