@@ -5,8 +5,8 @@
 
 import { create } from 'zustand'
 import { createSubcircuitFromSelection } from '../engine/subcircuits'
-import type { Gate, Wire, SelectionBox, SignalMap } from '../types/gates'
-import type { BreadcrumbItem } from '../types/subcircuit'
+import type { Gate, Wire, SelectionBox, SignalMap } from '@/types'
+import type { BreadcrumbItem } from '@/types'
 
 // Loglar uchun yordamchi funksiya
 const logAction = (actionName: string, ...args: any[]) => {
@@ -300,7 +300,8 @@ const useGameStore = create<GameState>((set, get) => ({
       editingSubcircuit: subcircuitGate,
       subcircuitContext: [...state.subcircuitContext, {
         id: subcircuitGate.id,
-        name: subcircuitGate.name
+        name: subcircuitGate.name,
+        type: 'subcircuit' as const
       }],
       gates: subcircuitGate.internalGates || [],
       wires: subcircuitGate.internalWires || [],
