@@ -3,9 +3,6 @@
  * Cached Results + Real-time debug mode strategiyasi bilan
  */
 
-import { validateTemplate } from './validation'
-import type { Gate, Wire, Port } from '../types/gates'
-
 /**
  * Simulation Cache Manager
  * LRU (Least Recently Used) cache implementation
@@ -314,7 +311,7 @@ export class SubcircuitSimulationEngine {
         const currentInputs = gateState.inputs || []
 
         // Simulate gate based on type
-        let output = 0
+        let output: number
 
         if (gate.type === 'SUBCIRCUIT') {
           // Recursive subcircuit simulation
