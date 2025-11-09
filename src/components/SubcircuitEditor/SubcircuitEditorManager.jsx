@@ -4,10 +4,12 @@ import useSubcircuitEditorStore from '../../store/subcircuitEditorStore'
 import useGameStore from '../../store/gameStore'
 import useSubcircuitStore from '../../store/subcircuitStore'
 
-// Lazy imports for editor modes
-const InlineCanvasMode = React.lazy(() => import('./modes/InlineCanvasMode'))
-const FloatingPanelMode = React.lazy(() => import('./modes/FloatingPanelMode'))
-const FullModalMode = React.lazy(() => import('./modes/FullModalMode'))
+// Import Konva components directly
+import InlineCanvasMode from './modes/InlineCanvasMode'
+import FloatingPanelMode from './modes/FloatingPanelMode'
+import FullModalMode from './modes/FullModalMode'
+
+// Lazy import for DOM-based components
 const SplitViewMode = React.lazy(() => import('./modes/SplitViewMode'))
 
 import { soundService } from './effects/SoundManager'
@@ -19,7 +21,7 @@ import { normalizeKeyEvent, normalizeShortcutString } from '../../utils/keyboard
  * All DOM-based UI (creation flows, toolbars, etc.) is handled by Canvas.jsx.
  */
 const SubcircuitEditorManager = () => {
-  const { editorMode, creationFlow, shortcuts, enableSounds } = useUserPreferencesStore()
+  const { editorMode: preferredEditorMode, creationFlow, shortcuts, enableSounds } = useUserPreferencesStore()
   const { isEditing, editingMode, startEditing, stopEditing, startCreation } = useSubcircuitEditorStore()
   const { selectedGates, gates, clearSelection } = useGameStore()
   const { getTemplate } = useSubcircuitStore()
@@ -93,20 +95,16 @@ const SubcircuitEditorManager = () => {
   const renderKonvaEditor = () => {
     if (!isEditing || editingMode !== 'edit') return null
     const props = { onClose: handleExitEditMode }
-    switch (editorMode) {
+    switch (preferredEditorMode) {
       case 'inline': return <InlineCanvasMode {...props} />
-      case 'floating': return <FloatingPanelMode {...props} />
-      case 'fullModal': return <FullModalMode {...props} />
-      case 'splitView': return <SplitViewMode {...props} />
+      case 'floating': return null;
+      case 'fullModal': return null;
+      case 'splitView': return null;
       default: return <InlineCanvasMode {...props} />
     }
   }
 
-  return (
-    <Suspense fallback={null}>
-      {renderKonvaEditor()}
-    </Suspense>
-  )
+  return renderKonvaEditor()
 }
 
 export default SubcircuitEditorManager

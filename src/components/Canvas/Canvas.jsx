@@ -23,6 +23,11 @@ const WizardCreate = React.lazy(() => import('../SubcircuitEditor/creation/Wizar
 const TemplateCreate = React.lazy(() => import('../SubcircuitEditor/creation/TemplateCreate'))
 const VisualBoundaryCreate = React.lazy(() => import('../SubcircuitEditor/creation/VisualBoundaryCreate'))
 
+// Editor modes (DOM components)
+const SplitViewMode = React.lazy(() => import('../SubcircuitEditor/modes/SplitViewMode'))
+const FloatingPanelMode = React.lazy(() => import('../SubcircuitEditor/modes/FloatingPanelMode'))
+const FullModalMode = React.lazy(() => import('../SubcircuitEditor/modes/FullModalMode'))
+
 
 const log = (message, ...args) => console.log(`%c[CANVAS] ${message}`, 'color: #9C27B0;', ...args);
 
@@ -52,11 +57,11 @@ const Canvas = () => {
 
   const {
     isEditing, editingMode, editingSubcircuit, creationMethod,
-    startEditing, stopEditing
+    startEditing, stopEditing, startCreation
   } = useSubcircuitEditorStore()
 
   const { addTemplate } = useSubcircuitStore()
-  const { enableSounds } = useUserPreferencesStore()
+  const { shortcuts, editorMode: preferredEditorMode, enableSounds } = useUserPreferencesStore()
   const { updateStats } = useAchievementStore()
 
   useEffect(() => {
@@ -70,6 +75,26 @@ const Canvas = () => {
       const combo = normalizeKeyEvent(e)
       if (!combo) return
 
+      // Create Subcircuit
+      if (combo === shortcuts.createSubcircuit) {
+        e.preventDefault()
+        if (selectedGates.length > 0) {
+          log('Subcircuit yaratish boshlandi...', selectedGates)
+          const selectedSet = new Set(selectedGates)
+          const initialGates = gates.filter(g => selectedSet.has(g.id))
+          // Fix: Pass all wires connected to the selection, not just internal ones.
+          const initialWires = wires.filter(w => selectedSet.has(w.fromGate) || selectedSet.has(w.toGate))
+          
+          startCreation('quick', {
+            selectedGates: initialGates,
+            selectedWires: initialWires
+          })
+        } else {
+          console.warn('Subcircuit yaratish uchun avval gate\'larni tanlang.')
+          // TODO: Add toast notification
+        }
+      }
+      
       if (combo === 'ctrl+a') {
         e.preventDefault()
         selectMultipleGates(gates.map(g => g.id))
@@ -85,7 +110,7 @@ const Canvas = () => {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectMultipleGates, clearSelection, isEditing, stopEditing, gates])
+  }, [selectMultipleGates, clearSelection, isEditing, stopEditing, gates, shortcuts, startCreation, selectedGates, wires])
 
   useEffect(() => {
     if (!isSimulating) return
@@ -253,10 +278,30 @@ const Canvas = () => {
     if (isDraggingWire && e.target.getClassName() !== 'Circle') cancelWireCreation()
   }
 
-  const renderEditorUI = () => {
+  const renderDomEditor = () => {
     if (!isEditing || editingMode !== 'edit') return null;
+
+    const editorProps = {
+      onClose: stopEditing,
+      subcircuit: editingSubcircuit,
+    };
+
+    const renderEditorComponent = () => {
+      switch (preferredEditorMode) {
+        case 'splitView':
+          return <SplitViewMode {...editorProps} />;
+        case 'floating':
+          return <FloatingPanelMode {...editorProps} />;
+        case 'fullModal':
+          return <FullModalMode {...editorProps} />;
+        default:
+          return null; // Inline mode is Konva-only
+      }
+    };
+
     return (
       <>
+        {/* Common UI for all editing modes, like the top banner */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-30 bg-slate-900/80 backdrop-blur-sm" onClick={stopEditing} />
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40">
           <motion.div initial={{ y: -100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="flex items-center gap-4 rounded-lg bg-slate-800/80 p-3 shadow-lg border border-slate-700">
@@ -267,6 +312,9 @@ const Canvas = () => {
             <button onClick={stopEditing} className="px-4 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm transition-colors">Close Editor</button>
           </motion.div>
         </div>
+
+        {/* Mode-specific DOM UI */}
+        {renderEditorComponent()}
       </>
     );
   };
@@ -364,9 +412,9 @@ const Canvas = () => {
 
       <Suspense fallback={<LoadingFallback />}>
         {renderCreationFlow()}
+        {renderDomEditor()}
       </Suspense>
       
-      {renderEditorUI()}
 
       {isSimulating && (
         <div className="absolute right-4 top-4 flex items-center gap-2 rounded-full border border-emerald-300/40 bg-emerald-500/20 px-4 py-2 text-sm font-semibold text-emerald-200 shadow-[0_0_25px_rgba(16,185,129,0.45)] backdrop-blur">

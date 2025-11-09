@@ -88,11 +88,11 @@ const useSubcircuitEditorStore = create(
       state.editingSubcircuit = subcircuit
 
       if (subcircuit) {
-        state.internalGates = [...(subcircuit.internalGates || [])]
-        state.internalWires = [...(subcircuit.internalWires || [])]
-        state.internalBounds = subcircuit.internalBounds || null
-        state.tempPorts.inputs = [...(subcircuit.inputPorts || [])]
-        state.tempPorts.outputs = [...(subcircuit.outputPorts || [])]
+        state.internalGates = [...(subcircuit.internalCircuit?.gates || [])]
+        state.internalWires = [...(subcircuit.internalCircuit?.wires || [])]
+        state.internalBounds = subcircuit.internalCircuit?.bounds || null
+        state.tempPorts.inputs = [...(subcircuit.inputs || [])]
+        state.tempPorts.outputs = [...(subcircuit.outputs || [])]
       }
 
       // Save initial state to history
@@ -124,11 +124,13 @@ const useSubcircuitEditorStore = create(
       state.isEditing = true
       state.editingMode = 'create'
       state.creationMethod = method
-      state.creationStep = 0
       state.creationData = {
         ...state.creationData,
         ...initialData
       }
+      // Populate the editor's canvas with the selected gates
+      state.internalGates = initialData.selectedGates || []
+      state.internalWires = initialData.selectedWires || []
     }),
 
     nextCreationStep: () => set(state => {

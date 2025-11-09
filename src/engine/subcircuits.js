@@ -268,6 +268,15 @@ export function createSubcircuitFromSelection(selectedGates, allWires, name = nu
     validate: validateResult
   })
 
+  if (!portMapping || !portMapping.validation) {
+      console.error('Port mapping failed catastrophically, result is null or invalid.');
+      return {
+          success: false,
+          errors: ['Critical error during port mapping.'],
+          warnings: []
+      };
+  }
+
   if (!portMapping.validation.valid) {
     console.error('Port mapping validation failed:', portMapping.validation.errors)
     return {

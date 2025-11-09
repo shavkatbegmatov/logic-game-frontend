@@ -3,7 +3,7 @@ import { Group, Rect } from 'react-konva'
 import useSubcircuitEditorStore from '../../../store/subcircuitEditorStore'
 import PCBGateComponent from '../../Gates/PCBGateComponent'
 import WireComponent from '../../Wires/WireComponent'
-import { calculateSafeBounds } from '../../../engine/subcircuits'
+import { calculateSafeBounds } from '../../../engine/validation'
 
 const InlineCanvasMode = () => {
   const { editingSubcircuit, updateInternalGateState } = useSubcircuitEditorStore(state => ({
@@ -16,9 +16,15 @@ const InlineCanvasMode = () => {
   }
 
   const { internalCircuit } = editingSubcircuit
+
+  if (!internalCircuit || !internalCircuit.gates) {
+    return null;
+  }
+
   const bounds = calculateSafeBounds(internalCircuit.gates, 100) // 100px padding
 
-  const handleDragEnd = (e, gateId) => {
+
+  const handleDragEnd = (gateId, e) => {
     updateInternalGateState(gateId, { x: e.target.x(), y: e.target.y() })
   }
 
@@ -27,10 +33,14 @@ const InlineCanvasMode = () => {
     e.cancelBubble = true
   }
 
+  const groupX = window.innerWidth / 2 - (bounds.width / 2);
+  const groupY = window.innerHeight / 2 - (bounds.height / 2);
+
+
   return (
     <Group
-      x={window.innerWidth / 2 - (bounds.width / 2)}
-      y={window.innerHeight / 2 - (bounds.height / 2)}
+      x={groupX}
+      y={groupY}
       onClick={handleGroupClick}
     >
       <Rect
@@ -47,28 +57,30 @@ const InlineCanvasMode = () => {
 
       {/* Render Wires */}
       {internalCircuit.wires.map(wire => (
-        <WireComponent
-          key={wire.id}
-          wire={wire}
-          gates={internalCircuit.gates}
-          isEditing
-        />
-      ))}
+          <WireComponent
+            key={wire.id}
+            wire={wire}
+            gates={internalCircuit.gates}
+            isEditing
+          />
+        )
+      )}
 
       {/* Render Gates */}
       {internalCircuit.gates.map(gate => (
-        <PCBGateComponent
+        gate && <PCBGateComponent
           key={gate.id}
-          id={gate.id}
-          type={gate.type}
-          x={gate.x}
-          y={gate.y}
-          label={gate.label}
-          isSelected={false} // Internal gates are not selectable in this mode
+          gate={gate}
+          isSelected={false}
           isPreSelected={false}
           outputSignal={0} // Simplified view, no simulation
-          onDragEnd={(e) => handleDragEnd(e, gate.id)}
-          draggable
+          onDragEnd={handleDragEnd}
+          onDragStart={() => {}}
+          onDragMove={() => {}}
+          onSelect={() => {}}
+          onUpdateGate={() => {}}
+          onWireStart={() => {}}
+          onWireEnd={() => {}}
         />
       ))}
     </Group>
