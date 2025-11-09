@@ -254,7 +254,7 @@ export class SubcircuitSimulationEngine {
     const gateOutputs = new Map()
 
     // Map input signals to internal gates
-    template.inputs.forEach((input, index) => {
+    template.inputs.forEach((input: any, index: number) => {
       if (input.connectedGate && input.connectedIndex !== undefined) {
         if (!gateStates.has(input.connectedGate)) {
           gateStates.set(input.connectedGate, {})
