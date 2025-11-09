@@ -47,7 +47,7 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer"
           onClick={onClose}
         >
           <motion.div
@@ -55,14 +55,14 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 20, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-3xl rounded-2xl border border-white/10 bg-slate-900/95 p-6 shadow-2xl"
+            className="w-full max-w-3xl rounded-2xl border border-white/10 bg-slate-900/95 p-6 shadow-2xl cursor-default"
           >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="rounded-lg bg-white/5 p-2"><SettingsIcon className="h-5 w-5 text-cyan-400" /></span>
                 <h2 className="text-lg font-semibold text-white">Sozlamalar</h2>
               </div>
-              <button onClick={onClose} className="rounded-lg p-2 text-gray-400 hover:bg-white/5 hover:text-white">
+              <button onClick={onClose} className="rounded-lg p-2 text-gray-400 hover:bg-white/5 hover:text-white cursor-pointer">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -75,7 +75,7 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                   <button
                     key={id}
                     onClick={() => setEditorMode(id as any)}
-                    className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
+                    className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors cursor-pointer ${
                       editorMode === id
                         ? 'border-cyan-400/40 bg-cyan-400/10'
                         : 'border-white/10 bg-white/5 hover:bg-white/10'
@@ -101,7 +101,7 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                   <button
                     key={id}
                     onClick={() => setCreationFlow(id as any)}
-                    className={`rounded-lg border px-3 py-2 text-left transition-colors ${
+                    className={`rounded-lg border px-3 py-2 text-left transition-colors cursor-pointer ${
                       creationFlow === id ? 'border-indigo-400/40 bg-indigo-400/10' : 'border-white/10 bg-white/5 hover:bg-white/10'
                     }`}
                   >
@@ -121,7 +121,7 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </div>
 
             <div className="mt-6 flex justify-end">
-              <button onClick={onClose} className="rounded-lg bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/20">Yopish</button>
+              <button onClick={onClose} className="rounded-lg bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/20 cursor-pointer">Yopish</button>
             </div>
           </motion.div>
         </motion.div>
