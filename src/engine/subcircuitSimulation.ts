@@ -275,7 +275,7 @@ export class SubcircuitSimulationEngine {
     })
 
     // Initialize all gates
-    template.internalCircuit.gates.forEach(gate => {
+    template.internalCircuit.gates.forEach((gate: any) => {
       if (!gateStates.has(gate.id)) {
         gateStates.set(gate.id, {
           inputs: new Array(gate.inputs?.length || 2).fill(0),
@@ -287,7 +287,7 @@ export class SubcircuitSimulationEngine {
     })
 
     // Process wires to connect gates
-    template.internalCircuit.wires.forEach(wire => {
+    template.internalCircuit.wires.forEach((wire: any) => {
       if (!gateStates.has(wire.toGate)) {
         gateStates.set(wire.toGate, { inputs: [] })
       }
