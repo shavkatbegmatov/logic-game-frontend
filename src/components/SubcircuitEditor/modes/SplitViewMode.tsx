@@ -4,7 +4,7 @@ import { Columns, ZoomIn, ZoomOut, RotateCcw, X } from 'lucide-react'
 import { Stage, Layer, Rect } from 'react-konva'
 import useSubcircuitEditorStore from '../../../store/subcircuitEditorStore'
 import useGameStore from '../../../store/gameStore'
-import { gateConfigs } from '../../../engine/gates'
+import { gateConfigs } from '@/engine/gates.ts'
 import PCBGateComponent from '../../Gates/PCBGateComponent'
 import WireComponent from '../../Wires/WireComponent'
 
