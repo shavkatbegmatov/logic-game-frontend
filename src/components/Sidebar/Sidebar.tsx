@@ -69,9 +69,14 @@ const Sidebar = () => {
     const reader = new FileReader()
     reader.onload = (event) => {
       try {
-        const circuit = JSON.parse(event.target.result)
-        loadCircuit(circuit)
-        log('Sxema muvaffaqiyatli yuklandi.');
+        const result = event.target?.result
+        if (typeof result === 'string') {
+          const circuit = JSON.parse(result)
+          loadCircuit(circuit)
+          log('Sxema muvaffaqiyatli yuklandi.');
+        } else {
+          throw new Error('Fayl mazmuni string emas')
+        }
       } catch (error) {
         log('Faylni o\'qishda yoki parse qilishda xatolik:', error);
         alert('Faylni yuklashda xatolik!')
