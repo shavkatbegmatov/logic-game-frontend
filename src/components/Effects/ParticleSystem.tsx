@@ -83,7 +83,6 @@ const ParticleSystem = () => {
             animation: {
               enable: true,
               speed: 1,
-              min: 0.1,
               sync: false,
             },
           },
@@ -96,7 +95,6 @@ const ParticleSystem = () => {
             animation: {
               enable: true,
               speed: 2,
-              min: 0.1,
               sync: false,
             },
           },
