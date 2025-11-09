@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Columns, ZoomIn, ZoomOut, RotateCcw, X } from 'lucide-react'
 import { Stage, Layer, Rect } from 'react-konva'
-import useSubcircuitEditorStore from '../../../store/subcircuitEditorStore'
-import useGameStore from '../../../store/gameStore'
-import { gateConfigs } from '../../../engine/gates'
+import useSubcircuitEditorStore from '@/store/subcircuitEditorStore'
+import useGameStore from '@/store/gameStore'
+import { gateConfigs } from '@/engine/gates'
 import PCBGateComponent from '../../Gates/PCBGateComponent'
 import WireComponent from '../../Wires/WireComponent'
 
@@ -92,7 +92,8 @@ const SplitViewMode = ({ onClose }) => {
     const gate = internalGates.find(g => g.id === wireStart.gateId)
     if (!gate) return null
     const config = gateConfigs[gate.type] || { maxInputs: 2, maxOutputs: 1 }
-    let startX = 0, startY = 0
+    let startX: number
+    let startY: number
     if (wireStart.type === 'output') {
       const spacingOut = gate.height / ((config.maxOutputs || 1) + 1)
       startX = gate.x + gate.width + 5
@@ -122,7 +123,7 @@ const SplitViewMode = ({ onClose }) => {
   // Left panel preview data (read-only)
   const mainGates = useGameStore(s => s.gates)
   const mainWires = useGameStore(s => s.wires)
-  const isSimulating = useGameStore(s => s.isSimulating)
+  // const isSimulating = useGameStore(s => s.isSimulating)
 
   // Left side: read-only preview of main canvas
   return (
