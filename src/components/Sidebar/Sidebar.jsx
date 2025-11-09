@@ -101,7 +101,7 @@ const Sidebar = () => {
   const missionStatus = isSimulating ? "Signal oqmoqda" : "Kutish holati"
 
   return (
-    <div className="relative w-72 h-full flex flex-col border-r border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_30px_60px_-30px_rgba(15,23,42,0.75)]">
+    <div className="relative w-[280px] lg:w-[320px] h-full flex flex-col rounded-l-2xl bg-gradient-to-br from-white/10 via-white/5 to-transparent backdrop-blur-xl shadow-[0_30px_60px_-30px_rgba(15,23,42,0.75)] overflow-hidden">
       {/* Header */}
       <div className="relative overflow-hidden border-b border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-transparent p-6">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,rgba(34,211,238,0.16),transparent_55%),radial-gradient(circle_at_90%_20%,rgba(129,140,248,0.12),transparent_60%)] opacity-70" />

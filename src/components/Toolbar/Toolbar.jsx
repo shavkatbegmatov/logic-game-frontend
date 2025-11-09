@@ -19,7 +19,7 @@ const Toolbar = () => {
   const [showSettings, setShowSettings] = useState(false)
 
   return (
-    <div className="relative flex h-16 items-center justify-between border-b border-white/5 bg-slate-950/40 px-6 backdrop-blur-2xl shadow-[0_15px_35px_-20px_rgba(15,23,42,0.6)]">
+    <div className="relative flex h-16 items-center justify-between mx-4 mt-4 rounded-xl border border-white/10 bg-slate-950/60 px-6 backdrop-blur-3xl shadow-[0_20px_45px_-20px_rgba(15,23,42,0.8)]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.12),transparent_50%),radial-gradient(circle_at_bottom_right,rgba(129,140,248,0.12),transparent_55%)] opacity-60" />
       <div className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-white/10 to-transparent" />
 

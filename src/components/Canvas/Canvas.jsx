@@ -33,7 +33,8 @@ const log = (message, ...args) => console.log(`%c[CANVAS] ${message}`, 'color: #
 
 const Canvas = () => {
   const stageRef = useRef(null)
-  const [stageSize, setStageSize] = useState({ width: window.innerWidth - 280, height: window.innerHeight - 60 })
+  const containerRef = useRef(null)
+  const [stageSize, setStageSize] = useState({ width: 800, height: 600 }) // Default fallback
   const [isDraggingWire, setIsDraggingWire] = useState(false)
   const [wireStart, setWireStart] = useState(null)
   const [tempWireEnd, setTempWireEnd] = useState(null)
@@ -64,10 +65,24 @@ const Canvas = () => {
   const { shortcuts, editorMode: preferredEditorMode, enableSounds } = useUserPreferencesStore()
   const { updateStats } = useAchievementStore()
 
+  // Dynamic sizing with ResizeObserver - responds to parent container size changes
   useEffect(() => {
-    const handleResize = () => setStageSize({ width: window.innerWidth - 280, height: window.innerHeight - 60 })
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
+    if (!containerRef.current) return
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect
+        setStageSize({ width, height })
+      }
+    })
+
+    resizeObserver.observe(containerRef.current)
+
+    // Set initial size
+    const { width, height } = containerRef.current.getBoundingClientRect()
+    setStageSize({ width, height })
+
+    return () => resizeObserver.disconnect()
   }, [])
 
   useEffect(() => {
@@ -352,7 +367,7 @@ const Canvas = () => {
   )
 
   return (
-    <div className="relative h-full overflow-hidden bg-slate-950/30 canvas-3d" onDrop={handleDrop} onDragOver={handleDragOver}>
+    <div ref={containerRef} className="relative h-full overflow-hidden bg-slate-950/30 canvas-3d p-4" onDrop={handleDrop} onDragOver={handleDragOver}>
       <div className="grid-3d" />
       <div className="pointer-events-none absolute inset-0 opacity-60 mix-blend-screen" style={{ backgroundImage: `linear-gradient(to right, rgba(34, 211, 238, 0.14) 1px, transparent 1px), linear-gradient(to bottom, rgba(129, 140, 248, 0.12) 1px, transparent 1px)`, backgroundSize: '20px 20px' }} />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent" />

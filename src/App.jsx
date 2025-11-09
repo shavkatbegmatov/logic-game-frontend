@@ -11,7 +11,7 @@ function App() {
   }, []);
 
   return (
-    <div className="relative flex h-screen overflow-hidden text-slate-100">
+    <div className="relative min-h-screen bg-slate-950 text-slate-100">
       {/* Space Background with animated stars and nebula */}
       <SpaceBackground />
 
@@ -29,17 +29,20 @@ function App() {
         }}
       />
 
-      {/* Sidebar */}
-      <Sidebar />
+      {/* Professional game container with max-width and proper spacing */}
+      <div className="mx-auto max-w-[1920px] flex h-[calc(100vh-32px)] md:h-[calc(100vh-40px)] gap-4 rounded-2xl overflow-hidden shadow-2xl border border-white/5 bg-slate-900/95">
+        {/* Sidebar */}
+        <Sidebar />
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col border-l border-white/10 bg-slate-950/40 backdrop-blur-2xl">
-        {/* Toolbar */}
-        <Toolbar />
+        {/* Main content */}
+        <div className="flex-1 flex flex-col">
+          {/* Toolbar */}
+          <Toolbar />
 
-        {/* Canvas */}
-        <div className="flex-1">
-          <Canvas />
+          {/* Canvas */}
+          <div className="flex-1">
+            <Canvas />
+          </div>
         </div>
       </div>
     </div>
