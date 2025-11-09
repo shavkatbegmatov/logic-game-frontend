@@ -101,7 +101,7 @@ export class SimulationEngine {
       // Oddiy gate logikasi
       const output = gateLogic[gate.type](inputSignals, gate.value)
       outputs = [output]
-      this.gateOutputs[gate.id] = output
+      this.gateOutputs[gate.id] = typeof output === 'number' ? output : 0
     }
     console.log(`[SIMULATION]   - Chiqish signallari (${gate.type}_${gate.id}):`, outputs);
 
