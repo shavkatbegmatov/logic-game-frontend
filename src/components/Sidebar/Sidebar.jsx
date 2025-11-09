@@ -211,7 +211,7 @@ const Sidebar = () => {
       </div>
 
       {/* Gate'lar ro'yxati */}
-      <div className="flex-1 overflow-y-auto px-6 py-6">
+      <div className="flex-1 overflow-y-auto px-4 py-6">
         <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">Komponentlar</h3>
 
         {/* Asosiy gate'lar */}
@@ -226,11 +226,11 @@ const Sidebar = () => {
                   key={type}
                   draggable
                   onDragStart={(e) => handleDragStart(e, type)}
-                  className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 shadow-[0_20px_45px_-35px_rgba(15,23,42,0.7)] cursor-move transition-all hover:-translate-y-1 hover:border-white/30 hover:bg-white/10 hover:shadow-[0_28px_55px_-25px_rgba(15,23,42,0.7)]"
+                  className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 pl-6 pr-4 py-4 shadow-[0_20px_45px_-35px_rgba(15,23,42,0.7)] cursor-move transition-all hover:-translate-y-1 hover:border-white/30 hover:bg-white/10 hover:shadow-[0_28px_55px_-25px_rgba(15,23,42,0.7)]"
                   style={{ borderLeftColor: config.color, borderLeftWidth: 4 }}
                 >
                   <div className="flex items-center justify-between">
-                    <div>
+                    <div className="pl-1">
                       <div className="text-sm font-semibold text-white">{config.name}</div>
                       <div className="text-xs text-slate-300">{config.description}</div>
                     </div>
@@ -256,10 +256,10 @@ const Sidebar = () => {
                 key={type}
                 draggable
                 onDragStart={(e) => handleDragStart(e, type)}
-                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 shadow-[0_20px_45px_-35px_rgba(15,23,42,0.7)] cursor-move transition-all hover:-translate-y-1 hover:border-white/30 hover:bg-white/10 hover:shadow-[0_28px_55px_-25px_rgba(15,23,42,0.7)]"
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 pl-6 pr-4 py-4 shadow-[0_20px_45px_-35px_rgba(15,23,42,0.7)] cursor-move transition-all hover:-translate-y-1 hover:border-white/30 hover:bg-white/10 hover:shadow-[0_28px_55px_-25px_rgba(15,23,42,0.7)]"
               >
                 <div className="flex items-center justify-between">
-                  <div>
+                  <div className="pl-1">
                     <div className="text-sm font-semibold text-white">{config.name}</div>
                     <div className="text-xs text-slate-300">{config.description}</div>
                   </div>
