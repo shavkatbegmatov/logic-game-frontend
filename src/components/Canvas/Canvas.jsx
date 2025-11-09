@@ -281,6 +281,9 @@ const Canvas = () => {
   const renderDomEditor = () => {
     if (!isEditing || editingMode !== 'edit') return null;
 
+    // Inline mode uses Konva only, no DOM overlay needed
+    if (preferredEditorMode === 'inline') return null;
+
     const editorProps = {
       onClose: stopEditing,
       subcircuit: editingSubcircuit,
@@ -301,7 +304,7 @@ const Canvas = () => {
 
     return (
       <>
-        {/* Common UI for all editing modes, like the top banner */}
+        {/* Backdrop and UI for non-inline editing modes */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-30 bg-slate-900/80 backdrop-blur-sm" onClick={stopEditing} />
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40">
           <motion.div initial={{ y: -100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="flex items-center gap-4 rounded-lg bg-slate-800/80 p-3 shadow-lg border border-slate-700">
