@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Play, Pause, RotateCcw, Save, Upload, Grid, Trash2, Cpu } from 'lucide-react'
+import { Play, Pause, RotateCcw, Save, Upload, Grid, Cpu } from 'lucide-react'
 import useGameStore from '../../store/gameStore'
 import { GateTypes, gateConfigs } from '@/engine/gates.ts'
 import { runSimulation } from '@/engine/simulation.ts'
@@ -75,10 +75,11 @@ const Sidebar = () => {
           loadCircuit(circuit)
           log('Sxema muvaffaqiyatli yuklandi.');
         } else {
-          throw new Error('Fayl mazmuni string emas')
+          log('Faylni o\'qishda xatolik: Fayl mazmuni string emas');
+          alert('Faylni yuklashda xatolik!')
         }
       } catch (error) {
-        log('Faylni o\'qishda yoki parse qilishda xatolik:', error);
+        log('Faylni parse qilishda xatolik:', error);
         alert('Faylni yuklashda xatolik!')
       }
     }
@@ -223,7 +224,7 @@ const Sidebar = () => {
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-300">Mantiqiy Gate'lar</p>
           {Object.entries(GateTypes)
             .filter(([_, type]) => !['INPUT', 'OUTPUT', 'CLOCK'].includes(type))
-            .map(([key, type]) => {
+            .map(([_, type]) => {
               const config = gateConfigs[type]
               return (
                 <div
