@@ -19,8 +19,8 @@ import {
   optimizePorts,
   PortDirection
 } from './portMapping'
-import type { Gate, Wire, Port, Bounds } from '../types/gates'
-import type { SubcircuitTemplateConfig, SubcircuitCreationOptions, SubcircuitCreationResult } from '../types/subcircuit'
+import type { Gate, Wire, Port, Bounds } from '@/types'
+import type { SubcircuitTemplateConfig, SubcircuitCreationOptions, SubcircuitCreationResult } from '@/types'
 
 /**
  * Subcircuit Template Class - Refactored
@@ -49,6 +49,9 @@ export class SubcircuitTemplate {
   updatedAt: Date
   width: number
   height: number
+  performanceHints: any
+  _validationCache: any
+  _lastValidation: number
 
   constructor(config: Partial<SubcircuitTemplateConfig> = {}) {
     this.id = config.id || nanoid(12)
@@ -58,8 +61,8 @@ export class SubcircuitTemplate {
     this.category = config.category || 'custom'
     this.version = config.version || '1.0.0'
     this.author = config.author || 'anonymous'
-    this.createdAt = config.createdAt || new Date().toISOString()
-    this.updatedAt = config.updatedAt || new Date().toISOString()
+    this.createdAt = config.createdAt ? (typeof config.createdAt === 'string' ? new Date(config.createdAt) : config.createdAt) : new Date()
+    this.updatedAt = config.updatedAt ? (typeof config.updatedAt === 'string' ? new Date(config.updatedAt) : config.updatedAt) : new Date()
 
     // Input/Output portlari - Enhanced format
     this.inputs = config.inputs || []
@@ -83,7 +86,7 @@ export class SubcircuitTemplate {
     this.height = config.height || Math.max(80, Math.max(this.inputs.length, this.outputs.length) * 30)
 
     // Performance hints
-    this.performanceHints = config.performanceHints || {
+    this.performanceHints = (config as any).performanceHints || {
       canCache: true,
       estimatedGateCount: this.internalCircuit.gates?.length || 0,
       hasRecursion: false,
@@ -235,12 +238,12 @@ export class SubcircuitTemplate {
     }
 
     // Update metadata
-    this.updatedAt = new Date().toISOString()
+    this.updatedAt = new Date()
     this.performanceHints.estimatedGateCount = sanitizedGates.length
 
     // Invalidate cache
     this._validationCache = null
-    this._lastValidation = null
+    this._lastValidation = 0
 
     return true
   }
@@ -265,7 +268,7 @@ export class SubcircuitTemplate {
  * Create subcircuit from selected gates - REFACTORED
  * Smart port mapping va robust validation bilan
  */
-export function createSubcircuitFromSelection(selectedGates, allWires, name = null, options = {}) {
+export function createSubcircuitFromSelection(selectedGates: any, allWires: any, name: string | null = null, options: any = {}) {
   const {
     autoDetectPorts = true,
     optimizePorts = true,
@@ -368,7 +371,7 @@ export function createSubcircuitFromSelection(selectedGates, allWires, name = nu
       hasRecursion: false,
       complexity: getComplexity(executionGates.length, internalWires.length)
     }
-  })
+  } as any)
 
   // Step 8: Final validation (skip for templates with INPUT/OUTPUT gates)
   // These are kept for editing but not for execution
@@ -431,9 +434,9 @@ function getMostFrequentGateType(gates) {
   let maxCount = 0
   let dominant = 'Mixed'
 
-  Object.entries(counts).forEach(([type, count]) => {
+  Object.entries(counts).forEach(([type, count]: [string, any]) => {
     if (count > maxCount) {
-      maxCount = count
+      maxCount = count as number
       dominant = type
     }
   })
@@ -497,29 +500,29 @@ export function migrateTemplate(oldTemplate) {
   })
 
   // Ensure ports have proper structure
-  migrated.inputs = migrated.inputs.map((input, index) => {
+  migrated.inputs = migrated.inputs.map((input: any, index: number) => {
     if (typeof input === 'string') {
       return {
         name: input,
         index: index,
         connectedGate: null,
         connectedIndex: 0
-      }
+      } as any
     }
     return input
-  })
+  }) as Port[]
 
-  migrated.outputs = migrated.outputs.map((output, index) => {
+  migrated.outputs = migrated.outputs.map((output: any, index: number) => {
     if (typeof output === 'string') {
       return {
         name: output,
         index: index,
         connectedGate: null,
         connectedIndex: 0
-      }
+      } as any
     }
     return output
-  })
+  }) as Port[]
 
   return migrated
 }
@@ -548,6 +551,9 @@ export function batchCreateSubcircuits(selections, allWires, options = {}) {
  * Template'larni boshqarish uchun
  */
 export class SubcircuitManager {
+  globalTemplates: Map<string, SubcircuitTemplate>
+  customTemplates: Map<string, SubcircuitTemplate>
+
   constructor() {
     this.globalTemplates = new Map()  // Global kutubxona
     this.customTemplates = new Map()  // Loyihaga xos template'lar
@@ -614,7 +620,7 @@ export class SubcircuitManager {
 
     // Update properties
     Object.assign(template, updates)
-    template.updatedAt = new Date().toISOString()
+    template.updatedAt = new Date()
 
     return template
   }
@@ -726,24 +732,25 @@ export function createDefaultTemplates() {
     category: 'logic',
     isGlobal: true,
     inputs: [
-      { name: 'A', index: 0, connectedGate: 'input-0', connectedIndex: 0 },
-      { name: 'B', index: 1, connectedGate: 'input-1', connectedIndex: 0 }
+      { name: 'A', index: 0, connectedGate: 'input-0', connectedIndex: 0 } as any,
+      { name: 'B', index: 1, connectedGate: 'input-1', connectedIndex: 0 } as any
     ],
     outputs: [
-      { name: 'Y', index: 0, connectedGate: 'and-0', connectedIndex: 0 }
+      { name: 'Y', index: 0, connectedGate: 'and-0', connectedIndex: 0 } as any
     ],
     internalCircuit: {
       gates: [
-        { id: 'input-0', type: 'INPUT', x: 50, y: 100, value: 0 },
-        { id: 'input-1', type: 'INPUT', x: 50, y: 200, value: 0 },
-        { id: 'and-0', type: 'AND', x: 200, y: 150, inputs: [0, 0], outputs: [0] },
-        { id: 'output-0', type: 'OUTPUT', x: 350, y: 150, value: 0 }
+        { id: 'input-0', type: 'INPUT', x: 50, y: 100, value: 0, width: 60, height: 40, inputs: [], outputs: [] } as any,
+        { id: 'input-1', type: 'INPUT', x: 50, y: 200, value: 0, width: 60, height: 40, inputs: [], outputs: [] } as any,
+        { id: 'and-0', type: 'AND', x: 200, y: 150, inputs: [0, 0], outputs: [0], width: 60, height: 60, value: 0 } as any,
+        { id: 'output-0', type: 'OUTPUT', x: 350, y: 150, value: 0, width: 60, height: 40, inputs: [], outputs: [] } as any
       ],
       wires: [
-        { id: 'w1', fromGate: 'input-0', fromIndex: 0, toGate: 'and-0', toIndex: 0 },
-        { id: 'w2', fromGate: 'input-1', fromIndex: 0, toGate: 'and-0', toIndex: 1 },
-        { id: 'w3', fromGate: 'and-0', fromIndex: 0, toGate: 'output-0', toIndex: 0 }
-      ]
+        { id: 'w1', fromGate: 'input-0', fromIndex: 0, toGate: 'and-0', toIndex: 0, signal: 0 } as any,
+        { id: 'w2', fromGate: 'input-1', fromIndex: 0, toGate: 'and-0', toIndex: 1, signal: 0 } as any,
+        { id: 'w3', fromGate: 'and-0', fromIndex: 0, toGate: 'output-0', toIndex: 0, signal: 0 } as any
+      ],
+      bounds: null
     }
   }))
 
@@ -756,24 +763,25 @@ export function createDefaultTemplates() {
     category: 'logic',
     isGlobal: true,
     inputs: [
-      { name: 'A', index: 0, connectedGate: 'input-0', connectedIndex: 0 },
-      { name: 'B', index: 1, connectedGate: 'input-1', connectedIndex: 0 }
+      { name: 'A', index: 0, connectedGate: 'input-0', connectedIndex: 0 } as any,
+      { name: 'B', index: 1, connectedGate: 'input-1', connectedIndex: 0 } as any
     ],
     outputs: [
-      { name: 'Y', index: 0, connectedGate: 'or-0', connectedIndex: 0 }
+      { name: 'Y', index: 0, connectedGate: 'or-0', connectedIndex: 0 } as any
     ],
     internalCircuit: {
       gates: [
-        { id: 'input-0', type: 'INPUT', x: 50, y: 100, value: 0 },
-        { id: 'input-1', type: 'INPUT', x: 50, y: 200, value: 0 },
-        { id: 'or-0', type: 'OR', x: 200, y: 150, inputs: [0, 0], outputs: [0] },
-        { id: 'output-0', type: 'OUTPUT', x: 350, y: 150, value: 0 }
+        { id: 'input-0', type: 'INPUT', x: 50, y: 100, value: 0, width: 60, height: 40, inputs: [], outputs: [] } as any,
+        { id: 'input-1', type: 'INPUT', x: 50, y: 200, value: 0, width: 60, height: 40, inputs: [], outputs: [] } as any,
+        { id: 'or-0', type: 'OR', x: 200, y: 150, inputs: [0, 0], outputs: [0], width: 60, height: 60, value: 0 } as any,
+        { id: 'output-0', type: 'OUTPUT', x: 350, y: 150, value: 0, width: 60, height: 40, inputs: [], outputs: [] } as any
       ],
       wires: [
-        { id: 'w1', fromGate: 'input-0', fromIndex: 0, toGate: 'or-0', toIndex: 0 },
-        { id: 'w2', fromGate: 'input-1', fromIndex: 0, toGate: 'or-0', toIndex: 1 },
-        { id: 'w3', fromGate: 'or-0', fromIndex: 0, toGate: 'output-0', toIndex: 0 }
-      ]
+        { id: 'w1', fromGate: 'input-0', fromIndex: 0, toGate: 'or-0', toIndex: 0, signal: 0 } as any,
+        { id: 'w2', fromGate: 'input-1', fromIndex: 0, toGate: 'or-0', toIndex: 1, signal: 0 } as any,
+        { id: 'w3', fromGate: 'or-0', fromIndex: 0, toGate: 'output-0', toIndex: 0, signal: 0 } as any
+      ],
+      bounds: null
     }
   }))
 
@@ -786,24 +794,25 @@ export function createDefaultTemplates() {
     category: 'logic',
     isGlobal: true,
     inputs: [
-      { name: 'A', index: 0, connectedGate: 'input-0', connectedIndex: 0 },
-      { name: 'B', index: 1, connectedGate: 'input-1', connectedIndex: 0 }
+      { name: 'A', index: 0, connectedGate: 'input-0', connectedIndex: 0 } as any,
+      { name: 'B', index: 1, connectedGate: 'input-1', connectedIndex: 0 } as any
     ],
     outputs: [
-      { name: 'Y', index: 0, connectedGate: 'xor-0', connectedIndex: 0 }
+      { name: 'Y', index: 0, connectedGate: 'xor-0', connectedIndex: 0 } as any
     ],
     internalCircuit: {
       gates: [
-        { id: 'input-0', type: 'INPUT', x: 50, y: 100, value: 0 },
-        { id: 'input-1', type: 'INPUT', x: 50, y: 200, value: 0 },
-        { id: 'xor-0', type: 'XOR', x: 200, y: 150, inputs: [0, 0], outputs: [0] },
-        { id: 'output-0', type: 'OUTPUT', x: 350, y: 150, value: 0 }
+        { id: 'input-0', type: 'INPUT', x: 50, y: 100, value: 0, width: 60, height: 40, inputs: [], outputs: [] } as any,
+        { id: 'input-1', type: 'INPUT', x: 50, y: 200, value: 0, width: 60, height: 40, inputs: [], outputs: [] } as any,
+        { id: 'xor-0', type: 'XOR', x: 200, y: 150, inputs: [0, 0], outputs: [0], width: 60, height: 60, value: 0 } as any,
+        { id: 'output-0', type: 'OUTPUT', x: 350, y: 150, value: 0, width: 60, height: 40, inputs: [], outputs: [] } as any
       ],
       wires: [
-        { id: 'w1', fromGate: 'input-0', fromIndex: 0, toGate: 'xor-0', toIndex: 0 },
-        { id: 'w2', fromGate: 'input-1', fromIndex: 0, toGate: 'xor-0', toIndex: 1 },
-        { id: 'w3', fromGate: 'xor-0', fromIndex: 0, toGate: 'output-0', toIndex: 0 }
-      ]
+        { id: 'w1', fromGate: 'input-0', fromIndex: 0, toGate: 'xor-0', toIndex: 0, signal: 0 } as any,
+        { id: 'w2', fromGate: 'input-1', fromIndex: 0, toGate: 'xor-0', toIndex: 1, signal: 0 } as any,
+        { id: 'w3', fromGate: 'xor-0', fromIndex: 0, toGate: 'output-0', toIndex: 0, signal: 0 } as any
+      ],
+      bounds: null
     }
   }))
 
@@ -816,21 +825,22 @@ export function createDefaultTemplates() {
     category: 'logic',
     isGlobal: true,
     inputs: [
-      { name: 'A', index: 0, connectedGate: 'input-0', connectedIndex: 0 }
+      { name: 'A', index: 0, connectedGate: 'input-0', connectedIndex: 0 } as any
     ],
     outputs: [
-      { name: 'Y', index: 0, connectedGate: 'not-0', connectedIndex: 0 }
+      { name: 'Y', index: 0, connectedGate: 'not-0', connectedIndex: 0 } as any
     ],
     internalCircuit: {
       gates: [
-        { id: 'input-0', type: 'INPUT', x: 50, y: 150, value: 0 },
-        { id: 'not-0', type: 'NOT', x: 200, y: 150, inputs: [0], outputs: [1] },
-        { id: 'output-0', type: 'OUTPUT', x: 350, y: 150, value: 0 }
+        { id: 'input-0', type: 'INPUT', x: 50, y: 150, value: 0, width: 60, height: 40, inputs: [], outputs: [] } as any,
+        { id: 'not-0', type: 'NOT', x: 200, y: 150, inputs: [0], outputs: [1], width: 60, height: 60, value: 0 } as any,
+        { id: 'output-0', type: 'OUTPUT', x: 350, y: 150, value: 0, width: 60, height: 40, inputs: [], outputs: [] } as any
       ],
       wires: [
-        { id: 'w1', fromGate: 'input-0', fromIndex: 0, toGate: 'not-0', toIndex: 0 },
-        { id: 'w2', fromGate: 'not-0', fromIndex: 0, toGate: 'output-0', toIndex: 0 }
-      ]
+        { id: 'w1', fromGate: 'input-0', fromIndex: 0, toGate: 'not-0', toIndex: 0, signal: 0 } as any,
+        { id: 'w2', fromGate: 'not-0', fromIndex: 0, toGate: 'output-0', toIndex: 0, signal: 0 } as any
+      ],
+      bounds: null
     }
   }))
 
@@ -843,30 +853,31 @@ export function createDefaultTemplates() {
     category: 'arithmetic',
     isGlobal: true,
     inputs: [
-      { name: 'A', index: 0, connectedGate: 'input-0', connectedIndex: 0 },
-      { name: 'B', index: 1, connectedGate: 'input-1', connectedIndex: 0 }
+      { name: 'A', index: 0, connectedGate: 'input-0', connectedIndex: 0 } as any,
+      { name: 'B', index: 1, connectedGate: 'input-1', connectedIndex: 0 } as any
     ],
     outputs: [
-      { name: 'Sum', index: 0, connectedGate: 'xor-0', connectedIndex: 0 },
-      { name: 'Carry', index: 1, connectedGate: 'and-0', connectedIndex: 0 }
+      { name: 'Sum', index: 0, connectedGate: 'xor-0', connectedIndex: 0 } as any,
+      { name: 'Carry', index: 1, connectedGate: 'and-0', connectedIndex: 0 } as any
     ],
     internalCircuit: {
       gates: [
-        { id: 'input-0', type: 'INPUT', x: 50, y: 100, value: 0 },
-        { id: 'input-1', type: 'INPUT', x: 50, y: 200, value: 0 },
-        { id: 'xor-0', type: 'XOR', x: 200, y: 100, inputs: [0, 0], outputs: [0] },
-        { id: 'and-0', type: 'AND', x: 200, y: 200, inputs: [0, 0], outputs: [0] },
-        { id: 'output-0', type: 'OUTPUT', x: 350, y: 100, value: 0 },
-        { id: 'output-1', type: 'OUTPUT', x: 350, y: 200, value: 0 }
+        { id: 'input-0', type: 'INPUT', x: 50, y: 100, value: 0, width: 60, height: 40, inputs: [], outputs: [] } as any,
+        { id: 'input-1', type: 'INPUT', x: 50, y: 200, value: 0, width: 60, height: 40, inputs: [], outputs: [] } as any,
+        { id: 'xor-0', type: 'XOR', x: 200, y: 100, inputs: [0, 0], outputs: [0], width: 60, height: 60, value: 0 } as any,
+        { id: 'and-0', type: 'AND', x: 200, y: 200, inputs: [0, 0], outputs: [0], width: 60, height: 60, value: 0 } as any,
+        { id: 'output-0', type: 'OUTPUT', x: 350, y: 100, value: 0, width: 60, height: 40, inputs: [], outputs: [] } as any,
+        { id: 'output-1', type: 'OUTPUT', x: 350, y: 200, value: 0, width: 60, height: 40, inputs: [], outputs: [] } as any
       ],
       wires: [
-        { id: 'w1', fromGate: 'input-0', fromIndex: 0, toGate: 'xor-0', toIndex: 0 },
-        { id: 'w2', fromGate: 'input-1', fromIndex: 0, toGate: 'xor-0', toIndex: 1 },
-        { id: 'w3', fromGate: 'input-0', fromIndex: 0, toGate: 'and-0', toIndex: 0 },
-        { id: 'w4', fromGate: 'input-1', fromIndex: 0, toGate: 'and-0', toIndex: 1 },
-        { id: 'w5', fromGate: 'xor-0', fromIndex: 0, toGate: 'output-0', toIndex: 0 },
-        { id: 'w6', fromGate: 'and-0', fromIndex: 0, toGate: 'output-1', toIndex: 0 }
-      ]
+        { id: 'w1', fromGate: 'input-0', fromIndex: 0, toGate: 'xor-0', toIndex: 0, signal: 0 } as any,
+        { id: 'w2', fromGate: 'input-1', fromIndex: 0, toGate: 'xor-0', toIndex: 1, signal: 0 } as any,
+        { id: 'w3', fromGate: 'input-0', fromIndex: 0, toGate: 'and-0', toIndex: 0, signal: 0 } as any,
+        { id: 'w4', fromGate: 'input-1', fromIndex: 0, toGate: 'and-0', toIndex: 1, signal: 0 } as any,
+        { id: 'w5', fromGate: 'xor-0', fromIndex: 0, toGate: 'output-0', toIndex: 0, signal: 0 } as any,
+        { id: 'w6', fromGate: 'and-0', fromIndex: 0, toGate: 'output-1', toIndex: 0, signal: 0 } as any
+      ],
+      bounds: null
     }
   }))
 
