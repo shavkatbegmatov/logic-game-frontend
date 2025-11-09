@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { Group, Rect, Text, Circle, Line, Ring, RegularPolygon } from 'react-konva'
-import { GateTypes, gateConfigs } from '../../engine/gates'
-import { SPACE_COLORS } from '../../constants/spaceTheme'
+import { GateTypes, gateConfigs } from '@/engine/gates.ts'
+import { SPACE_COLORS } from '@/constants/spaceTheme.ts'
 import useSound from '../../hooks/useSound'
 
-const log = (message, ...args) => console.log(`%c[GATE] ${message}`, 'color: #FF9800;', ...args);
+const log = (message: any, ...args: any[]) => console.log(`%c[GATE] ${message}`, 'color: #FF9800;', ...args);
 
 const PCBGateComponent = ({
   gate,
@@ -87,7 +87,7 @@ const PCBGateComponent = ({
     return isActive ? gateTheme.glow : gateTheme.base
   }
 
-  const handleClick = (e) => {
+  const handleClick = (e: any) => {
     e.cancelBubble = true
     log(`'${gate.type}_${gate.id}' bosildi (click).`);
 
@@ -334,14 +334,16 @@ const PCBGateComponent = ({
             stroke={SPACE_COLORS.goldContact}
             strokeWidth={1}
             onMouseEnter={(e) => {
-              e.target.radius(5)
-              e.target.fill(SPACE_COLORS.goldContact)
-              e.target.getLayer().batchDraw()
+              const circle = e.target as any
+              circle.radius(5)
+              circle.fill(SPACE_COLORS.goldContact)
+              e.target.getLayer()?.batchDraw()
             }}
             onMouseLeave={(e) => {
-              e.target.radius(4)
-              e.target.fill('#1A1A1A')
-              e.target.getLayer().batchDraw()
+              const circle = e.target as any
+              circle.radius(4)
+              circle.fill('#1A1A1A')
+              e.target.getLayer()?.batchDraw()
             }}
             onMouseDown={(e) => {
               e.cancelBubble = true
@@ -393,12 +395,14 @@ const PCBGateComponent = ({
             strokeWidth={1}
             opacity={outputSignal === 1 ? Math.sin(pulseAnimation * Math.PI / 180) * 0.3 + 0.7 : 1}
             onMouseEnter={(e) => {
-              e.target.radius(5)
-              e.target.getLayer().batchDraw()
+              const circle = e.target as any
+              circle.radius(5)
+              e.target.getLayer()?.batchDraw()
             }}
             onMouseLeave={(e) => {
-              e.target.radius(4)
-              e.target.getLayer().batchDraw()
+              const circle = e.target as any
+              circle.radius(4)
+              e.target.getLayer()?.batchDraw()
             }}
             onMouseDown={(e) => {
               e.cancelBubble = true
