@@ -124,7 +124,7 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
           onClick={onClose}
         >
           <motion.div
@@ -132,10 +132,10 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 20, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-4xl max-h-[90vh] rounded-2xl border border-white/10 bg-slate-900/95 shadow-2xl flex flex-col"
+            className="w-full max-w-4xl max-h-[85vh] rounded-2xl border border-white/10 bg-slate-900/95 shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-white/10">
+            <div className="flex items-center justify-between px-8 py-6 border-b border-white/10">
               <div className="flex items-center gap-3">
                 <span className="rounded-lg bg-white/5 p-2">
                   <SettingsIcon className="h-5 w-5 text-cyan-400" />
@@ -160,12 +160,12 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-white/10 px-6">
+            <div className="flex border-b border-white/10 px-8 gap-1">
               {tabs.map(({ id, name, Icon }) => (
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
-                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  className={`flex items-center gap-2 px-3 py-3 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === id
                       ? 'border-cyan-400 text-cyan-400'
                       : 'border-transparent text-gray-400 hover:text-gray-300'
@@ -178,7 +178,7 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto px-8 py-6">
               {/* General Tab */}
               {activeTab === 'general' && (
                 <div className="space-y-6">
@@ -510,7 +510,7 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Footer */}
-            <div className="flex justify-end gap-3 p-6 border-t border-white/10">
+            <div className="flex justify-end gap-3 px-8 py-6 border-t border-white/10">
               <button
                 onClick={onClose}
                 className="rounded-lg bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/20"
