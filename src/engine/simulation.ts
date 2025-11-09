@@ -150,7 +150,7 @@ export class SimulationEngine {
     const sorted = []
     const visiting = new Set() // Cycle detection uchun
 
-    const visit = (gate) => {
+    const visit = (gate: Gate) => {
       if (!gate) {
         console.warn('[SIMULATION] `visit` funksiyasiga `undefined` element keldi.');
         return;
