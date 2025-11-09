@@ -71,6 +71,16 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   const resetPreferences = useUserPreferencesStore(s => s.resetPreferences)
 
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [isOpen, onClose])
+
   const editorModes = useMemo(() => ([
     { id: 'inline', name: 'Inline Canvas', desc: 'Asosiy canvas ichida tahrirlash', Icon: Maximize2 },
     { id: 'floating', name: 'Floating Panel', desc: 'Yon panelda tahrirlash', Icon: Layers },
