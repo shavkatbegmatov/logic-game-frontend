@@ -53,7 +53,7 @@ const GateComponent = ({
     return config.color
   }
 
-  const handleClick = (e) => {
+  const handleClick = (e: any) => {
     e.cancelBubble = true
 
     // INPUT gate uchun qiymatni almashtirish
