@@ -6,8 +6,125 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 import { deepEqualArrays } from '../utils/arrayUtils'
-import type { Gate, Wire, Port, Bounds } from '../types/gates'
-import type { EditorMode, CreationMethod, BreadcrumbItem } from '../types/subcircuit'
+import type { Gate, Wire, Port, Bounds } from '@/types'
+import type { EditorMode, CreationMethod, BreadcrumbItem } from '@/types'
+
+interface SubcircuitEditorState {
+  // Editing state
+  isEditing: boolean
+  editingMode: EditorMode | null
+  editingSubcircuit: any | null
+  editingContext: BreadcrumbItem[]
+
+  // Creation state
+  creationMethod: CreationMethod | null
+  creationStep: number
+  creationData: {
+    selectedGates: Gate[]
+    selectedWires: Wire[]
+    boundaryBox: any | null
+    templateId: string | null
+    name: string
+    description: string
+    icon: string
+    category: string
+    isGlobal: boolean
+  }
+
+  // Port mapping
+  portMappingMode: any | null
+  tempPorts: {
+    inputs: Port[]
+    outputs: Port[]
+  }
+  portConnections: any[]
+  suggestedMappings: any[]
+
+  // Canvas state
+  internalGates: Gate[]
+  internalWires: Wire[]
+  internalBounds: Bounds | null
+  selectedInternalGates: (string | number)[]
+  selectedInternalWires: (string | number)[]
+
+  // Preview state
+  previewCircuit: any | null
+  previewSignals: Record<string, any>
+  isSimulatingPreview: boolean
+
+  // History
+  history: {
+    past: any[]
+    present: any | null
+    future: any[]
+  }
+  maxHistorySteps: number
+
+  // Auto-save
+  isDirty: boolean
+  lastSaved: Date | null
+  autoSaveTimer: any | null
+
+  // UI State
+  panels: any
+
+  // Visual helpers
+  gridVisible: boolean
+  gridSize: number
+  guidelines: any[]
+  rulers: { x: any[], y: any[] }
+  zoomLevel: number
+  panOffset: { x: number, y: number }
+
+  // Validation
+  validationErrors: string[]
+  validationWarnings: string[]
+
+  // Actions
+  startEditing: (mode: EditorMode, subcircuit?: any) => void
+  stopEditing: () => void
+  startCreation: (method: CreationMethod, initialData?: any) => void
+  nextCreationStep: () => void
+  previousCreationStep: () => void
+  updateCreationData: (data: any) => void
+  pushContext: (context: BreadcrumbItem) => void
+  popContext: () => void
+  clearContext: () => void
+  addInputPort: (port: Port) => void
+  addOutputPort: (port: Port) => void
+  updatePort: (type: string, index: number, updates: any) => void
+  removePort: (type: string, index: number) => void
+  reorderPorts: (type: string, fromIndex: number, toIndex: number) => void
+  addInternalGate: (gate: Gate) => void
+  updateInternalGate: (gateId: string | number, updates: any) => void
+  removeInternalGate: (gateId: string | number) => void
+  addInternalWire: (wire: Wire) => void
+  removeInternalWire: (wireId: string | number) => void
+  selectInternalGate: (gateId: string | number) => void
+  deselectInternalGate: (gateId: string | number) => void
+  clearInternalSelection: () => void
+  saveToHistory: () => void
+  undo: () => void
+  redo: () => void
+  updatePreview: () => void
+  setPreviewSignals: (signals: any) => void
+  togglePreviewSimulation: () => void
+  togglePanel: (panelName: string) => void
+  setPanelPosition: (panelName: string, position: string) => void
+  toggleGrid: () => void
+  setGridSize: (size: number) => void
+  addGuideline: (guideline: any) => void
+  removeGuideline: (id: string | number) => void
+  clearGuidelines: () => void
+  setZoomLevel: (zoom: number) => void
+  setPanOffset: (offset: { x: number, y: number }) => void
+  resetView: () => void
+  validate: () => { errors: string[], warnings: string[], isValid: boolean }
+  markDirty: () => void
+  markClean: () => void
+  updateInternalGateState: (gateId: string | number, updates: any) => void
+  reset: () => void
+}
 
 const initialState = {
   // Editing state
@@ -86,7 +203,7 @@ const initialState = {
   validationWarnings: []
 }
 
-const useSubcircuitEditorStore = create(
+const useSubcircuitEditorStore = create<SubcircuitEditorState>()(
   immer((set, get) => ({
     ...initialState,
 

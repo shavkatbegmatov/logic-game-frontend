@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { Play, Pause, RotateCcw, Save, Upload, Grid, Trash2, Cpu } from 'lucide-react'
 import useGameStore from '../../store/gameStore'
-import { GateTypes, gateConfigs } from '../../engine/gates'
-import { runSimulation } from '../../engine/simulation'
+import { GateTypes, gateConfigs } from '@/engine/gates.ts'
+import { runSimulation } from '@/engine/simulation.ts'
 import AchievementDisplay from '../UI/AchievementDisplay'
 import SubcircuitPanel from './SubcircuitPanel'
 
