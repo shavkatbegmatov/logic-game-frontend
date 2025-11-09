@@ -1,6 +1,6 @@
 import React from 'react'
 import { Group, Rect, Text, Circle } from 'react-konva'
-import { GateTypes, gateConfigs } from '../../engine/gates'
+import { GateTypes, gateConfigs } from '@/engine/gates.ts'
 
 const GateComponent = ({
   gate,
@@ -210,12 +210,14 @@ const GateComponent = ({
           shadowOpacity={0.35}
           shadowColor="rgba(56,189,248,0.65)"
           onMouseEnter={(e) => {
-            e.target.radius(8)
-            e.target.getLayer().batchDraw()
+            const circle = e.target as any
+            circle.radius(8)
+            e.target.getLayer()?.batchDraw()
           }}
           onMouseLeave={(e) => {
-            e.target.radius(6)
-            e.target.getLayer().batchDraw()
+            const circle = e.target as any
+            circle.radius(6)
+            e.target.getLayer()?.batchDraw()
           }}
           onMouseDown={(e) => {
             e.cancelBubble = true
@@ -245,12 +247,14 @@ const GateComponent = ({
           shadowOpacity={outputSignal === 1 ? 0.6 : 0.25}
           shadowColor={outputSignal === 1 ? 'rgba(34,197,94,0.8)' : 'rgba(129,140,248,0.6)'}
           onMouseEnter={(e) => {
-            e.target.radius(8)
-            e.target.getLayer().batchDraw()
+            const circle = e.target as any
+            circle.radius(8)
+            e.target.getLayer()?.batchDraw()
           }}
           onMouseLeave={(e) => {
-            e.target.radius(6)
-            e.target.getLayer().batchDraw()
+            const circle = e.target as any
+            circle.radius(6)
+            e.target.getLayer()?.batchDraw()
           }}
           onMouseDown={(e) => {
             e.cancelBubble = true
