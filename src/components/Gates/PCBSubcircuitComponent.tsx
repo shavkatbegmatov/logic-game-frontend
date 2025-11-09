@@ -13,7 +13,7 @@ const PCBSubcircuitComponent = ({
   onDoubleClick,
   outputSignals = []
 }) => {
-  const groupRef = useRef()
+  const groupRef = useRef(null)
   const [_isDragging, setIsDragging] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
 
