@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Package, Clock, Cpu, HardDrive, Wifi, Layers, Search, Star, TrendingUp } from 'lucide-react'
 import { createSubcircuitFromSelection } from '@/engine/subcircuits.ts'
-import SoundManager from '../effects/SoundManager'
+import { soundService } from '../effects/SoundManager'
 import useSubcircuitEditorStore from '../../../store/subcircuitEditorStore'
 
 const TemplateCreate = ({ onComplete, onCancel }) => {
@@ -138,10 +138,9 @@ const TemplateCreate = ({ onComplete, onCancel }) => {
       // Apply template settings
       template.template.description = selectedTemplate.description
       template.template.icon = selectedTemplate.icon
-      template.template.color = selectedTemplate.color
       template.template.category = selectedTemplate.category
 
-      SoundManager.playSuccess()
+      soundService.playSuccess()
       onComplete(template.template)
     }
   }
