@@ -3,9 +3,86 @@ import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 import { deepEqualArrays } from '../utils/arrayUtils' // Corrected import path
 
+const initialState = {
+  // Editing state
+  isEditing: false,
+  editingMode: null, // 'create' | 'edit' | 'preview'
+  editingSubcircuit: null, // Current subcircuit being edited
+  editingContext: [], // Breadcrumb path [{id, name, type}]
+
+  // Creation state
+  creationMethod: null, // 'quick' | 'wizard' | 'template' | 'visual'
+  creationStep: 0,
+  creationData: {
+    selectedGates: [],
+    selectedWires: [],
+    boundaryBox: null,
+    templateId: null,
+    name: '',
+    description: '',
+    icon: '',
+    category: 'custom',
+    isGlobal: false
+  },
+
+  // Port mapping
+  portMappingMode: null,
+  tempPorts: {
+    inputs: [],
+    outputs: []
+  },
+  portConnections: [], // [{external: wireId, internal: portIndex}]
+  suggestedMappings: [], // AI suggestions
+
+  // Canvas state
+  internalGates: [],
+  internalWires: [],
+  internalBounds: null,
+  selectedInternalGates: [],
+  selectedInternalWires: [],
+
+  // Preview state
+  previewCircuit: null,
+  previewSignals: {},
+  isSimulatingPreview: false,
+
+  // History (Undo/Redo)
+  history: {
+    past: [],
+    present: null,
+    future: []
+  },
+  maxHistorySteps: 50,
+
+  // Auto-save
+  isDirty: false,
+  lastSaved: null,
+  autoSaveTimer: null,
+
+  // UI State
+  panels: {
+    toolbar: { visible: true, position: 'top' },
+    properties: { visible: false, target: null, position: 'right' },
+    layers: { visible: false, position: 'left' },
+    preview: { visible: true, position: 'bottom' }
+  },
+
+  // Visual helpers
+  gridVisible: true,
+  gridSize: 20,
+  guidelines: [],
+  rulers: { x: [], y: [] },
+  zoomLevel: 1,
+  panOffset: { x: 0, y: 0 },
+
+  // Validation
+  validationErrors: [],
+  validationWarnings: []
+}
+
 const useSubcircuitEditorStore = create(
   immer((set, get) => ({
-    // ... (other state properties)
+    ...initialState,
 
     // Actions
 

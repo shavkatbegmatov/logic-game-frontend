@@ -15,7 +15,8 @@
       "Bash(dir:*)",
       "Bash(powershell -Command:*)",
       "Bash(npm run build:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(awk:*)"
     ],
     "deny": [],
     "ask": []

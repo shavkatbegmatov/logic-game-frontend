@@ -1,37 +1,39 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useCallback } from 'react'
 import { Group, Rect } from 'react-konva'
 import useSubcircuitEditorStore from '../../../store/subcircuitEditorStore'
-import { shallow } from 'zustand/shallow' // Import shallow
 import PCBGateComponent from '../../Gates/PCBGateComponent'
 import WireComponent from '../../Wires/WireComponent'
 import { calculateSafeBounds } from '../../../engine/validation'
 
 const InlineCanvasMode = React.memo(() => { // Wrap with React.memo
-  const { internalGates, internalWires, updateInternalGateState } = useSubcircuitEditorStore(state => ({
-    internalGates: state.internalGates,
-    internalWires: state.internalWires,
-    updateInternalGateState: state.updateInternalGateState
-  }), shallow) // Use shallow for comparison
+  // Separate store subscriptions to avoid re-creating objects
+  const internalGates = useSubcircuitEditorStore(state => state.internalGates)
+  const internalWires = useSubcircuitEditorStore(state => state.internalWires)
+  const updateInternalGate = useSubcircuitEditorStore(state => state.updateInternalGate)
+
+  // Memoize bounds calculation
+  const bounds = useMemo(() => {
+    if (!internalGates || internalGates.length === 0) {
+      return { width: 400, height: 300, minX: 0, minY: 0, maxX: 400, maxY: 300 }
+    }
+    return calculateSafeBounds(internalGates, 100) // 100px padding
+  }, [internalGates])
+
+  // Memoize handlers to prevent re-creating functions
+  const handleDragEnd = useCallback((gateId, e) => {
+    updateInternalGate(gateId, { x: e.target.x(), y: e.target.y() })
+  }, [updateInternalGate])
+
+  // Prevent clicks inside the editor from propagating to the backdrop
+  const handleGroupClick = useCallback((e) => {
+    e.cancelBubble = true
+  }, [])
+
+  // Empty handlers for editor mode (no interaction needed)
+  const emptyHandler = useCallback(() => {}, [])
 
   if (!internalGates || internalGates.length === 0) {
     return null;
-  }
-
-  // Memoize internal gates and wires to prevent unnecessary re-renders of children
-  // Dependencies are now the internalGates/internalWires arrays themselves, which should be stable if content doesn't change
-  const memoizedGates = useMemo(() => internalGates, [internalGates])
-  const memoizedWires = useMemo(() => internalWires, [internalWires])
-
-  const bounds = calculateSafeBounds(memoizedGates, 100) // 100px padding
-
-
-  const handleDragEnd = (gateId, e) => {
-    updateInternalGateState(gateId, { x: e.target.x(), y: e.target.y() })
-  }
-
-  // Prevent clicks inside the editor from propagating to the backdrop
-  const handleGroupClick = (e) => {
-    e.cancelBubble = true
   }
 
   const groupX = window.innerWidth / 2 - (bounds.width / 2);
@@ -57,18 +59,18 @@ const InlineCanvasMode = React.memo(() => { // Wrap with React.memo
       />
 
       {/* Render Wires */}
-      {memoizedWires.map(wire => (
+      {internalWires.map(wire => (
           <WireComponent
             key={wire.id}
             wire={wire}
-            gates={memoizedGates}
+            gates={internalGates}
             isEditing
           />
         )
       )}
 
       {/* Render Gates */}
-      {memoizedGates.map(gate => (
+      {internalGates.map(gate => (
         gate && <PCBGateComponent
           key={gate.id}
           gate={gate}
@@ -76,12 +78,12 @@ const InlineCanvasMode = React.memo(() => { // Wrap with React.memo
           isPreSelected={false}
           outputSignal={0} // Simplified view, no simulation
           onDragEnd={handleDragEnd}
-          onDragStart={() => {}}
-          onDragMove={() => {}}
-          onSelect={() => {}}
-          onUpdateGate={() => {}}
-          onWireStart={() => {}}
-          onWireEnd={() => {}}
+          onDragStart={emptyHandler}
+          onDragMove={emptyHandler}
+          onSelect={emptyHandler}
+          onUpdateGate={emptyHandler}
+          onWireStart={emptyHandler}
+          onWireEnd={emptyHandler}
         />
       ))}
     </Group>
