@@ -7,7 +7,42 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { SubcircuitManager, SubcircuitTemplate, createDefaultTemplates } from '../engine/subcircuits'
 
-const useSubcircuitStore = create(
+interface SubcircuitState {
+  manager: SubcircuitManager
+  templates: SubcircuitTemplate[]
+  globalTemplates: SubcircuitTemplate[]
+  customTemplates: SubcircuitTemplate[]
+  selectedTemplateId: string | null
+  editingTemplateId: string | null
+  categories: string[]
+  searchQuery: string
+  selectedCategory: string
+
+  initializeStore: () => void
+  addTemplate: (templateConfig: any, isGlobal?: boolean) => { success: boolean; template?: SubcircuitTemplate; error?: string }
+  removeTemplate: (templateId: string) => boolean
+  updateTemplate: (templateId: string, updates: any) => SubcircuitTemplate | null
+  getTemplate: (templateId: string) => SubcircuitTemplate | undefined
+  selectTemplate: (templateId: string | null) => void
+  startEditingTemplate: (templateId: string) => void
+  stopEditingTemplate: () => void
+  setSearchQuery: (query: string) => void
+  setSelectedCategory: (category: string) => void
+  getFilteredTemplates: () => SubcircuitTemplate[]
+  exportTemplates: (templateIds?: string[] | null) => any
+  importTemplates: (libraryData: any) => { imported: any[]; errors: string[] }
+  createSubcircuitInstance: (templateId: string, x: number, y: number) => any
+  incrementUsageCount: (templateId: string) => void
+  addCategory: (category: string) => void
+  getTemplatesByCategory: (category: string) => SubcircuitTemplate[]
+  getMostUsedTemplates: (limit?: number) => SubcircuitTemplate[]
+  getRecentTemplates: (limit?: number) => SubcircuitTemplate[]
+  validateTemplateName: (name: string, excludeId?: string | null) => boolean
+  clearCustomTemplates: () => void
+  resetToDefaults: () => void
+}
+
+const useSubcircuitStore = create<SubcircuitState>()(
   persist(
     (set, get) => ({
       // State

@@ -8,6 +8,40 @@ import { persist } from 'zustand/middleware'
 import toast from 'react-hot-toast'
 import soundManager from '../utils/SoundManager'
 
+interface Achievement {
+  id: string
+  name: string
+  description: string
+  icon: string
+  xp: number
+  unlockedAt?: Date
+}
+
+interface Rank {
+  name: string
+  minXP: number
+  color: string
+}
+
+interface AchievementState {
+  achievements: Achievement[]
+  totalXP: number
+  currentRank: Rank
+  statistics: {
+    gatesPlaced: number
+    wiresConnected: number
+    circuitsCompleted: number
+    levelsCompleted: number
+    totalPlayTime: number
+    gateTypesUsed: Set<string>
+  }
+
+  unlockAchievement: (achievementId: string) => void
+  updateStats: (statName: string, value: number) => void
+  getProgressToNextRank: () => { current: number; required: number; percentage: number }
+  resetAchievements: () => void
+}
+
 const ACHIEVEMENTS = {
   FIRST_GATE: {
     id: 'first_gate',
@@ -77,7 +111,7 @@ const RANKS = [
   { name: 'Admiral', minXP: 5000, color: '#FFD700' },
 ];
 
-const useAchievementStore = create(
+const useAchievementStore = create<AchievementState>()(
   persist(
     (set, get) => ({
       achievements: [],

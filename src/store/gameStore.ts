@@ -13,7 +13,66 @@ const logAction = (actionName: string, ...args: any[]) => {
   console.log(`%c[STATE] Action: ${actionName}`, 'color: #2196F3; font-weight: bold;', ...args)
 }
 
-const useGameStore = create((set, get) => ({
+interface GameState {
+  // O'yin holati
+  currentLevel: number
+  isPlaying: boolean
+  isSandboxMode: boolean
+
+  // Komponentlar
+  gates: Gate[]
+  wires: Wire[]
+  selectedGate: string | number | null
+  selectedWire: string | number | null
+
+  // Multi-selection
+  selectedGates: (string | number)[]
+  preSelectedGates: (string | number)[]
+  selectionMode: boolean
+  selectionBox: SelectionBox | null
+
+  // Subcircuit editing
+  editingSubcircuit: any | null
+  subcircuitContext: BreadcrumbItem[]
+
+  // Signal simulyatsiyasi
+  signals: SignalMap
+  isSimulating: boolean
+
+  // Actions
+  addGate: (gate: Gate) => void
+  removeGate: (gateId: string | number) => void
+  updateGate: (gateId: string | number, updates: Partial<Gate>) => void
+  updateGatePositions: (positions: Array<{ id: string | number; x: number; y: number }>) => void
+  addWire: (wire: Wire) => void
+  removeWire: (wireId: string | number) => void
+  updateWire: (wireId: string | number, updates: Partial<Wire>) => void
+  selectGate: (gateId: string | number) => void
+  selectWire: (wireId: string | number) => void
+  clearSelection: () => void
+  toggleGateSelection: (gateId: string | number) => void
+  selectMultipleGates: (gateIds: (string | number)[]) => void
+  addToSelection: (gateId: string | number) => void
+  removeFromSelection: (gateId: string | number) => void
+  setSelectionMode: (enabled: boolean) => void
+  setPreSelectedGates: (gateIds: (string | number)[]) => void
+  setSelectionBox: (box: SelectionBox | null) => void
+  getGatesInSelectionBox: (box: SelectionBox | null) => Gate[]
+  createSubcircuitFromSelected: (name: string, description?: string) => any
+  enterSubcircuit: (subcircuitGate: any) => void
+  exitSubcircuit: () => void
+  isEditingSubcircuit: () => boolean
+  startSimulation: () => void
+  stopSimulation: () => void
+  updateSignals: (newSignals: SignalMap) => void
+  setLevel: (level: number) => void
+  setSandboxMode: (enabled: boolean) => void
+  resetCanvas: () => void
+  saveCircuit: () => { gates: Gate[]; wires: Wire[] }
+  loadCircuit: (circuit: { gates: Gate[]; wires: Wire[] }) => void
+}
+
+const useGameStore = create<GameState>((set, get) => ({
   // O'yin holati
   currentLevel: 0,
   isPlaying: false,
