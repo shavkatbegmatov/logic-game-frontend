@@ -6,7 +6,7 @@ import type { Gate, Wire, SignalMap } from '@/types'
 export interface SimulationResult {
   success: boolean
   signals: SignalMap
-  gateOutputs: Record<string | number, number>
+  gateOutputs: SignalMap
   warnings: any[]
 }
 
@@ -14,7 +14,7 @@ export class SimulationEngine {
   gates: Gate[]
   wires: Wire[]
   signals: SignalMap
-  gateOutputs: Record<string | number, number>
+  gateOutputs: SignalMap
 
   constructor(gates: Gate[], wires: Wire[]) {
     console.log('[SIMULATION] Engine yaratilmoqda...', { gates: gates.length, wires: wires.length });
@@ -62,7 +62,7 @@ export class SimulationEngine {
     // INPUT gate'larning qiymatlarini o'rnatish
     this.gates.forEach(gate => {
       if (gate.type === GateTypes.INPUT) {
-        this.gateOutputs[gate.id] = gate.value || 0
+        this.gateOutputs[gate.id] = (gate.value || 0) as 0 | 1
       }
     })
     console.log('[SIMULATION] Signallar o\'rnatildi.', { initialOutputs: this.gateOutputs });
@@ -95,13 +95,13 @@ export class SimulationEngine {
 
       // Multiple outputs uchun har birini alohida saqlash
       gate.outputPorts?.forEach((_, index) => {
-        this.gateOutputs[`${gate.id}_${index}`] = outputs[index] || 0
+        this.gateOutputs[`${gate.id}_${index}`] = (outputs[index] || 0) as 0 | 1
       })
     } else {
       // Oddiy gate logikasi
       const output = gateLogic[gate.type](inputSignals, gate.value)
       outputs = [output]
-      this.gateOutputs[gate.id] = typeof output === 'number' ? output : 0
+      this.gateOutputs[gate.id] = (typeof output === 'number' ? output : 0) as 0 | 1
     }
     console.log(`[SIMULATION]   - Chiqish signallari (${gate.type}_${gate.id}):`, outputs);
 

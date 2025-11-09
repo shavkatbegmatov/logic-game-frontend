@@ -215,7 +215,7 @@ const CreateSubcircuitModal = ({ isOpen, onClose }) => {
                 value={icon}
                 onChange={(e) => setIcon(e.target.value.toUpperCase())}
                 placeholder="FA"
-                maxLength="4"
+                maxLength={4}
                 className="w-full rounded-lg border border-white/10 bg-slate-800/50 px-3 py-2 text-center text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
               />
             </div>

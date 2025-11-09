@@ -27,6 +27,7 @@ export class SubcircuitTemplate {
   name: string
   description: string
   icon: string
+  color: string
   category: string
   version: string
   author: string
@@ -54,6 +55,7 @@ export class SubcircuitTemplate {
     this.name = config.name || 'Untitled Subcircuit'
     this.description = config.description || ''
     this.icon = config.icon || 'SC'
+    this.color = (config as any).color || '#7C3AED'
     this.category = config.category || 'custom'
     this.version = config.version || '1.0.0'
     this.author = config.author || 'anonymous'
@@ -183,6 +185,7 @@ export class SubcircuitTemplate {
       name: this.name,
       description: this.description,
       icon: this.icon,
+      color: this.color,
       category: this.category,
       version: this.version,
       author: this.author,

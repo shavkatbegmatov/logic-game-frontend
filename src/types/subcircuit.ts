@@ -12,6 +12,7 @@ export interface SubcircuitTemplateConfig {
   description?: string
   icon?: string
   category?: string
+  color?: string
   version?: string
   author?: string
   inputs: Port[]

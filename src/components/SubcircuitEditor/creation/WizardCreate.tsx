@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ChevronRight, ChevronLeft, Settings, Link2, Eye, Save, CircuitBoard, Zap, Info } from 'lucide-react'
 import useSubcircuitEditorStore from '../../../store/subcircuitEditorStore'
-import { createSubcircuitFromSelection } from '../../../engine/subcircuits'
-import SoundManager from '../effects/SoundManager'
+import { createSubcircuitFromSelection } from '@/engine/subcircuits.ts'
+import { soundService } from '../effects/SoundManager'
 
 const WizardCreate = ({ onComplete, onCancel }) => {
   const [step, setStep] = useState(0)
@@ -53,12 +53,12 @@ const WizardCreate = ({ onComplete, onCancel }) => {
     wires?.forEach(wire => {
       if (!internalGateIds.has(wire.fromGate) && internalGateIds.has(wire.toGate)) {
         const targetGate = gates.find(g => g.id === wire.toGate)
-        if (!inputs.find(i => i.gateId === wire.toGate && i.port === wire.toPort)) {
+        if (!inputs.find(i => i.gateId === wire.toGate && i.port === wire.toIndex)) {
           inputs.push({
             id: `in_${inputs.length}`,
             name: `Input ${inputs.length + 1}`,
             gateId: wire.toGate,
-            port: wire.toPort,
+            port: wire.toIndex,
             type: targetGate?.type || 'SIGNAL'
           })
         }
@@ -76,12 +76,12 @@ const WizardCreate = ({ onComplete, onCancel }) => {
     wires?.forEach(wire => {
       if (internalGateIds.has(wire.fromGate) && !internalGateIds.has(wire.toGate)) {
         const sourceGate = gates.find(g => g.id === wire.fromGate)
-        if (!outputs.find(o => o.gateId === wire.fromGate && o.port === wire.fromPort)) {
+        if (!outputs.find(o => o.gateId === wire.fromGate && o.port === wire.fromIndex)) {
           outputs.push({
             id: `out_${outputs.length}`,
             name: `Output ${outputs.length + 1}`,
             gateId: wire.fromGate,
-            port: wire.fromPort,
+            port: wire.fromIndex,
             type: sourceGate?.type || 'SIGNAL'
           })
         }
@@ -215,7 +215,7 @@ const WizardCreate = ({ onComplete, onCancel }) => {
                   value={wizardData.description}
                   onChange={(e) => setWizardData({...wizardData, description: e.target.value})}
                   className="w-full bg-slate-800 text-white px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
-                  rows="2"
+                  rows={2}
                   placeholder="Describe what this module does..."
                 />
               </div>
@@ -396,7 +396,7 @@ const WizardCreate = ({ onComplete, onCancel }) => {
               <button
                 onClick={() => {
                   setStep(step + 1)
-                  SoundManager.playClick()
+                  soundService.playClick()
                 }}
                 className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-white hover:brightness-110"
               >
@@ -422,7 +422,7 @@ const WizardCreate = ({ onComplete, onCancel }) => {
                     template.template.inputs = wizardData.inputs
                     template.template.outputs = wizardData.outputs
 
-                    SoundManager.playSuccess()
+                    soundService.playSuccess()
                     onComplete(template.template)
                   }
                 }}

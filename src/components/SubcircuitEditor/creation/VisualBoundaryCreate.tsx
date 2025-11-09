@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Square, MousePointer, Move, Check, X, Info, Maximize2 } from 'lucide-react'
 import useSubcircuitEditorStore from '../../../store/subcircuitEditorStore'
 import useGameStore from '../../../store/gameStore'
-import { createSubcircuitFromSelection } from '../../../engine/subcircuits'
-import SoundManager from '../effects/SoundManager'
+import { createSubcircuitFromSelection } from '@/engine/subcircuits.ts'
+import { soundService } from '../effects/SoundManager'
 
 const VisualBoundaryCreate = ({ onComplete, onCancel }) => {
   const { creationData } = useSubcircuitEditorStore()
@@ -31,7 +31,7 @@ const VisualBoundaryCreate = ({ onComplete, onCancel }) => {
 
         setStartPoint({ x, y })
         setIsDrawing(true)
-        SoundManager.playClick()
+        soundService.playClick()
       }
     }
 
@@ -65,7 +65,7 @@ const VisualBoundaryCreate = ({ onComplete, onCancel }) => {
     const handleMouseUp = () => {
       if (isDrawing && selectedGates.length > 0) {
         setStep('naming')
-        SoundManager.playSuccess()
+        soundService.playSuccess()
       }
       setIsDrawing(false)
     }
@@ -103,7 +103,7 @@ const VisualBoundaryCreate = ({ onComplete, onCancel }) => {
       template.template.description = `Created from visual boundary selection (${selectedGates.length} gates)`
 
       setStep('complete')
-      SoundManager.playSuccess()
+      soundService.playSuccess()
 
       setTimeout(() => {
         onComplete(template.template)

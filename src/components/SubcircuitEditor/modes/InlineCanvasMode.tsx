@@ -16,7 +16,7 @@ const InlineCanvasMode = React.memo(() => { // Wrap with React.memo
     if (!internalGates || internalGates.length === 0) {
       return { width: 400, height: 300, minX: 0, minY: 0, maxX: 400, maxY: 300 }
     }
-    return calculateSafeBounds(internalGates, 100)
+    return calculateSafeBounds(internalGates)
   }, [internalGates])
 
   // Memoize handlers to prevent re-creating functions
@@ -59,14 +59,15 @@ const InlineCanvasMode = React.memo(() => { // Wrap with React.memo
 
       {/* Render Wires */}
       {internalWires.map(wire => (
-          <WireComponent
-            key={wire.id}
-            wire={wire}
-            gates={internalGates}
-            isEditing
-          />
-        )
-      )}
+        <WireComponent
+          key={wire.id}
+          wire={wire}
+          gates={internalGates}
+          signal={0}
+          isTemporary={false}
+          draggingGate={null}
+        />
+      ))}
 
       {/* Render Gates */}
       {internalGates.map(gate => (

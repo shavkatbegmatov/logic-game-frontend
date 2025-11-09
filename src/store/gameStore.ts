@@ -44,7 +44,7 @@ interface GameState {
   removeGate: (gateId: string | number) => void
   updateGate: (gateId: string | number, updates: Partial<Gate>) => void
   updateGatePositions: (positions: Array<{ id: string | number; x: number; y: number }>) => void
-  addWire: (wire: Wire) => void
+  addWire: (wire: Omit<Wire, 'id' | 'signal'>) => void
   removeWire: (wireId: string | number) => void
   updateWire: (wireId: string | number, updates: Partial<Wire>) => void
   selectGate: (gateId: string | number) => void

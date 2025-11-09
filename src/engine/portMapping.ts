@@ -113,7 +113,9 @@ export const GatePortConfigs = {
  */
 export function autoDetectPorts(selectedGates, allWires) {
   const selectedGateIds = new Set(selectedGates.map(g => g.id));
-  const gateMap = new Map(selectedGates.map(g => [g.id, g]));
+  const gateMap: Map<string | number, any> = new Map(
+    selectedGates.map((g: any) => [g.id as string | number, g])
+  );
   const externalInputs = [];
   const externalOutputs = [];
   const internalWires = [];
@@ -524,7 +526,11 @@ export function suggestPortNames(gateType, existingNames = []) {
 /**
  * Main port mapping function
  */
-export function createPortMapping(selectedGates, allWires, options = {}) {
+export function createPortMapping(
+  selectedGates,
+  allWires,
+  options: { autoDetect?: boolean; optimize?: boolean; validate?: boolean } = {}
+) {
   const {
     autoDetect = true,
     optimize = true,

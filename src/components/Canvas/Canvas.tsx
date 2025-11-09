@@ -274,7 +274,7 @@ const Canvas = () => {
   }
 
   const handleStageMouseUp = (e) => {
-    if (isDrawingSelection) handleSelectionMouseUp(e)
+    if (isDrawingSelection) handleSelectionMouseUp()
     if (isDraggingWire && e.target.getClassName() !== 'Circle') cancelWireCreation()
   }
 
@@ -372,7 +372,7 @@ const Canvas = () => {
             let startX, startY
             if (wireStart.type === 'output') {
               const config = gateConfigs[gate.type]
-              const spacing = gate.height / ((config.outputs || 1) + 1)
+              const spacing = gate.height / ((config.maxOutputs || 1) + 1)
               startX = gate.x + gate.width + 5
               startY = gate.y + spacing * (wireStart.index + 1)
             } else {

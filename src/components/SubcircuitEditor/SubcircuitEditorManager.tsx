@@ -96,11 +96,10 @@ const SubcircuitEditorManager = () => {
 
   const renderKonvaEditor = () => {
     if (!isEditing || editingMode !== 'edit') return null
-    const props = { onClose: handleExitEditMode }
     switch (preferredEditorMode) {
       case 'inline': return (
         <Layer>
-          <InlineCanvasMode {...props} />
+          <InlineCanvasMode />
         </Layer>
       )
       case 'floating': return null;
@@ -108,7 +107,7 @@ const SubcircuitEditorManager = () => {
       case 'splitView': return null;
       default: return (
         <Layer>
-          <InlineCanvasMode {...props} />
+          <InlineCanvasMode />
         </Layer>
       )
     }

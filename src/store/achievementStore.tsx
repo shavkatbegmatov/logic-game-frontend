@@ -37,8 +37,8 @@ interface AchievementState {
   }
 
   unlockAchievement: (achievementId: string) => void
-  updateStats: (statName: string, value: number) => void
-  getProgressToNextRank: () => { current: number; required: number; percentage: number }
+  updateStats: (statName: string, value: number | ((prev: any) => any)) => void
+  getProgressToNextRank: () => { percentage: number; xpNeeded: number; nextRank: Rank | null }
   resetAchievements: () => void
 }
 

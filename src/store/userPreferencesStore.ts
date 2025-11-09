@@ -82,26 +82,35 @@ interface UserPreferencesStore {
     achievementsUnlocked: string[]
   }
 
-  // Actions
+  // Actions (match implementation)
   setEditorMode: (mode: PreferredEditorMode) => void
   setCreationFlow: (flow: CreationMethod) => void
   setPortMappingStyle: (style: PortMappingStyle) => void
   setTheme: (theme: 'dark' | 'light' | 'cyberpunk' | 'retro' | 'matrix') => void
   toggleAnimation: () => void
   toggleSound: () => void
+  setSoundVolume: (volume: number) => void
   toggleParticles: () => void
   toggleGrid: () => void
-  toggleSnap: () => void
-  setSoundVolume: (volume: number) => void
-  setAnimationSpeed: (speed: number) => void
-  setShortcut: (action: string, shortcut: string) => void
+  setGridSize: (size: number) => void
+  toggleSnapToGrid: () => void
+  updateShortcut: (action: string, newShortcut: string) => void
   resetShortcuts: () => void
+  addRecentCategory: (category: string) => void
   addRecentTemplate: (templateId: string) => void
   toggleFavoriteTemplate: (templateId: string) => void
-  markTutorialSeen: () => void
-  incrementSubcircuitsCreated: () => void
+  markTutorialComplete: () => void
+  updateTutorialProgress: (progress: number) => void
+  incrementSubcircuitCount: () => void
   addEditTime: (seconds: number) => void
-  reset: () => void
+  unlockAchievement: (achievementId: string) => void
+  resetPreferences: () => void
+
+  // Derived helpers
+  getEffectiveAnimationSpeed: () => number
+  getEffectiveSoundVolume: () => number
+  shouldShowParticles: () => boolean
+  isFirstTime: () => boolean
 }
 
 const useUserPreferencesStore = create<UserPreferencesStore>()(
@@ -182,11 +191,11 @@ const useUserPreferencesStore = create<UserPreferencesStore>()(
       },
 
       // Actions
-      setEditorMode: (mode) => set({
+      setEditorMode: (mode) => set((state) => ({
         editorMode: mode,
         hasChosenEditorMode: true,
-        'stats.lastUsedMode': mode
-      }),
+        stats: { ...state.stats, lastUsedMode: mode }
+      })),
 
       setCreationFlow: (flow) => set({ creationFlow: flow }),
 
