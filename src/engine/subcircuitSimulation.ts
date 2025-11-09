@@ -303,7 +303,7 @@ export class SubcircuitSimulationEngine {
       iteration++
 
       // Simulate each gate
-      template.internalCircuit.gates.forEach(gate => {
+      template.internalCircuit.gates.forEach((gate: any) => {
         const gateState = gateStates.get(gate.id)
         if (!gateState) return
 
