@@ -94,7 +94,7 @@ export class SimulationEngine {
       }
 
       // Multiple outputs uchun har birini alohida saqlash
-      gate.outputPorts?.forEach((port, index) => {
+      gate.outputPorts?.forEach((_, index) => {
         this.gateOutputs[`${gate.id}_${index}`] = outputs[index] || 0
       })
     } else {
@@ -127,7 +127,7 @@ export class SimulationEngine {
   }
 
   // Gate'ning kirish signallarini olish
-  getGateInputs(gate) {
+  getGateInputs(gate: Gate) {
     const inputWires = this.wires.filter(wire => wire.toGate === gate.id)
     return inputWires.map(wire => {
       // Agar sim boshqa gate'dan kelayotgan bo'lsa
