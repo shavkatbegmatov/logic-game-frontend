@@ -24,14 +24,14 @@ class SimulationCache {
   /**
    * Generate cache key from inputs
    */
-  generateKey(templateId, inputSignals) {
+  generateKey(templateId: string, inputSignals: number[]): string {
     return `${templateId}:${inputSignals.join(',')}`
   }
 
   /**
    * Get cached result
    */
-  get(templateId, inputSignals) {
+  get(templateId: string, inputSignals: number[]): number[] | null {
     const key = this.generateKey(templateId, inputSignals)
 
     if (this.cache.has(key)) {
@@ -55,14 +55,16 @@ class SimulationCache {
   /**
    * Set cache entry
    */
-  set(templateId, inputSignals, outputSignals) {
+  set(templateId: string, inputSignals: number[], outputSignals: number[]): void {
     const key = this.generateKey(templateId, inputSignals)
 
     // Check if we need to evict
     if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
       // Remove least recently used
       const lruKey = this.accessOrder.shift()
-      this.cache.delete(lruKey)
+      if (lruKey) {
+        this.cache.delete(lruKey)
+      }
     }
 
     // Add or update
@@ -84,10 +86,10 @@ class SimulationCache {
   /**
    * Clear cache for specific template
    */
-  clearTemplate(templateId) {
+  clearTemplate(templateId: string): void {
     const keysToDelete = []
 
-    this.cache.forEach((value, key) => {
+    this.cache.forEach((_, key) => {
       if (key.startsWith(`${templateId}:`)) {
         keysToDelete.push(key)
       }
@@ -105,7 +107,7 @@ class SimulationCache {
   /**
    * Clear all cache
    */
-  clearAll() {
+  clearAll(): void {
     this.cache.clear()
     this.accessOrder = []
   }
@@ -113,7 +115,7 @@ class SimulationCache {
   /**
    * Get cache statistics
    */
-  getStats() {
+  getStats(): { size: number; maxSize: number; totalHits: number; averageAge: number; fillRate: number } {
     let totalHits = 0
     let totalAge = 0
     const now = Date.now()
@@ -136,26 +138,33 @@ class SimulationCache {
 /**
  * Gate simulation functions
  */
-const GateSimulators = {
-  AND: (inputs) => inputs.every(i => i === 1) ? 1 : 0,
-  OR: (inputs) => inputs.some(i => i === 1) ? 1 : 0,
-  NOT: (inputs) => inputs[0] === 1 ? 0 : 1,
-  NAND: (inputs) => inputs.every(i => i === 1) ? 0 : 1,
-  NOR: (inputs) => inputs.some(i => i === 1) ? 0 : 1,
-  XOR: (inputs) => inputs.filter(i => i === 1).length % 2 === 1 ? 1 : 0,
-  XNOR: (inputs) => inputs.filter(i => i === 1).length % 2 === 0 ? 1 : 0,
-  BUFFER: (inputs) => inputs[0] || 0,
-  BUTTON: (inputs, state) => state.pressed ? 1 : 0,
-  LED: (inputs) => inputs[0] || 0,
-  CLOCK: (inputs, state) => state.value || 0,
-  SWITCH: (inputs, state) => state.on ? 1 : 0
+const GateSimulators: Record<string, (inputs: number[], state?: any) => number> = {
+  AND: (inputs: number[]) => inputs.every(i => i === 1) ? 1 : 0,
+  OR: (inputs: number[]) => inputs.some(i => i === 1) ? 1 : 0,
+  NOT: (inputs: number[]) => inputs[0] === 1 ? 0 : 1,
+  NAND: (inputs: number[]) => inputs.every(i => i === 1) ? 0 : 1,
+  NOR: (inputs: number[]) => inputs.some(i => i === 1) ? 0 : 1,
+  XOR: (inputs: number[]) => inputs.filter(i => i === 1).length % 2 === 1 ? 1 : 0,
+  XNOR: (inputs: number[]) => inputs.filter(i => i === 1).length % 2 === 0 ? 1 : 0,
+  BUFFER: (inputs: number[]) => inputs[0] || 0,
+  BUTTON: (inputs: number[], state?: any) => state?.pressed ? 1 : 0,
+  LED: (inputs: number[]) => inputs[0] || 0,
+  CLOCK: (inputs: number[], state?: any) => state?.value || 0,
+  SWITCH: (inputs: number[], state?: any) => state?.on ? 1 : 0
 }
 
 /**
  * Simulation Engine Class
  */
 export class SubcircuitSimulationEngine {
-  constructor(options = {}) {
+  cache: SimulationCache
+  debugMode: boolean
+  useCache: boolean
+  maxRecursionDepth: number
+  simulationSteps: any[]
+  templateManager: any | null
+
+  constructor(options: any = {}) {
     this.cache = new SimulationCache(options.cacheSize || 1000)
     this.debugMode = options.debugMode || false
     this.useCache = options.useCache !== false // Default true
@@ -167,14 +176,14 @@ export class SubcircuitSimulationEngine {
   /**
    * Set template manager
    */
-  setTemplateManager(manager) {
+  setTemplateManager(manager: any): void {
     this.templateManager = manager
   }
 
   /**
    * Main simulation function
    */
-  simulate(subcircuitGate, inputSignals, options = {}) {
+  simulate(subcircuitGate: any, inputSignals: number[], options: any = {}): any {
     const {
       forceRealtime = false,
       recordSteps = this.debugMode
@@ -236,7 +245,7 @@ export class SubcircuitSimulationEngine {
   /**
    * Real-time simulation
    */
-  simulateRealtime(template, inputSignals, state, recursionDepth = 0, recordSteps = false) {
+  simulateRealtime(template: any, inputSignals: number[], state: any, recursionDepth: number = 0, recordSteps: boolean = false): number[] {
     // Check recursion depth
     if (recursionDepth > this.maxRecursionDepth) {
       console.error('Maximum recursion depth exceeded')
@@ -403,14 +412,14 @@ export class SubcircuitSimulationEngine {
   /**
    * Get simulation steps (for debugging)
    */
-  getSimulationSteps() {
+  getSimulationSteps(): any[] {
     return this.simulationSteps
   }
 
   /**
    * Clear cache
    */
-  clearCache(templateId = null) {
+  clearCache(templateId: string | null = null): void {
     if (templateId) {
       this.cache.clearTemplate(templateId)
     } else {
@@ -421,21 +430,21 @@ export class SubcircuitSimulationEngine {
   /**
    * Get cache statistics
    */
-  getCacheStats() {
+  getCacheStats(): { size: number; maxSize: number; totalHits: number; averageAge: number; fillRate: number } {
     return this.cache.getStats()
   }
 
   /**
    * Enable/disable debug mode
    */
-  setDebugMode(enabled) {
+  setDebugMode(enabled: boolean): void {
     this.debugMode = enabled
   }
 
   /**
    * Enable/disable cache
    */
-  setCacheEnabled(enabled) {
+  setCacheEnabled(enabled: boolean): void {
     this.useCache = enabled
   }
 }
@@ -453,7 +462,7 @@ export const globalSimulationEngine = new SubcircuitSimulationEngine({
 /**
  * Convenience function for quick simulation
  */
-export function simulateSubcircuit(subcircuitGate, inputSignals, templateManager, options = {}) {
+export function simulateSubcircuit(subcircuitGate: any, inputSignals: number[], templateManager: any, options: any = {}): any {
   // Set template manager if provided
   if (templateManager && !globalSimulationEngine.templateManager) {
     globalSimulationEngine.setTemplateManager(templateManager)
@@ -465,7 +474,7 @@ export function simulateSubcircuit(subcircuitGate, inputSignals, templateManager
 /**
  * Create custom simulation engine
  */
-export function createSimulationEngine(options) {
+export function createSimulationEngine(options: any): SubcircuitSimulationEngine {
   return new SubcircuitSimulationEngine(options)
 }
 
