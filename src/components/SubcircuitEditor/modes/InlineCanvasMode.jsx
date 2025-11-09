@@ -1,27 +1,28 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { Group, Rect } from 'react-konva'
 import useSubcircuitEditorStore from '../../../store/subcircuitEditorStore'
+import { shallow } from 'zustand/shallow' // Import shallow
 import PCBGateComponent from '../../Gates/PCBGateComponent'
 import WireComponent from '../../Wires/WireComponent'
 import { calculateSafeBounds } from '../../../engine/validation'
 
-const InlineCanvasMode = () => {
-  const { editingSubcircuit, updateInternalGateState } = useSubcircuitEditorStore(state => ({
-    editingSubcircuit: state.editingSubcircuit,
+const InlineCanvasMode = React.memo(() => { // Wrap with React.memo
+  const { internalGates, internalWires, updateInternalGateState } = useSubcircuitEditorStore(state => ({
+    internalGates: state.internalGates,
+    internalWires: state.internalWires,
     updateInternalGateState: state.updateInternalGateState
-  }))
+  }), shallow) // Use shallow for comparison
 
-  if (!editingSubcircuit) {
-    return null
-  }
-
-  const { internalCircuit } = editingSubcircuit
-
-  if (!internalCircuit || !internalCircuit.gates) {
+  if (!internalGates || internalGates.length === 0) {
     return null;
   }
 
-  const bounds = calculateSafeBounds(internalCircuit.gates, 100) // 100px padding
+  // Memoize internal gates and wires to prevent unnecessary re-renders of children
+  // Dependencies are now the internalGates/internalWires arrays themselves, which should be stable if content doesn't change
+  const memoizedGates = useMemo(() => internalGates, [internalGates])
+  const memoizedWires = useMemo(() => internalWires, [internalWires])
+
+  const bounds = calculateSafeBounds(memoizedGates, 100) // 100px padding
 
 
   const handleDragEnd = (gateId, e) => {
@@ -56,18 +57,18 @@ const InlineCanvasMode = () => {
       />
 
       {/* Render Wires */}
-      {internalCircuit.wires.map(wire => (
+      {memoizedWires.map(wire => (
           <WireComponent
             key={wire.id}
             wire={wire}
-            gates={internalCircuit.gates}
+            gates={memoizedGates}
             isEditing
           />
         )
       )}
 
       {/* Render Gates */}
-      {internalCircuit.gates.map(gate => (
+      {memoizedGates.map(gate => (
         gate && <PCBGateComponent
           key={gate.id}
           gate={gate}
@@ -85,6 +86,6 @@ const InlineCanvasMode = () => {
       ))}
     </Group>
   )
-}
+}) // End React.memo
 
 export default InlineCanvasMode

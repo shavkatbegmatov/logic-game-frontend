@@ -4,6 +4,8 @@ import useSubcircuitEditorStore from '../../store/subcircuitEditorStore'
 import useGameStore from '../../store/gameStore'
 import useSubcircuitStore from '../../store/subcircuitStore'
 
+import { Layer } from 'react-konva'
+
 // Import Konva components directly
 import InlineCanvasMode from './modes/InlineCanvasMode'
 import FloatingPanelMode from './modes/FloatingPanelMode'
@@ -96,11 +98,19 @@ const SubcircuitEditorManager = () => {
     if (!isEditing || editingMode !== 'edit') return null
     const props = { onClose: handleExitEditMode }
     switch (preferredEditorMode) {
-      case 'inline': return <InlineCanvasMode {...props} />
+      case 'inline': return (
+        <Layer>
+          <InlineCanvasMode {...props} />
+        </Layer>
+      )
       case 'floating': return null;
       case 'fullModal': return null;
       case 'splitView': return null;
-      default: return <InlineCanvasMode {...props} />
+      default: return (
+        <Layer>
+          <InlineCanvasMode {...props} />
+        </Layer>
+      )
     }
   }
 
