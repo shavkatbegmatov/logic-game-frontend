@@ -250,7 +250,7 @@ const useSubcircuitStore = create<SubcircuitState>()(
         const { customTemplates } = get();
 
         return customTemplates
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
           .slice(0, limit);
       },
 

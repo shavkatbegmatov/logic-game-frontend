@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Line, Group, Circle } from 'react-konva'
-import { gateConfigs } from '../../engine/gates'
-import { SPACE_COLORS } from '../../constants/spaceTheme'
+import { gateConfigs } from '@/engine/gates.ts'
+import { SPACE_COLORS } from '@/constants/spaceTheme.ts'
 
 const SpaceWireComponent = ({ wire, gates, signal, isSimulating, isTemporary, draggedItems = {} }) => {
   const [animationOffset, setAnimationOffset] = useState(0)
