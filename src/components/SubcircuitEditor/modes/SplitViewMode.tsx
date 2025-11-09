@@ -2,7 +2,7 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { Columns } from 'lucide-react'
 
-const SplitViewMode = ({ onClose, theme, enableAnimations }) => {
+const SplitViewMode = ({ onClose }) => {
   return (
     <motion.div
       initial={{ opacity: 0 }}

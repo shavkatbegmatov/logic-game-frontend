@@ -1,5 +1,5 @@
 import React from 'react'
-import { Zap, Grid, HelpCircle, Settings, BookOpen, Play, Pause, Rocket, Cpu, Shield } from 'lucide-react'
+import { Zap, Grid, HelpCircle, Settings, BookOpen, Play, Pause, Rocket, Cpu } from 'lucide-react'
 import useGameStore from '../../store/gameStore'
 import useSound from '../../hooks/useSound'
 

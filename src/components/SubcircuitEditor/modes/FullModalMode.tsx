@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { Square, Save, X, Info } from 'lucide-react'
 import useSubcircuitEditorStore from '../../../store/subcircuitEditorStore'
 
-const FullModalMode = ({ onClose, theme, enableAnimations }) => {
+const FullModalMode = ({ onClose }) => {
   const canvasRef = useRef(null)
   const {
     editingSubcircuit,

@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
-import { Play, Pause, RotateCcw, Save, Upload, Grid, Trash2, Cpu, Package } from 'lucide-react'
+import { Play, Pause, RotateCcw, Save, Upload, Grid, Trash2, Cpu } from 'lucide-react'
 import useGameStore from '../../store/gameStore'
-import useAchievementStore from '../../store/achievementStore'
 import { GateTypes, gateConfigs } from '../../engine/gates'
 import { runSimulation } from '../../engine/simulation'
 import AchievementDisplay from '../UI/AchievementDisplay'

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Package, Clock, Cpu, HardDrive, Shield, Wifi, Layers, Search, Star, TrendingUp } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Package, Clock, Cpu, HardDrive, Wifi, Layers, Search, Star, TrendingUp } from 'lucide-react'
 import { createSubcircuitFromSelection } from '../../../engine/subcircuits'
 import SoundManager from '../effects/SoundManager'
 import useSubcircuitEditorStore from '../../../store/subcircuitEditorStore'

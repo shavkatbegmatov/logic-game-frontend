@@ -2,7 +2,7 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { Layers } from 'lucide-react'
 
-const FloatingPanelMode = ({ onClose, theme, enableAnimations }) => {
+const FloatingPanelMode = ({ onClose }) => {
   return (
     <motion.div
       initial={{ x: '100%' }}

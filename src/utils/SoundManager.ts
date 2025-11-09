@@ -4,7 +4,6 @@
  */
 
 import { Howl, Howler } from 'howler'
-import { SOUNDS } from '../constants/spaceTheme'
 
 type SoundType = 'click' | 'connect' | 'signal' | 'achievement' | 'complete' | 'error' | 'tick'
 type SoundName = 'gateClick' | 'wireConnect' | 'signalPass' | 'achievement' | 'levelComplete' | 'error' | 'clockTick' | 'ambientSpace'

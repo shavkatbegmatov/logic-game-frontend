@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { Cpu, Search, Plus, Package2, Folder, Star, Clock, Download, Upload, Trash2 } from 'lucide-react'
+import React, { useState } from 'react'
+import { Cpu, Search, Plus, Package2, Star, Clock, Download, Upload, Trash2 } from 'lucide-react'
 import useSubcircuitStore from '../../store/subcircuitStore'
 import useGameStore from '../../store/gameStore'
 
