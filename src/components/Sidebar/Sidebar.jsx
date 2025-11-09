@@ -125,7 +125,7 @@ const Sidebar = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-white/10 bg-white/5">
+      <div className="flex border-b border-white/10 bg-white/5 px-6 gap-2">
         <button
           onClick={() => handleTabChange('gates')}
           className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${
@@ -156,7 +156,7 @@ const Sidebar = () => {
       ) : (
         <>
       {/* Boshqaruv tugmalari */}
-      <div className="p-6 border-b border-white/5">
+      <div className="px-6 py-5 border-b border-white/5">
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={handleSimulation}
@@ -209,7 +209,7 @@ const Sidebar = () => {
       </div>
 
       {/* Gate'lar ro'yxati */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto px-6 py-6">
         <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">Komponentlar</h3>
 
         {/* Asosiy gate'lar */}
@@ -275,7 +275,7 @@ const Sidebar = () => {
       </div>
 
       {/* Achievement Display */}
-      <div className="p-4 border-t border-white/10">
+      <div className="px-6 py-5 border-t border-white/10">
         <AchievementDisplay />
       </div>
 
