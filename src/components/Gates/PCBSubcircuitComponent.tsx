@@ -32,12 +32,12 @@ const PCBSubcircuitComponent = ({
   const actualHeight = Math.max(chipHeight, (maxPins + 1) * pinSpacing)
 
   // Pin pozitsiyalarini yaratish
-  const getInputPinPosition = (index) => ({
+  const getInputPinPosition = (index: number) => ({
     x: -pinSize,
     y: pinSpacing + index * pinSpacing
   })
 
-  const getOutputPinPosition = (index) => ({
+  const getOutputPinPosition = (index: number) => ({
     x: chipWidth + pinSize,
     y: pinSpacing + index * pinSpacing
   })
