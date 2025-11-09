@@ -381,7 +381,7 @@ export class SubcircuitSimulationEngine {
     // Collect output signals
     const outputSignals = new Array(template.outputs.length).fill(0)
 
-    template.outputs.forEach((output, index) => {
+    template.outputs.forEach((output: any, index: number) => {
       if (output.connectedGate && output.connectedIndex !== undefined) {
         const gateState = gateStates.get(output.connectedGate)
         if (gateState) {
