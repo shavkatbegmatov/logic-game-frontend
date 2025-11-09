@@ -34,9 +34,11 @@ const Sidebar = () => {
       if (result.success) {
         updateSignals(result.signals)
         startSimulation()
-      } else {
-        log('Simulyatsiyani boshlashda xatolik:', result.errors);
-        alert('Xatolik: ' + result.errors.map(e => e.message).join(', '))
+
+        // Show warnings if any
+        if (result.warnings && result.warnings.length > 0) {
+          log('Simulyatsiyada ogohlantirishlar:', result.warnings);
+        }
       }
     }
   }

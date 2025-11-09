@@ -260,14 +260,12 @@ const useGameStore = create<GameState>((set, get) => ({
       const gateMinY = gate.y;
       const gateMaxY = gate.y + gate.height;
 
-      const intersects = !(
+      return !(
         gateMaxX < selMinX ||
         gateMinX > selMaxX ||
         gateMaxY < selMinY ||
         gateMinY > selMaxY
       );
-
-      return intersects;
     });
   },
 

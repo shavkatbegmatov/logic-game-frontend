@@ -3,6 +3,13 @@ import { simulateSubcircuit } from './subcircuits'
 import useSubcircuitStore from '../store/subcircuitStore'
 import type { Gate, Wire, SignalMap } from '../types/gates'
 
+export interface SimulationResult {
+  success: boolean
+  signals: SignalMap
+  gateOutputs: Record<string | number, number>
+  warnings: any[]
+}
+
 export class SimulationEngine {
   gates: Gate[]
   wires: Wire[]
@@ -277,7 +284,7 @@ export class SimulationEngine {
 }
 
 // Helper funksiyalar
-export const runSimulation = (gates, wires) => {
+export const runSimulation = (gates: Gate[], wires: Wire[]): SimulationResult => {
   console.log('%c[SIMULATION] `runSimulation` ishga tushirildi.', 'color: #4CAF50; font-weight: bold;', { gates: gates.length, wires: wires.length });
   const engine = new SimulationEngine(gates, wires)
   const validation = engine.validateCircuit()
