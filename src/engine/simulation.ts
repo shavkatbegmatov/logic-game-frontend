@@ -69,7 +69,7 @@ export class SimulationEngine {
   }
 
   // Gate'ni hisoblash
-  evaluateGate(gate) {
+  evaluateGate(gate: Gate) {
     console.log(`[SIMULATION] Baholanmoqda: ${gate.type}_${gate.id}`);
     // Gate'ning kirish signallarini yig'ish
     const inputSignals = this.getGateInputs(gate)
