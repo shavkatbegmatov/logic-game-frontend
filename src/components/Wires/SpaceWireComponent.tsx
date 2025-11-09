@@ -4,7 +4,7 @@ import { gateConfigs } from '@/engine/gates.ts'
 import { SPACE_COLORS } from '@/constants/spaceTheme.ts'
 import { createBezierPoints, getWireGates } from '@/utils/wireUtils'
 
-const SpaceWireComponent = ({ wire, gates, signal, isSimulating, isTemporary, draggedItems = {} }) => {
+const SpaceWireComponent = ({ wire, gates, signal, isTemporary, draggedItems = {} }) => {
   const [animationOffset, setAnimationOffset] = useState(0)
   const [particlePositions, setParticlePositions] = useState([])
 

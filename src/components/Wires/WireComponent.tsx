@@ -1,9 +1,9 @@
 import React from 'react'
 import { Line, Group } from 'react-konva'
-import { gateConfigs } from '../../engine/gates'
-import { createBezierPoints, getWireGates } from '../../utils/wireUtils'
+import { gateConfigs } from '@/engine/gates'
+import { createBezierPoints, getWireGates } from '@/utils/wireUtils'
 
-const WireComponent = ({ wire, gates, signal, isSimulating, isTemporary, draggingGate }) => {
+const WireComponent = ({ wire, gates, signal, isTemporary, draggingGate }) => {
   // Wire'ning boshlang'ich va tugash nuqtalarini hisoblash
   const getWirePoints = () => {
     if (isTemporary) {
