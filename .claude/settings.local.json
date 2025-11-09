@@ -21,7 +21,9 @@
       "Bash(npx tsc:*)",
       "Bash(for f in portMapping simulation subcircuitSimulation)",
       "Bash(do cp $f.js $f.ts)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(for f in achievementStore gameStore subcircuitStore subcircuitEditorStore)",
+      "Bash(do cp $f.* $f.ts)"
     ],
     "deny": [],
     "ask": []
