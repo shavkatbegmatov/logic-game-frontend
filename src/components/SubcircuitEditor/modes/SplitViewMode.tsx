@@ -231,13 +231,13 @@ const SplitViewMode = ({ onClose }) => {
                     gate={gate}
                     isSelected={selectedInternalGates.includes(gate.id)}
                     isPreSelected={false}
-                    onDragStart={(gid, e) => {
+                    onDragStart={(gid: string | number, e: any) => {
                       setDraggingGate({ id: gid, x: e.target.x(), y: e.target.y() })
                     }}
-                    onDragMove={(gid, e) => {
+                    onDragMove={(gid: string | number, e: any) => {
                       setDraggingGate({ id: gid, x: e.target.x(), y: e.target.y() })
                     }}
-                    onDragEnd={(gid, e) => {
+                    onDragEnd={(gid: string | number, e: any) => {
                       setDraggingGate(null)
                       updateInternalGate(gid, { x: e.target.x(), y: e.target.y() })
                     }}
