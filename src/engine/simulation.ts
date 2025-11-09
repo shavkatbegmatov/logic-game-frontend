@@ -183,7 +183,7 @@ export class SimulationEngine {
   }
 
   // Gate'ning dependency'larini topish
-  getGateDependencies(gate) {
+  getGateDependencies(gate: Gate) {
     const inputWires = this.wires.filter(wire => wire.toGate === gate.id)
     const dependencies = []
 
