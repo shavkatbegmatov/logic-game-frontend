@@ -1,6 +1,7 @@
 import React from 'react'
 import { Line, Group } from 'react-konva'
 import { gateConfigs } from '../../engine/gates'
+import { createBezierPoints, getWireGates } from '../../utils/wireUtils'
 
 const WireComponent = ({ wire, gates, signal, isSimulating, isTemporary, draggingGate }) => {
   // Wire'ning boshlang'ich va tugash nuqtalarini hisoblash
@@ -10,21 +11,9 @@ const WireComponent = ({ wire, gates, signal, isSimulating, isTemporary, draggin
       return createBezierPoints(wire.startX, wire.startY, wire.endX, wire.endY)
     }
 
-    // Oddiy wire uchun
-    let fromGate = gates.find(g => g.id === wire.fromGate)
-    let toGate = gates.find(g => g.id === wire.toGate)
-
+    // Get gates with drag handling
+    const { fromGate, toGate } = getWireGates(wire, gates, draggingGate)
     if (!fromGate || !toGate) return []
-
-    // Agar fromGate drag qilinayotgan bo'lsa, vaqtinchalik pozitsiyani ishlatish
-    if (draggingGate && draggingGate.id === fromGate.id) {
-      fromGate = { ...fromGate, x: draggingGate.x, y: draggingGate.y }
-    }
-
-    // Agar toGate drag qilinayotgan bo'lsa, vaqtinchalik pozitsiyani ishlatish
-    if (draggingGate && draggingGate.id === toGate.id) {
-      toGate = { ...toGate, x: draggingGate.x, y: draggingGate.y }
-    }
 
     // Chiqish nuqtasi (from)
     const fromX = fromGate.x + fromGate.width + 5
@@ -39,37 +28,6 @@ const WireComponent = ({ wire, gates, signal, isSimulating, isTemporary, draggin
 
     // Bezier egri chizig'i uchun nuqtalar
     return createBezierPoints(fromX, fromY, toX, toY)
-  }
-
-  // Bezier egri chizig'i yaratish
-  const createBezierPoints = (x1, y1, x2, y2) => {
-    const points = []
-    const steps = 20
-    const distance = Math.abs(x2 - x1)
-    const controlOffset = Math.min(distance * 0.5, 100)
-
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps
-      const cx1 = x1 + controlOffset
-      const cy1 = y1
-      const cx2 = x2 - controlOffset
-      const cy2 = y2
-
-      // Cubic Bezier formula
-      const x = Math.pow(1 - t, 3) * x1 +
-        3 * Math.pow(1 - t, 2) * t * cx1 +
-        3 * (1 - t) * Math.pow(t, 2) * cx2 +
-        Math.pow(t, 3) * x2
-
-      const y = Math.pow(1 - t, 3) * y1 +
-        3 * Math.pow(1 - t, 2) * t * cy1 +
-        3 * (1 - t) * Math.pow(t, 2) * cy2 +
-        Math.pow(t, 3) * y2
-
-      points.push(x, y)
-    }
-
-    return points
   }
 
   const points = getWirePoints()

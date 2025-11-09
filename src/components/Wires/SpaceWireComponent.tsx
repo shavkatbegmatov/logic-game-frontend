@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Line, Group, Circle } from 'react-konva'
 import { gateConfigs } from '@/engine/gates.ts'
 import { SPACE_COLORS } from '@/constants/spaceTheme.ts'
+import { createBezierPoints, getWireGates } from '@/utils/wireUtils'
 
 const SpaceWireComponent = ({ wire, gates, signal, isSimulating, isTemporary, draggedItems = {} }) => {
   const [animationOffset, setAnimationOffset] = useState(0)
@@ -27,24 +28,12 @@ const SpaceWireComponent = ({ wire, gates, signal, isSimulating, isTemporary, dr
   // Calculate wire start and end points
   const getWirePoints = () => {
     if (isTemporary) {
-      return createBezierPoints(wire.startX, wire.startY, wire.endX, wire.endY)
+      return createBezierPoints(wire.startX, wire.startY, wire.endX, wire.endY, 30)
     }
 
-    let fromGate = gates.find(g => g.id === wire.fromGate)
-    let toGate = gates.find(g => g.id === wire.toGate)
-
+    // Get gates with drag handling
+    const { fromGate, toGate } = getWireGates(wire, gates, draggedItems)
     if (!fromGate || !toGate) return []
-
-    // Handle dragging gates
-    const fromGateDraggedPosition = draggedItems[fromGate.id]
-    if (fromGateDraggedPosition) {
-      fromGate = { ...fromGate, x: fromGateDraggedPosition.x, y: fromGateDraggedPosition.y }
-    }
-
-    const toGateDraggedPosition = draggedItems[toGate.id]
-    if (toGateDraggedPosition) {
-      toGate = { ...toGate, x: toGateDraggedPosition.x, y: toGateDraggedPosition.y }
-    }
 
     // Output point (from)
     const fromX = fromGate.x + fromGate.width + 10
@@ -57,38 +46,7 @@ const SpaceWireComponent = ({ wire, gates, signal, isSimulating, isTemporary, dr
     const toX = toGate.x - 10
     const toY = toGate.y + spacing * ((wire.toIndex || 0) + 1)
 
-    return createBezierPoints(fromX, fromY, toX, toY)
-  }
-
-  // Create smooth Bezier curve
-  const createBezierPoints = (x1, y1, x2, y2) => {
-    const points = []
-    const steps = 30
-    const distance = Math.abs(x2 - x1)
-    const controlOffset = Math.min(distance * 0.4, 120)
-
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps
-      const cx1 = x1 + controlOffset
-      const cy1 = y1
-      const cx2 = x2 - controlOffset
-      const cy2 = y2
-
-      // Cubic Bezier formula
-      const x = Math.pow(1 - t, 3) * x1 +
-        3 * Math.pow(1 - t, 2) * t * cx1 +
-        3 * (1 - t) * Math.pow(t, 2) * cx2 +
-        Math.pow(t, 3) * x2
-
-      const y = Math.pow(1 - t, 3) * y1 +
-        3 * Math.pow(1 - t, 2) * t * cy1 +
-        3 * (1 - t) * Math.pow(t, 2) * cy2 +
-        Math.pow(t, 3) * y2
-
-      points.push(x, y)
-    }
-
-    return points
+    return createBezierPoints(fromX, fromY, toX, toY, 30)
   }
 
   // Get point on bezier curve at position t (0-1)
