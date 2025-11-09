@@ -7,20 +7,16 @@ import { nanoid } from 'nanoid'
 import {
   validateTemplate,
   validateSelection,
-  validateGate,
-  validateWire,
   sanitizeGates,
   sanitizeWires,
   calculateSafeBounds,
   validateConnectivity
 } from './validation'
 import {
-  createPortMapping,
-  optimizePorts,
-  PortDirection
+  createPortMapping
 } from './portMapping'
 import type { Gate, Wire, Port, Bounds } from '@/types'
-import type { SubcircuitTemplateConfig, SubcircuitCreationOptions, SubcircuitCreationResult } from '@/types'
+import type { SubcircuitTemplateConfig } from '@/types'
 
 /**
  * Subcircuit Template Class - Refactored
@@ -273,7 +269,7 @@ export function createSubcircuitFromSelection(selectedGates: any, allWires: any,
     autoDetectPorts = true,
     optimizePorts = true,
     validateResult = true,
-    smartNaming = true
+    smartNaming: _smartNaming = true
   } = options
 
   // Step 1: Validate selection

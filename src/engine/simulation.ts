@@ -1,7 +1,7 @@
 import { gateLogic, GateTypes, gateConfigs } from './gates'
 import { simulateSubcircuit } from './subcircuits'
 import useSubcircuitStore from '../store/subcircuitStore'
-import type { Gate, Wire, SignalMap } from '../types/gates'
+import type { Gate, Wire, SignalMap } from '@/types'
 
 export interface SimulationResult {
   success: boolean
