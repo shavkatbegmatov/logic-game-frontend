@@ -252,7 +252,7 @@ export class SimulationEngine {
     const visited = new Set()
     const recursionStack = new Set()
 
-    const hasCycleDFS = (gateId) => {
+    const hasCycleDFS = (gateId: string | number) => {
       visited.add(gateId)
       recursionStack.add(gateId)
 
