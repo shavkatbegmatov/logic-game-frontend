@@ -182,7 +182,7 @@ const PCBSubcircuitComponent = ({
       />
 
       {/* Input Pins */}
-      {inputPorts.map((port, index) => {
+      {inputPorts.map((port: any, index: number) => {
         const pos = getInputPinPosition(index)
         const hasSignal = gate.inputs && gate.inputs[index] === 1
 
@@ -233,7 +233,7 @@ const PCBSubcircuitComponent = ({
       })}
 
       {/* Output Pins */}
-      {outputPorts.map((port, index) => {
+      {outputPorts.map((port: any, index: number) => {
         const pos = getOutputPinPosition(index)
         const hasSignal = outputSignals[index] === 1
 
