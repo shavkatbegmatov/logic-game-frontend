@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Group, Rect, Text, Circle, Line, Ring, RegularPolygon } from 'react-konva'
+import { Group, Rect, Text, Circle, Line, Ring } from 'react-konva'
 import { GateTypes, gateConfigs } from '@/engine/gates.ts'
 import { SPACE_COLORS } from '@/constants/spaceTheme.ts'
 import useSound from '../../hooks/useSound'
