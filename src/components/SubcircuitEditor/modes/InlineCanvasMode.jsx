@@ -11,12 +11,22 @@ const InlineCanvasMode = React.memo(() => { // Wrap with React.memo
   const internalWires = useSubcircuitEditorStore(state => state.internalWires)
   const updateInternalGate = useSubcircuitEditorStore(state => state.updateInternalGate)
 
+  console.log('[InlineCanvasMode] Render:', {
+    gatesCount: internalGates?.length || 0,
+    wiresCount: internalWires?.length || 0,
+    gates: internalGates,
+    gatePositions: internalGates?.map(g => ({ id: g.id, type: g.type, x: g.x, y: g.y }))
+  })
+
   // Memoize bounds calculation
   const bounds = useMemo(() => {
     if (!internalGates || internalGates.length === 0) {
+      console.log('[InlineCanvasMode] No gates found, using default bounds')
       return { width: 400, height: 300, minX: 0, minY: 0, maxX: 400, maxY: 300 }
     }
-    return calculateSafeBounds(internalGates, 100) // 100px padding
+    const calculatedBounds = calculateSafeBounds(internalGates, 100)
+    console.log('[InlineCanvasMode] Calculated bounds:', calculatedBounds)
+    return calculatedBounds
   }, [internalGates])
 
   // Memoize handlers to prevent re-creating functions
@@ -39,6 +49,12 @@ const InlineCanvasMode = React.memo(() => { // Wrap with React.memo
   const groupX = window.innerWidth / 2 - (bounds.width / 2);
   const groupY = window.innerHeight / 2 - (bounds.height / 2);
 
+  console.log('[InlineCanvasMode] Rendering Group:', {
+    groupX,
+    groupY,
+    bounds,
+    windowSize: { width: window.innerWidth, height: window.innerHeight }
+  })
 
   return (
     <Group
@@ -70,8 +86,9 @@ const InlineCanvasMode = React.memo(() => { // Wrap with React.memo
       )}
 
       {/* Render Gates */}
-      {internalGates.map(gate => (
-        gate && <PCBGateComponent
+      {internalGates.map(gate => {
+        console.log('[InlineCanvasMode] Rendering gate:', gate?.id, gate?.type, `x:${gate?.x} y:${gate?.y}`)
+        return gate && <PCBGateComponent
           key={gate.id}
           gate={gate}
           isSelected={false}
@@ -85,7 +102,7 @@ const InlineCanvasMode = React.memo(() => { // Wrap with React.memo
           onWireStart={emptyHandler}
           onWireEnd={emptyHandler}
         />
-      ))}
+      })}
     </Group>
   )
 }) // End React.memo

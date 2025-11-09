@@ -286,18 +286,30 @@ export function createSubcircuitFromSelection(selectedGates, allWires, name = nu
     }
   }
 
-  // Step 4: Use the correctly filtered internal wires from port mapping
+  // Step 4: Get internal wires AND keep all wires for editing
   const internalWires = portMapping.internalWires;
+
+  // Keep ALL wires connected to selected gates (for editing visualization)
+  const allNormalizedWires = allWires
+    .filter(wire => selectedGateIds.has(wire.fromGate) && selectedGateIds.has(wire.toGate))
+    .map(wire => ({
+      ...wire,
+      // Wires will be normalized with gates below
+    }));
 
   // Step 5: Normalize gate positions
   const bounds = calculateSafeBounds(sanitizedGates);
-  const normalizedGates = sanitizedGates
-    .filter(gate => gate.type !== 'INPUT' && gate.type !== 'OUTPUT')
-    .map(gate => ({
-      ...gate,
-      x: gate.x - bounds.minX,
-      y: gate.y - bounds.minY
-    }));
+
+  // Normalize ALL gates (including INPUT/OUTPUT for editing)
+  const allNormalizedGates = sanitizedGates.map(gate => ({
+    ...gate,
+    x: gate.x - bounds.minX,
+    y: gate.y - bounds.minY
+  }));
+
+  // Filter out INPUT/OUTPUT for execution (they become ports)
+  const executionGates = allNormalizedGates
+    .filter(gate => gate.type !== 'INPUT' && gate.type !== 'OUTPUT');
 
   // Step 6: Generate smart name if needed
   const finalName = name || generateSmartName(sanitizedGates)
@@ -311,8 +323,8 @@ export function createSubcircuitFromSelection(selectedGates, allWires, name = nu
     inputs: portMapping.legacy.inputs,
     outputs: portMapping.legacy.outputs,
     internalCircuit: {
-      gates: normalizedGates,
-      wires: sanitizeWires(internalWires),
+      gates: allNormalizedGates, // Use ALL gates for editing
+      wires: sanitizeWires(allNormalizedWires), // Use ALL wires for editing
       bounds: {
         ...bounds,
         minX: 0,
@@ -325,14 +337,17 @@ export function createSubcircuitFromSelection(selectedGates, allWires, name = nu
     height: Math.max(80, Math.max(portMapping.inputPorts.length, portMapping.outputPorts.length) * 30),
     performanceHints: {
       canCache: true,
-      estimatedGateCount: normalizedGates.length,
+      estimatedGateCount: executionGates.length,
       hasRecursion: false,
-      complexity: getComplexity(normalizedGates.length, internalWires.length)
+      complexity: getComplexity(executionGates.length, internalWires.length)
     }
   })
 
-  // Step 8: Final validation
-  if (validateResult) {
+  // Step 8: Final validation (skip for templates with INPUT/OUTPUT gates)
+  // These are kept for editing but not for execution
+  const hasIOGates = allNormalizedGates.some(g => g.type === 'INPUT' || g.type === 'OUTPUT')
+
+  if (validateResult && !hasIOGates) {
     const finalValidation = template.validate()
     if (!finalValidation.valid) {
       console.error('Template validation failed:', finalValidation.errors)
@@ -342,6 +357,8 @@ export function createSubcircuitFromSelection(selectedGates, allWires, name = nu
         warnings: finalValidation.warnings
       }
     }
+  } else if (hasIOGates) {
+    console.log('[SUBCIRCUIT] Skipping validation for template with INPUT/OUTPUT gates')
   }
 
   // Return success result
@@ -350,8 +367,8 @@ export function createSubcircuitFromSelection(selectedGates, allWires, name = nu
     template,
     portMapping,
     stats: {
-      gateCount: normalizedGates.length,
-      wireCount: internalWires.length,
+      gateCount: allNormalizedGates.length, // All gates including INPUT/OUTPUT
+      wireCount: allNormalizedWires.length, // All wires including INPUT/OUTPUT connections
       inputCount: portMapping.inputPorts.length,
       outputCount: portMapping.outputPorts.length
     },

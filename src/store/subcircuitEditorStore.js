@@ -88,6 +88,7 @@ const useSubcircuitEditorStore = create(
 
     // Start editing
     startEditing: (mode, subcircuit = null) => set(state => {
+      console.log('[STORE] startEditing called:', { mode, subcircuit })
       state.isEditing = true
       state.editingMode = mode
       state.editingSubcircuit = subcircuit
@@ -98,21 +99,22 @@ const useSubcircuitEditorStore = create(
         const newInputs = subcircuit.inputs ? [...subcircuit.inputs] : []
         const newOutputs = subcircuit.outputs ? [...subcircuit.outputs] : []
 
-        // Only update if content has actually changed to prevent unnecessary re-renders
-        if (!deepEqualArrays(state.internalGates, newInternalGates)) {
-          state.internalGates = newInternalGates
-        }
-        if (!deepEqualArrays(state.internalWires, newInternalWires)) {
-          state.internalWires = newInternalWires
-        }
-        if (!deepEqualArrays(state.tempPorts.inputs, newInputs)) {
-          state.tempPorts.inputs = newInputs
-        }
-        if (!deepEqualArrays(state.tempPorts.outputs, newOutputs)) {
-          state.tempPorts.outputs = newOutputs
-        }
+        console.log('[STORE] startEditing data:', {
+          newInternalGates: newInternalGates.length,
+          newInternalWires: newInternalWires.length,
+          newInputs: newInputs.length,
+          newOutputs: newOutputs.length,
+          subcircuitData: subcircuit.internalCircuit
+        })
 
+        // Always update to ensure gates are loaded
+        state.internalGates = newInternalGates
+        state.internalWires = newInternalWires
+        state.tempPorts.inputs = newInputs
+        state.tempPorts.outputs = newOutputs
         state.internalBounds = subcircuit.internalCircuit?.bounds || null
+
+        console.log('[STORE] After update, state.internalGates:', state.internalGates.length)
       }
 
       // Save initial state to history
