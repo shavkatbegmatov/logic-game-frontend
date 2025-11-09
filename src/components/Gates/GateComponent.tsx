@@ -262,16 +262,6 @@ const GateComponent = ({
           }}
         />
       ))}
-
-      {/* Gate nomi (debug uchun) */}
-      {false && (
-        <Text
-          text={gate.type}
-          y={-20}
-          fontSize={12}
-          fill="#6B7280"
-        />
-      )}
     </Group>
   )
 }
