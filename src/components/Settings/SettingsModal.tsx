@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Settings as SettingsIcon,
@@ -127,9 +128,9 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
     }
   }
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
+  return isOpen ? createPortal(
+    (
+      <AnimatePresence>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -138,9 +139,9 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
           onClick={onClose}
         >
           <motion.div
-            initial={{ y: 40, opacity: 0 }}
+            initial={{ y: 0, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 20, opacity: 0 }}
+            exit={{ y: 0, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-4xl max-h-[85vh] rounded-2xl border border-white/10 bg-slate-900/95 shadow-2xl flex flex-col overflow-hidden"
           >
@@ -530,9 +531,10 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </div>
           </motion.div>
         </motion.div>
-      )}
-    </AnimatePresence>
-  )
+      </AnimatePresence>
+    ),
+    document.body
+  ) : null
 }
 
 export default SettingsModal
