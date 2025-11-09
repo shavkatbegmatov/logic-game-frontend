@@ -144,10 +144,10 @@ const GateSimulators: Record<string, (inputs: number[], state?: any) => number> 
   XOR: (inputs: number[]) => inputs.filter(i => i === 1).length % 2 === 1 ? 1 : 0,
   XNOR: (inputs: number[]) => inputs.filter(i => i === 1).length % 2 === 0 ? 1 : 0,
   BUFFER: (inputs: number[]) => inputs[0] || 0,
-  BUTTON: (inputs: number[], state?: any) => state?.pressed ? 1 : 0,
+  BUTTON: (_: number[], state?: any) => state?.pressed ? 1 : 0,
   LED: (inputs: number[]) => inputs[0] || 0,
-  CLOCK: (inputs: number[], state?: any) => state?.value || 0,
-  SWITCH: (inputs: number[], state?: any) => state?.on ? 1 : 0
+  CLOCK: (_: number[], state?: any) => state?.value || 0,
+  SWITCH: (_: number[], state?: any) => state?.on ? 1 : 0
 }
 
 /**
