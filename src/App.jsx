@@ -3,6 +3,7 @@ import Canvas from './components/Canvas/Canvas'
 import Sidebar from './components/Sidebar/Sidebar'
 import Toolbar from './components/Toolbar/Toolbar'
 import SpaceBackground from './components/SpaceBackground/SpaceBackground'
+import PropertiesPanel from './components/PropertiesPanel/PropertiesPanel'
 import { Toaster } from 'react-hot-toast'
 
 function App() {
@@ -29,21 +30,24 @@ function App() {
         }}
       />
 
-      {/* Professional game container with max-width and proper spacing */}
-      <div className="mx-auto max-w-[1920px] flex h-[calc(100vh-32px)] md:h-[calc(100vh-40px)] gap-4 rounded-2xl overflow-hidden shadow-2xl border border-white/5 bg-slate-900/95">
+      {/* Professional game container with proper spacing - Full Width */}
+      <div className="flex h-[calc(100vh-32px)] md:h-[calc(100vh-40px)] gap-4 rounded-2xl overflow-hidden shadow-2xl border border-white/5 bg-slate-900/95 mx-4 my-4">
         {/* Sidebar */}
         <Sidebar />
 
         {/* Main content */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Toolbar */}
           <Toolbar />
 
           {/* Canvas */}
-          <div className="flex-1">
+          <div className="flex-1 relative">
             <Canvas />
           </div>
         </div>
+
+        {/* Properties Panel (Right Sidebar) */}
+        <PropertiesPanel />
       </div>
     </div>
   )
