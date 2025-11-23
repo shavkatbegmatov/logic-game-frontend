@@ -1,9 +1,3 @@
-import { create } from 'zustand'
-import { createSubcircuitFromSelection } from '../engine/subcircuits'
-
-// Loglar uchun yordamchi funksiya
-const logAction = (actionName, ...args) => {
-  console.log(`%c[STATE] Action: ${actionName}`, 'color: #2196F3; font-weight: bold;', ...args);
 };
 
 const useGameStore = create((set, get) => ({
@@ -31,6 +25,9 @@ const useGameStore = create((set, get) => ({
   // Signal simulyatsiyasi
   signals: {},
   isSimulating: false,
+
+  // Clipboard
+  clipboard: [],
 
   // Actions
   addGate: (gate) => {
@@ -128,6 +125,66 @@ const useGameStore = create((set, get) => ({
     });
   },
 
+  // Clipboard & Delete Actions
+  copySelection: () => {
+    const { selectedGates, gates } = get();
+    if (selectedGates.length === 0) return;
+
+    const gatesToCopy = gates.filter(g => selectedGates.includes(g.id));
+    logAction('copySelection', { count: gatesToCopy.length });
+    set({ clipboard: gatesToCopy });
+  },
+
+  pasteSelection: () => {
+    const { clipboard, gates } = get();
+    if (clipboard.length === 0) return;
+
+    logAction('pasteSelection', { count: clipboard.length });
+
+    // Calculate center of clipboard items to paste relative to mouse or center
+    // For simplicity, we just offset them by 20px
+    const newGates = clipboard.map(gate => ({
+      ...gate,
+      id: Date.now() + Math.random(), // New ID
+      x: gate.x + 20,
+      y: gate.y + 20,
+      inputs: [], // Reset connections
+      outputs: [],
+      value: 0
+    }));
+
+    set({
+      gates: [...gates, ...newGates],
+      selectedGates: newGates.map(g => g.id), // Select newly pasted items
+      selectedGate: null
+    });
+  },
+
+  deleteSelection: () => {
+    const { selectedGates, selectedGate, selectedWire, wires, gates } = get();
+    logAction('deleteSelection');
+
+    let gatesToDelete = [...selectedGates];
+    if (selectedGate) gatesToDelete.push(selectedGate);
+
+    // Filter out wires connected to deleted gates
+    const newWires = wires.filter(w =>
+      !gatesToDelete.includes(w.fromGate) &&
+      !gatesToDelete.includes(w.toGate) &&
+      w.id !== selectedWire
+    );
+
+    const newGates = gates.filter(g => !gatesToDelete.includes(g.id));
+
+    set({
+      gates: newGates,
+      wires: newWires,
+      selectedGate: null,
+      selectedWire: null,
+      selectedGates: []
+    });
+  },
+
   // Multi-selection methods
   toggleGateSelection: (gateId) => {
     logAction('toggleGateSelection', { gateId });
@@ -170,7 +227,6 @@ const useGameStore = create((set, get) => ({
   },
 
   setPreSelectedGates: (gateIds) => {
-    // logAction('setPreSelectedGates', { gateIds }); // This is too noisy during selection
     set({ preSelectedGates: gateIds });
   },
 
@@ -194,14 +250,12 @@ const useGameStore = create((set, get) => ({
       const gateMinY = gate.y;
       const gateMaxY = gate.y + gate.height;
 
-      const intersects = !(
+      return !(
         gateMaxX < selMinX ||
         gateMinX > selMaxX ||
         gateMaxY < selMinY ||
         gateMinY > selMaxY
       );
-
-      return intersects;
     });
   },
 
@@ -286,8 +340,6 @@ const useGameStore = create((set, get) => ({
   },
 
   updateSignals: (newSignals) => {
-    // Bu juda tez-tez chaqirilishi mumkin, shuning uchun logni o'chirish yoki shartli qilish mumkin
-    // logAction('updateSignals', { newSignals });
     set({ signals: newSignals });
   },
 

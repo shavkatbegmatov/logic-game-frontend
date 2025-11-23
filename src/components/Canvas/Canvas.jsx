@@ -99,7 +99,7 @@ const Canvas = () => {
           const initialGates = gates.filter(g => selectedSet.has(g.id))
           // Fix: Pass all wires connected to the selection, not just internal ones.
           const initialWires = wires.filter(w => selectedSet.has(w.fromGate) || selectedSet.has(w.toGate))
-          
+
           startCreation('quick', {
             selectedGates: initialGates,
             selectedWires: initialWires
@@ -109,10 +109,28 @@ const Canvas = () => {
           // TODO: Add toast notification
         }
       }
-      
+
       if (combo === 'ctrl+a') {
         e.preventDefault()
         selectMultipleGates(gates.map(g => g.id))
+      }
+
+      // Copy
+      if (combo === 'ctrl+c') {
+        e.preventDefault()
+        useGameStore.getState().copySelection()
+      }
+
+      // Paste
+      if (combo === 'ctrl+v') {
+        e.preventDefault()
+        useGameStore.getState().pasteSelection()
+      }
+
+      // Delete
+      if (combo === 'delete' || combo === 'backspace') {
+        e.preventDefault()
+        useGameStore.getState().deleteSelection()
       }
 
       if (combo === 'escape') {
@@ -166,7 +184,12 @@ const Canvas = () => {
     if (!gateType) return
     stage.setPointersPositions(e)
     const position = stage.getPointerPosition()
-    const newGate = createGate(gateType, position.x, position.y)
+
+    // Grid snapping (20px)
+    const snappedX = Math.round(position.x / 20) * 20
+    const snappedY = Math.round(position.y / 20) * 20
+
+    const newGate = createGate(gateType, snappedX, snappedY)
     addGate(newGate)
     updateStats('gatesPlaced', prev => prev + 1)
     updateStats('gateTypesUsed', prev => new Set(prev).add(gateType))
@@ -223,14 +246,29 @@ const Canvas = () => {
     const stage = e.target.getStage();
     if (!stage) return;
     const pointer = stage.getPointerPosition();
+
+    // Snap pointer to grid for drag calculation
+    const snappedPointerX = Math.round(pointer.x / 20) * 20;
+    const snappedPointerY = Math.round(pointer.y / 20) * 20;
+
     if (dragStartData) {
-      const dx = pointer.x - dragStartData.pointer.x;
-      const dy = pointer.y - dragStartData.pointer.y;
+      const dx = snappedPointerX - Math.round(dragStartData.pointer.x / 20) * 20;
+      const dy = snappedPointerY - Math.round(dragStartData.pointer.y / 20) * 20;
       const newPositions = {};
-      dragStartData.gates.forEach(sg => { newPositions[sg.id] = { x: sg.x + dx, y: sg.y + dy } });
+      dragStartData.gates.forEach(sg => {
+        newPositions[sg.id] = {
+          x: Math.round((sg.x + dx) / 20) * 20,
+          y: Math.round((sg.y + dy) / 20) * 20
+        }
+      });
       latestDraggedItems.current = newPositions;
     } else {
-      latestDraggedItems.current = { [gateId]: { x: e.target.x(), y: e.target.y() } };
+      latestDraggedItems.current = {
+        [gateId]: {
+          x: Math.round(e.target.x() / 20) * 20,
+          y: Math.round(e.target.y() / 20) * 20
+        }
+      };
     }
     if (!updateScheduled.current) {
       updateScheduled.current = true;
@@ -244,12 +282,25 @@ const Canvas = () => {
   const handleGateDragEnd = (gateId, e) => {
     if (dragStartData) {
       const pointer = e.target.getStage().getPointerPosition()
-      const dx = pointer.x - dragStartData.pointer.x
-      const dy = pointer.y - dragStartData.pointer.y
-      const finalPositions = dragStartData.gates.map(sg => ({ id: sg.id, x: sg.x + dx, y: sg.y + dy }))
+      // Snap logic for group drag end
+      const snappedPointerX = Math.round(pointer.x / 20) * 20;
+      const snappedPointerY = Math.round(pointer.y / 20) * 20;
+      const startPointerX = Math.round(dragStartData.pointer.x / 20) * 20;
+      const startPointerY = Math.round(dragStartData.pointer.y / 20) * 20;
+
+      const dx = snappedPointerX - startPointerX
+      const dy = snappedPointerY - startPointerY
+      const finalPositions = dragStartData.gates.map(sg => ({
+        id: sg.id,
+        x: Math.round((sg.x + dx) / 20) * 20,
+        y: Math.round((sg.y + dy) / 20) * 20
+      }))
       updateGatePositions(finalPositions)
     } else {
-      updateGate(gateId, { x: e.target.x(), y: e.target.y() })
+      updateGate(gateId, {
+        x: Math.round(e.target.x() / 20) * 20,
+        y: Math.round(e.target.y() / 20) * 20
+      })
     }
     setDraggedItems({})
     setDragStartData(null)
@@ -432,7 +483,7 @@ const Canvas = () => {
         {renderCreationFlow()}
         {renderDomEditor()}
       </Suspense>
-      
+
 
       {isSimulating && (
         <div className="absolute right-4 top-4 flex items-center gap-2 rounded-full border border-emerald-300/40 bg-emerald-500/20 px-4 py-2 text-sm font-semibold text-emerald-200 shadow-[0_0_25px_rgba(16,185,129,0.45)] backdrop-blur">
