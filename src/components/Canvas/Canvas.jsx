@@ -420,7 +420,7 @@ const Canvas = () => {
   return (
     <div ref={containerRef} className="relative h-full overflow-hidden bg-slate-950/30 canvas-3d p-4" onDrop={handleDrop} onDragOver={handleDragOver}>
       <div className="grid-3d" />
-      <div className="pointer-events-none absolute inset-0 opacity-60 mix-blend-screen" style={{ backgroundImage: `linear-gradient(to right, rgba(34, 211, 238, 0.14) 1px, transparent 1px), linear-gradient(to bottom, rgba(129, 140, 248, 0.12) 1px, transparent 1px)`, backgroundSize: '20px 20px' }} />
+      <div className="pointer-events-none absolute inset-0 opacity-60 mix-blend-screen" style={{ backgroundImage: `linear-gradient(to right, rgba(34, 211, 238, 0.14) 1px, transparent 1px), linear-gradient(to bottom, rgba(129, 140, 248, 0.12) 1px, transparent 1px)`, backgroundSize: '10px 10px' }} />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent" />
       <div className="pointer-events-none absolute inset-0 opacity-30 mix-blend-screen">
         <div className="absolute left-10 top-12 h-40 w-40 rounded-full border border-cyan-400/50 bg-cyan-400/10 blur-2xl" />
