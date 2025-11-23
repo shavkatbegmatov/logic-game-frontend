@@ -137,40 +137,6 @@ const useGameStore = create((set, get) => ({
     const { selectedGates, gates } = get();
     if (selectedGates.length === 0) return;
 
-    const gatesToCopy = gates.filter(g => selectedGates.includes(g.id));
-    logAction('copySelection', { count: gatesToCopy.length });
-    set({ clipboard: gatesToCopy });
-  },
-
-  pasteSelection: () => {
-    const { clipboard, gates } = get();
-    if (clipboard.length === 0) return;
-
-    logAction('pasteSelection', { count: clipboard.length });
-
-    // Calculate center of clipboard items to paste relative to mouse or center
-    // For simplicity, we just offset them by 20px
-    const newGates = clipboard.map(gate => ({
-      ...gate,
-      id: Date.now() + Math.random(), // New ID
-      x: gate.x + 20,
-      y: gate.y + 20,
-      inputs: [], // Reset connections
-      outputs: [],
-      value: 0
-    }));
-
-    set({
-      gates: [...gates, ...newGates],
-      selectedGates: newGates.map(g => g.id), // Select newly pasted items
-      selectedGate: null
-    });
-  },
-
-  deleteSelection: () => {
-    const { selectedGates, selectedGate, selectedWire, wires, gates } = get();
-    logAction('deleteSelection');
-
     let gatesToDelete = [...selectedGates];
     if (selectedGate) gatesToDelete.push(selectedGate);
 

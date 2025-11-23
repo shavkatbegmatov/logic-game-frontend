@@ -185,9 +185,9 @@ const Canvas = () => {
     stage.setPointersPositions(e)
     const position = stage.getPointerPosition()
 
-    // Grid snapping (20px)
-    const snappedX = Math.round(position.x / 20) * 20
-    const snappedY = Math.round(position.y / 20) * 20
+    // Grid snapping (10px)
+    const snappedX = Math.round(position.x / 10) * 10
+    const snappedY = Math.round(position.y / 10) * 10
 
     const newGate = createGate(gateType, snappedX, snappedY)
     addGate(newGate)
@@ -248,25 +248,25 @@ const Canvas = () => {
     const pointer = stage.getPointerPosition();
 
     // Snap pointer to grid for drag calculation
-    const snappedPointerX = Math.round(pointer.x / 20) * 20;
-    const snappedPointerY = Math.round(pointer.y / 20) * 20;
+    const snappedPointerX = Math.round(pointer.x / 10) * 10;
+    const snappedPointerY = Math.round(pointer.y / 10) * 10;
 
     if (dragStartData) {
-      const dx = snappedPointerX - Math.round(dragStartData.pointer.x / 20) * 20;
-      const dy = snappedPointerY - Math.round(dragStartData.pointer.y / 20) * 20;
+      const dx = snappedPointerX - Math.round(dragStartData.pointer.x / 10) * 10;
+      const dy = snappedPointerY - Math.round(dragStartData.pointer.y / 10) * 10;
       const newPositions = {};
       dragStartData.gates.forEach(sg => {
         newPositions[sg.id] = {
-          x: Math.round((sg.x + dx) / 20) * 20,
-          y: Math.round((sg.y + dy) / 20) * 20
+          x: Math.round((sg.x + dx) / 10) * 10,
+          y: Math.round((sg.y + dy) / 10) * 10
         }
       });
       latestDraggedItems.current = newPositions;
     } else {
       latestDraggedItems.current = {
         [gateId]: {
-          x: Math.round(e.target.x() / 20) * 20,
-          y: Math.round(e.target.y() / 20) * 20
+          x: Math.round(e.target.x() / 10) * 10,
+          y: Math.round(e.target.y() / 10) * 10
         }
       };
     }
@@ -283,23 +283,23 @@ const Canvas = () => {
     if (dragStartData) {
       const pointer = e.target.getStage().getPointerPosition()
       // Snap logic for group drag end
-      const snappedPointerX = Math.round(pointer.x / 20) * 20;
-      const snappedPointerY = Math.round(pointer.y / 20) * 20;
-      const startPointerX = Math.round(dragStartData.pointer.x / 20) * 20;
-      const startPointerY = Math.round(dragStartData.pointer.y / 20) * 20;
+      const snappedPointerX = Math.round(pointer.x / 10) * 10;
+      const snappedPointerY = Math.round(pointer.y / 10) * 10;
+      const startPointerX = Math.round(dragStartData.pointer.x / 10) * 10;
+      const startPointerY = Math.round(dragStartData.pointer.y / 10) * 10;
 
       const dx = snappedPointerX - startPointerX
       const dy = snappedPointerY - startPointerY
       const finalPositions = dragStartData.gates.map(sg => ({
         id: sg.id,
-        x: Math.round((sg.x + dx) / 20) * 20,
-        y: Math.round((sg.y + dy) / 20) * 20
+        x: Math.round((sg.x + dx) / 10) * 10,
+        y: Math.round((sg.y + dy) / 10) * 10
       }))
       updateGatePositions(finalPositions)
     } else {
       updateGate(gateId, {
-        x: Math.round(e.target.x() / 20) * 20,
-        y: Math.round(e.target.y() / 20) * 20
+        x: Math.round(e.target.x() / 10) * 10,
+        y: Math.round(e.target.y() / 10) * 10
       })
     }
     setDraggedItems({})
