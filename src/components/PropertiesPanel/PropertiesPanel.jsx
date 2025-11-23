@@ -13,7 +13,7 @@ const PropertiesPanel = () => {
   const totalGates = gates.length
   const totalWires = wires.length
   const complexity = Math.round((totalGates * 1.5) + (totalWires * 0.8))
-  
+
   // Count gate types
   const gateTypeCounts = gates.reduce((acc, gate) => {
     acc[gate.type] = (acc[gate.type] || 0) + 1
@@ -56,7 +56,7 @@ const PropertiesPanel = () => {
             <div className="space-y-4">
               <div className="p-4 rounded-xl bg-white/5 border border-white/10 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition-opacity">
-                  <div 
+                  <div
                     className="w-16 h-16 rounded-xl flex items-center justify-center text-4xl font-bold"
                     style={{ backgroundColor: config.color, color: 'white' }}
                   >
@@ -66,7 +66,7 @@ const PropertiesPanel = () => {
                 <div className="relative z-10">
                   <h3 className="text-lg font-bold text-white mb-1">{config.name}</h3>
                   <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/10 text-[10px] font-mono text-cyan-300 border border-white/10 mb-3">
-                    ID: {selectedGateObj.id.slice(0, 8)}
+                    ID: {String(selectedGateObj.id).slice(0, 8)}
                   </div>
                   <p className="text-sm text-slate-300 leading-relaxed">
                     {config.description}
@@ -99,23 +99,23 @@ const PropertiesPanel = () => {
                   Haqiqat Jadvali
                 </h4>
                 <div className="space-y-2">
-                   {/* Placeholder for truth table logic - can be expanded based on gate type */}
-                   <div className="flex justify-between text-xs py-1 border-b border-white/5 text-slate-500">
-                      <span>A</span>
-                      <span>B</span>
-                      <span>OUT</span>
-                   </div>
-                   <div className="flex justify-between text-xs py-1 text-slate-300 font-mono">
-                      <span>0</span>
-                      <span>0</span>
-                      <span className={config.truthTable?.[0]?.[0] ? 'text-emerald-400' : 'text-slate-500'}>
-                        {/* Simple logic check if possible, else generic */}
-                        ?
-                      </span>
-                   </div>
-                   <div className="text-[10px] text-slate-500 text-center mt-2 italic">
-                     To'liq jadval tez orada...
-                   </div>
+                  {/* Placeholder for truth table logic - can be expanded based on gate type */}
+                  <div className="flex justify-between text-xs py-1 border-b border-white/5 text-slate-500">
+                    <span>A</span>
+                    <span>B</span>
+                    <span>OUT</span>
+                  </div>
+                  <div className="flex justify-between text-xs py-1 text-slate-300 font-mono">
+                    <span>0</span>
+                    <span>0</span>
+                    <span className={config.truthTable?.[0]?.[0] ? 'text-emerald-400' : 'text-slate-500'}>
+                      {/* Simple logic check if possible, else generic */}
+                      ?
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 text-center mt-2 italic">
+                    To'liq jadval tez orada...
+                  </div>
                 </div>
               </div>
             </div>
@@ -135,7 +135,7 @@ const PropertiesPanel = () => {
                   </div>
                 </div>
                 <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-gradient-to-r from-indigo-500 to-purple-500"
                     style={{ width: `${Math.min(100, complexity / 2)}%` }}
                   />
@@ -143,20 +143,20 @@ const PropertiesPanel = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                 <div className="p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
-                    <div className="flex items-center gap-2 mb-2 text-slate-400">
-                      <Layers className="w-4 h-4" />
-                      <span className="text-xs uppercase tracking-wider">Gate'lar</span>
-                    </div>
-                    <div className="text-2xl font-bold text-white">{totalGates}</div>
-                 </div>
-                 <div className="p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
-                    <div className="flex items-center gap-2 mb-2 text-slate-400">
-                      <Zap className="w-4 h-4" />
-                      <span className="text-xs uppercase tracking-wider">Simlar</span>
-                    </div>
-                    <div className="text-2xl font-bold text-white">{totalWires}</div>
-                 </div>
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                  <div className="flex items-center gap-2 mb-2 text-slate-400">
+                    <Layers className="w-4 h-4" />
+                    <span className="text-xs uppercase tracking-wider">Gate'lar</span>
+                  </div>
+                  <div className="text-2xl font-bold text-white">{totalGates}</div>
+                </div>
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                  <div className="flex items-center gap-2 mb-2 text-slate-400">
+                    <Zap className="w-4 h-4" />
+                    <span className="text-xs uppercase tracking-wider">Simlar</span>
+                  </div>
+                  <div className="text-2xl font-bold text-white">{totalWires}</div>
+                </div>
               </div>
 
               <div className="p-4 rounded-xl bg-white/5 border border-white/10">
@@ -170,15 +170,13 @@ const PropertiesPanel = () => {
               </div>
 
               {/* Simulation Status */}
-              <div className={`p-4 rounded-xl border transition-all ${
-                isSimulating 
-                  ? 'bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)]' 
+              <div className={`p-4 rounded-xl border transition-all ${isSimulating
+                  ? 'bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)]'
                   : 'bg-slate-800/50 border-white/5'
-              }`}>
+                }`}>
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${
-                    isSimulating ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700 text-slate-400'
-                  }`}>
+                  <div className={`p-2 rounded-lg ${isSimulating ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700 text-slate-400'
+                    }`}>
                     <Clock className={`w-5 h-5 ${isSimulating ? 'animate-spin-slow' : ''}`} />
                   </div>
                   <div>
