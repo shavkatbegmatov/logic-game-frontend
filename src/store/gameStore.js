@@ -1,3 +1,10 @@
+
+import { create } from 'zustand'
+import { createSubcircuitFromSelection } from '../engine/subcircuits'
+
+// Loglar uchun yordamchi funksiya
+const logAction = (actionName, ...args) => {
+  console.log(`%c[STATE] Action: ${actionName}`, 'color: #2196F3; font-weight: bold;', ...args);
 };
 
 const useGameStore = create((set, get) => ({
