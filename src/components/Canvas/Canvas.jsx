@@ -573,12 +573,12 @@ const Canvas = () => {
             if (wireStart.type === 'output') {
               const config = gateConfigs[gate.type]
               const spacing = gate.height / ((config.outputs || 1) + 1)
-              startX = gate.x + gate.width + 5
+              startX = gate.x + gate.width + 10
               startY = gate.y + spacing * (wireStart.index + 1)
             } else {
               const config = gateConfigs[gate.type]
               const spacing = gate.height / ((config.maxInputs || config.minInputs || 2) + 1)
-              startX = gate.x - 5
+              startX = gate.x - 10
               startY = gate.y + spacing * (wireStart.index + 1)
             }
 
