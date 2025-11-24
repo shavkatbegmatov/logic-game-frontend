@@ -309,13 +309,11 @@ const Canvas = () => {
   }
 
   const handleWireStart = (gateId, type, index) => {
-    // If we are already dragging a wire, this click might be intended to finish the connection
+    // If we are already dragging a wire, this click is ALWAYS intended to finish/cancel the connection
+    // We strictly prevent starting a new wire while one is being dragged
     if (isDraggingWire && wireStart) {
-      // Check if this is a valid target
-      if (wireStart.gateId !== gateId && wireStart.type !== type) {
-        handleWireEnd(gateId, type, index)
-        return
-      }
+      handleWireEnd(gateId, type, index)
+      return
     }
 
     // Check if this pin is already occupied
