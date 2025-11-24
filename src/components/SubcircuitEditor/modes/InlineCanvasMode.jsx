@@ -1,11 +1,78 @@
 import React, { useMemo, useCallback } from 'react'
-import { Group, Rect } from 'react-konva'
+import { Group, Rect, Circle, Text } from 'react-konva'
 import useSubcircuitEditorStore from '../../../store/subcircuitEditorStore'
 import PCBGateComponent from '../../Gates/PCBGateComponent'
 import WireComponent from '../../Wires/WireComponent'
 import { calculateSafeBounds } from '../../../engine/validation'
+import { GateTypes } from '../../../engine/gates'
 
-const InlineCanvasMode = React.memo(() => { // Wrap with React.memo
+// Port visualization component
+const PortComponent = ({ gate, onDragEnd }) => {
+  const isInput = gate.type === GateTypes.INPUT
+
+  return (
+    <Group
+      x={gate.x}
+      y={gate.y}
+      draggable
+      onDragEnd={(e) => onDragEnd(gate.id, e)}
+    >
+      {/* Pin Body */}
+      <Rect
+        x={0}
+        y={0}
+        width={gate.width}
+        height={gate.height}
+        fill="#B45309" // Dark gold/copper
+        cornerRadius={4}
+        shadowColor="black"
+        shadowBlur={5}
+        shadowOpacity={0.3}
+      />
+
+      {/* Metallic Gradient Effect (Simulated with overlay) */}
+      <Rect
+        x={2}
+        y={2}
+        width={gate.width - 4}
+        height={gate.height / 2}
+        fill="white"
+        opacity={0.1}
+        cornerRadius={2}
+        listening={false}
+      />
+
+      {/* Connection Point */}
+      <Circle
+        x={isInput ? gate.width : 0}
+        y={gate.height / 2}
+        radius={6}
+        fill="#FCD34D" // Light gold
+        stroke="#78350F" // Dark brown border
+        strokeWidth={2}
+      />
+
+      {/* Label */}
+      <Text
+        text={isInput ? "IN" : "OUT"}
+        x={0}
+        y={0}
+        width={gate.width}
+        height={gate.height}
+        align="center"
+        verticalAlign="middle"
+        fontSize={14}
+        fontFamily="monospace"
+        fontStyle="bold"
+        fill="white"
+        shadowColor="black"
+        shadowBlur={2}
+      />
+    </Group>
+  )
+}
+
+const InlineCanvasMode = React.memo(() => {
   // Separate store subscriptions to avoid re-creating objects
   const internalGates = useSubcircuitEditorStore(state => state.internalGates)
   const internalWires = useSubcircuitEditorStore(state => state.internalWires)
@@ -30,7 +97,7 @@ const InlineCanvasMode = React.memo(() => { // Wrap with React.memo
   }, [])
 
   // Empty handlers for editor mode (no interaction needed)
-  const emptyHandler = useCallback(() => {}, [])
+  const emptyHandler = useCallback(() => { }, [])
 
   if (!internalGates || internalGates.length === 0) {
     return null;
@@ -59,34 +126,50 @@ const InlineCanvasMode = React.memo(() => { // Wrap with React.memo
 
       {/* Render Wires */}
       {internalWires.map(wire => (
-          <WireComponent
-            key={wire.id}
-            wire={wire}
-            gates={internalGates}
-            isEditing
-          />
-        )
+        <WireComponent
+          key={wire.id}
+          wire={wire}
+          gates={internalGates}
+          isEditing
+        />
+      )
       )}
 
       {/* Render Gates */}
-      {internalGates.map(gate => (
-        gate && <PCBGateComponent
-          key={gate.id}
-          gate={gate}
-          isSelected={false}
-          isPreSelected={false}
-          outputSignal={0} // Simplified view, no simulation
-          onDragEnd={handleDragEnd}
-          onDragStart={emptyHandler}
-          onDragMove={emptyHandler}
-          onSelect={emptyHandler}
-          onUpdateGate={emptyHandler}
-          onWireStart={emptyHandler}
-          onWireEnd={emptyHandler}
-        />
-      ))}
+      {internalGates.map(gate => {
+        if (!gate) return null
+
+        // Use PortComponent for INPUT and OUTPUT gates
+        if (gate.type === GateTypes.INPUT || gate.type === GateTypes.OUTPUT) {
+          return (
+            <PortComponent
+              key={gate.id}
+              gate={gate}
+              onDragEnd={handleDragEnd}
+            />
+          )
+        }
+
+        // Use standard component for logic gates
+        return (
+          <PCBGateComponent
+            key={gate.id}
+            gate={gate}
+            isSelected={false}
+            isPreSelected={false}
+            outputSignal={0} // Simplified view, no simulation
+            onDragEnd={handleDragEnd}
+            onDragStart={emptyHandler}
+            onDragMove={emptyHandler}
+            onSelect={emptyHandler}
+            onUpdateGate={emptyHandler}
+            onWireStart={emptyHandler}
+            onWireEnd={emptyHandler}
+          />
+        )
+      })}
     </Group>
   )
-}) // End React.memo
+})
 
 export default InlineCanvasMode
