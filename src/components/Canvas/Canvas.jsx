@@ -471,7 +471,7 @@ const Canvas = () => {
                 onUpdateGate={updateGate}
                 onWireStart={handleWireStart}
                 onWireEnd={handleWireEnd}
-                outputSignal={computedSignals[`gate_${gate.id}`] || 0}
+                outputSignal={computedSignals[gate.id] || 0}
               />
             );
           })}
