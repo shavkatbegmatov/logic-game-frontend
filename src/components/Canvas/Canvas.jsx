@@ -343,10 +343,20 @@ const Canvas = () => {
       w.toIndex === wire.toIndex
     )
 
-    if (!exists) {
+    // Check if target input is already occupied (if we are connecting to an input)
+    // Note: wire.toGate/toIndex refers to the input pin
+    const isInputOccupied = wires.some(w =>
+      w.toGate === wire.toGate &&
+      w.toIndex === wire.toIndex
+    )
+
+    if (!exists && !isInputOccupied) {
       addWire(wire)
       updateStats('wiresConnected', prev => prev + 1)
       if (enableSounds) soundService.playConnect()
+    } else if (isInputOccupied) {
+      // Optional: Visual feedback for blocked connection could go here
+      console.warn('Input pin already occupied')
     }
 
     cancelWireCreation()
@@ -388,8 +398,12 @@ const Canvas = () => {
           const dist = Math.sqrt(Math.pow(pointerPos.x - px, 2) + Math.pow(pointerPos.y - py, 2))
 
           if (dist < bestDist) {
-            bestDist = dist
-            bestTarget = { gateId: gate.id, type: 'input', index: i, x: px, y: py }
+            // Check if input is already occupied
+            const isOccupied = wires.some(w => w.toGate === gate.id && w.toIndex === i)
+            if (!isOccupied) {
+              bestDist = dist
+              bestTarget = { gateId: gate.id, type: 'input', index: i, x: px, y: py }
+            }
           }
         }
       }
