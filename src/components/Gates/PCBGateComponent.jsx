@@ -4,6 +4,8 @@ import { GateTypes, gateConfigs } from '../../engine/gates'
 import { SPACE_COLORS } from '../../constants/spaceTheme'
 import useSound from '../../hooks/useSound'
 
+const log = (message, ...args) => console.log(`%c[GATE] ${message}`, 'color: #FF9800;', ...args);
+
 const PCBGateComponent = ({
   gate,
   isSelected,
@@ -21,6 +23,20 @@ const PCBGateComponent = ({
   const [isHovered, setIsHovered] = useState(false)
   const [pulseAnimation, setPulseAnimation] = useState(0)
   const { playSound } = useSound()
+
+  // Komponent holati o'zgarganda log yozish
+  useEffect(() => {
+    log(`'${gate.type}_${gate.id}' holati yangilandi`, { isSelected, isPreSelected, outputSignal });
+  }, [gate.id, gate.type, isSelected, isPreSelected, outputSignal]);
+
+  // Komponent birinchi marta o'rnatilganda log yozish
+  useEffect(() => {
+    log(`'${gate.type}_${gate.id}' komponenti o'rnatildi (mounted).`);
+    return () => {
+      log(`'${gate.type}_${gate.id}' komponenti o'chirildi (unmounted).`);
+    }
+  }, [gate.id, gate.type]);
+
 
   // PCB renglari
   const gateTheme = SPACE_COLORS.gates[gate.type] || SPACE_COLORS.gates.AND
@@ -73,12 +89,14 @@ const PCBGateComponent = ({
 
   const handleClick = (e) => {
     e.cancelBubble = true
+    log(`'${gate.type}_${gate.id}' bosildi (click).`);
 
     // Play click sound
     playSound('gateClick')
 
     if (gate.type === GateTypes.INPUT) {
       const newValue = gate.value === 1 ? 0 : 1
+      log(`   - INPUT qiymati o'zgartirildi: ${newValue}`);
       onUpdateGate(gate.id, { value: newValue })
       onSelect(e) // Event uzatish - multi-selection uchun
     } else if (gate.type === GateTypes.CLOCK) {

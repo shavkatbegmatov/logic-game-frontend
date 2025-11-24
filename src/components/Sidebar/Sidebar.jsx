@@ -7,6 +7,8 @@ import { runSimulation } from '../../engine/simulation'
 import AchievementDisplay from '../UI/AchievementDisplay'
 import SubcircuitPanel from './SubcircuitPanel'
 
+const log = (message, ...args) => console.log(`%c[SIDEBAR] ${message}`, 'color: #03A9F4;', ...args);
+
 const Sidebar = () => {
   const [activeTab, setActiveTab] = useState('gates') // 'gates' yoki 'subcircuits'
   const {
@@ -25,6 +27,7 @@ const Sidebar = () => {
 
   // Simulyatsiyani boshqarish
   const handleSimulation = () => {
+    log(`Simulyatsiya tugmasi bosildi. Hozirgi holat: ${isSimulating ? 'ishlamoqda' : 'to\'xtatilgan'}`);
     if (isSimulating) {
       stopSimulation()
     } else {
@@ -33,6 +36,7 @@ const Sidebar = () => {
         updateSignals(result.signals)
         startSimulation()
       } else {
+        log('Simulyatsiyani boshlashda xatolik:', result.errors);
         alert('Xatolik: ' + result.errors.map(e => e.message).join(', '))
       }
     }
@@ -40,6 +44,7 @@ const Sidebar = () => {
 
   // Sxemani saqlash
   const handleSave = () => {
+    log('Sxemani saqlash boshlandi.');
     const circuit = saveCircuit()
     const json = JSON.stringify(circuit, null, 2)
     const blob = new Blob([json], { type: 'application/json' })
@@ -48,28 +53,46 @@ const Sidebar = () => {
     a.href = url
     a.download = `circuit_${Date.now()}.json`
     a.click()
+    log('Saqlash uchun fayl yaratildi.');
   }
 
   // Sxemani yuklash
   const handleLoad = (e) => {
     const file = e.target.files[0]
-    if (!file) return
+    if (!file) {
+      log('Fayl yuklash bekor qilindi.');
+      return
+    }
+    log(`Fayl yuklanmoqda: ${file.name}`);
 
     const reader = new FileReader()
     reader.onload = (event) => {
       try {
         const circuit = JSON.parse(event.target.result)
         loadCircuit(circuit)
+        log('Sxema muvaffaqiyatli yuklandi.');
       } catch (error) {
+        log('Faylni o\'qishda yoki parse qilishda xatolik:', error);
         alert('Faylni yuklashda xatolik!')
       }
     }
     reader.readAsText(file)
   }
 
+  const handleReset = () => {
+    log('Canvasni tozalash tugmasi bosildi.');
+    resetCanvas();
+  }
+
   // Gate'ni drag qilish
   const handleDragStart = (e, gateType) => {
+    log(`Elementni sudrash boshlandi: ${gateType}`);
     e.dataTransfer.setData('gateType', gateType)
+  }
+
+  const handleTabChange = (tab) => {
+    log(`Tab o'zgartirildi: ${tab}`);
+    setActiveTab(tab);
   }
 
   const energyLevel = Math.min(100, Math.round(gates.length * 12 + wires.length * 6))
@@ -78,7 +101,7 @@ const Sidebar = () => {
   const missionStatus = isSimulating ? "Signal oqmoqda" : "Kutish holati"
 
   return (
-    <div className="relative w-72 h-full flex flex-col border-r border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_30px_60px_-30px_rgba(15,23,42,0.75)]">
+    <div className="relative w-[280px] lg:w-[320px] h-full flex flex-col rounded-l-2xl bg-gradient-to-br from-white/10 via-white/5 to-transparent backdrop-blur-xl shadow-[0_30px_60px_-30px_rgba(15,23,42,0.75)] overflow-hidden">
       {/* Header */}
       <div className="relative overflow-hidden border-b border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-transparent p-6">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,rgba(34,211,238,0.16),transparent_55%),radial-gradient(circle_at_90%_20%,rgba(129,140,248,0.12),transparent_60%)] opacity-70" />
@@ -102,29 +125,31 @@ const Sidebar = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-white/10 bg-white/5">
-        <button
-          onClick={() => setActiveTab('gates')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${
-            activeTab === 'gates'
-              ? 'border-b-2 border-cyan-400 text-cyan-300 bg-cyan-400/10'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          <Grid className="h-4 w-4" />
-          Gates
-        </button>
-        <button
-          onClick={() => setActiveTab('subcircuits')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${
-            activeTab === 'subcircuits'
-              ? 'border-b-2 border-purple-400 text-purple-300 bg-purple-400/10'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          <Cpu className="h-4 w-4" />
-          Subcircuits
-        </button>
+      <div className="flex border-b border-white/10 bg-white/5 px-6 py-3">
+        <div className="flex w-full gap-2">
+          <button
+            onClick={() => handleTabChange('gates')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors rounded-t-lg ${
+              activeTab === 'gates'
+                ? 'border-b-2 border-cyan-400 text-cyan-300 bg-cyan-400/10'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Grid className="h-4 w-4" />
+            Gates
+          </button>
+          <button
+            onClick={() => handleTabChange('subcircuits')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors rounded-t-lg ${
+              activeTab === 'subcircuits'
+                ? 'border-b-2 border-purple-400 text-purple-300 bg-purple-400/10'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Cpu className="h-4 w-4" />
+            Subcircuits
+          </button>
+        </div>
       </div>
 
       {/* Tab content ni ko'rsatish */}
@@ -133,7 +158,7 @@ const Sidebar = () => {
       ) : (
         <>
       {/* Boshqaruv tugmalari */}
-      <div className="p-6 border-b border-white/5">
+      <div className="px-6 py-5 border-b border-white/5">
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={handleSimulation}
@@ -157,7 +182,7 @@ const Sidebar = () => {
           </button>
 
           <button
-            onClick={resetCanvas}
+            onClick={handleReset}
             className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-slate-100 transition-all hover:border-white/20 hover:bg-white/15"
           >
             <RotateCcw size={18} />
@@ -186,7 +211,7 @@ const Sidebar = () => {
       </div>
 
       {/* Gate'lar ro'yxati */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto px-6 py-6">
         <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">Komponentlar</h3>
 
         {/* Asosiy gate'lar */}
@@ -201,11 +226,11 @@ const Sidebar = () => {
                   key={type}
                   draggable
                   onDragStart={(e) => handleDragStart(e, type)}
-                  className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 shadow-[0_20px_45px_-35px_rgba(15,23,42,0.7)] cursor-move transition-all hover:-translate-y-1 hover:border-white/30 hover:bg-white/10 hover:shadow-[0_28px_55px_-25px_rgba(15,23,42,0.7)]"
+                  className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 pl-6 pr-4 py-4 shadow-[0_20px_45px_-35px_rgba(15,23,42,0.7)] cursor-move transition-all hover:-translate-y-1 hover:border-white/30 hover:bg-white/10 hover:shadow-[0_28px_55px_-25px_rgba(15,23,42,0.7)]"
                   style={{ borderLeftColor: config.color, borderLeftWidth: 4 }}
                 >
                   <div className="flex items-center justify-between">
-                    <div>
+                    <div className="pl-1">
                       <div className="text-sm font-semibold text-white">{config.name}</div>
                       <div className="text-xs text-slate-300">{config.description}</div>
                     </div>
@@ -231,10 +256,10 @@ const Sidebar = () => {
                 key={type}
                 draggable
                 onDragStart={(e) => handleDragStart(e, type)}
-                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 shadow-[0_20px_45px_-35px_rgba(15,23,42,0.7)] cursor-move transition-all hover:-translate-y-1 hover:border-white/30 hover:bg-white/10 hover:shadow-[0_28px_55px_-25px_rgba(15,23,42,0.7)]"
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 pl-6 pr-4 py-4 shadow-[0_20px_45px_-35px_rgba(15,23,42,0.7)] cursor-move transition-all hover:-translate-y-1 hover:border-white/30 hover:bg-white/10 hover:shadow-[0_28px_55px_-25px_rgba(15,23,42,0.7)]"
               >
                 <div className="flex items-center justify-between">
-                  <div>
+                  <div className="pl-1">
                     <div className="text-sm font-semibold text-white">{config.name}</div>
                     <div className="text-xs text-slate-300">{config.description}</div>
                   </div>
@@ -252,7 +277,7 @@ const Sidebar = () => {
       </div>
 
       {/* Achievement Display */}
-      <div className="p-4 border-t border-white/10">
+      <div className="px-6 py-5 border-t border-white/10">
         <AchievementDisplay />
       </div>
 

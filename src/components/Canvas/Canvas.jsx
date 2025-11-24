@@ -1,412 +1,330 @@
-import React, { useRef, useCallback, useState, useEffect, useMemo } from 'react'
+import React, { useRef, useCallback, useState, useEffect, useMemo, Suspense } from 'react'
 import { Stage, Layer, Rect } from 'react-konva'
+import { motion } from 'framer-motion'
+import { Edit } from 'lucide-react'
+
 import useGameStore from '../../store/gameStore'
+import useSubcircuitEditorStore from '../../store/subcircuitEditorStore'
+import useSubcircuitStore from '../../store/subcircuitStore'
+import useUserPreferencesStore from '../../store/userPreferencesStore'
 import useAchievementStore from '../../store/achievementStore'
+
 import PCBGateComponent from '../Gates/PCBGateComponent'
 import SpaceWireComponent from '../Wires/SpaceWireComponent'
 import SubcircuitEditorManager from '../SubcircuitEditor/SubcircuitEditorManager'
 import { createGate, gateConfigs, GateTypes } from '../../engine/gates'
 import { runSimulation } from '../../engine/simulation'
 import { normalizeKeyEvent } from '../../utils/keyboard'
+import { soundService } from '../SubcircuitEditor/effects/SoundManager'
+
+// Creation flows (DOM components)
+const QuickCreate = React.lazy(() => import('../SubcircuitEditor/creation/QuickCreate'))
+const WizardCreate = React.lazy(() => import('../SubcircuitEditor/creation/WizardCreate'))
+const TemplateCreate = React.lazy(() => import('../SubcircuitEditor/creation/TemplateCreate'))
+const VisualBoundaryCreate = React.lazy(() => import('../SubcircuitEditor/creation/VisualBoundaryCreate'))
+
+// Editor modes (DOM components)
+const SplitViewMode = React.lazy(() => import('../SubcircuitEditor/modes/SplitViewMode'))
+const FloatingPanelMode = React.lazy(() => import('../SubcircuitEditor/modes/FloatingPanelMode'))
+const FullModalMode = React.lazy(() => import('../SubcircuitEditor/modes/FullModalMode'))
+
+
+const log = (message, ...args) => console.log(`%c[CANVAS] ${message}`, 'color: #9C27B0;', ...args);
 
 const Canvas = () => {
   const stageRef = useRef(null)
-  const [stageSize, setStageSize] = useState({ width: window.innerWidth - 280, height: window.innerHeight - 60 })
+  const containerRef = useRef(null)
+  const [stageSize, setStageSize] = useState({ width: 800, height: 600 }) // Default fallback
   const [isDraggingWire, setIsDraggingWire] = useState(false)
   const [wireStart, setWireStart] = useState(null)
   const [tempWireEnd, setTempWireEnd] = useState(null)
-  const [draggedItems, setDraggedItems] = useState({}) // Stores temp positions of dragged gates { [id]: {x, y} }
-  const [dragStartData, setDragStartData] = useState(null) // Stores data for multi-drag operation
+  const [draggedItems, setDraggedItems] = useState({})
+  const [dragStartData, setDragStartData] = useState(null)
 
-  // Multi-selection state
+  const latestDraggedItems = useRef({});
+  const updateScheduled = useRef(false);
+
   const [isDrawingSelection, setIsDrawingSelection] = useState(false)
   const [selectionStart, setSelectionStart] = useState(null)
   const [tempSelectionBox, setTempSelectionBox] = useState(null)
   const [selectionStartedWithShift, setSelectionStartedWithShift] = useState(false)
 
   const {
-    gates,
-    wires,
-    selectedGate,
-    selectedGates,
-    preSelectedGates, // For live selection highlighting
-    selectionBox,
-    selectionMode,
-    addGate,
-    updateGate,
-    updateGatePositions, // For multi-drag
-    addWire,
-    selectGate,
-    clearSelection,
-    toggleGateSelection,
-    selectMultipleGates,
-    setPreSelectedGates, // For live selection highlighting
-    setSelectionBox,
-    getGatesInSelectionBox,
-    createSubcircuitFromSelected,
-    isSimulating,
-    signals,
-    updateSignals
+    gates, wires, selectedGate, selectedGates, preSelectedGates, addGate, updateGate,
+    updateGatePositions, addWire, selectGate, clearSelection, toggleGateSelection,
+    selectMultipleGates, setPreSelectedGates, getGatesInSelectionBox, isSimulating,
+    signals, updateSignals
   } = useGameStore()
 
+  const {
+    isEditing, editingMode, editingSubcircuit, creationMethod,
+    startEditing, stopEditing, startCreation
+  } = useSubcircuitEditorStore()
+
+  const { addTemplate } = useSubcircuitStore()
+  const { shortcuts, editorMode: preferredEditorMode, enableSounds } = useUserPreferencesStore()
   const { updateStats } = useAchievementStore()
 
-  // Canvas o'lchamini yangilash
-  React.useEffect(() => {
-    const handleResize = () => {
-      setStageSize({
-        width: window.innerWidth - 280,
-        height: window.innerHeight - 60
-      })
-    }
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
+  // Dynamic sizing with ResizeObserver - responds to parent container size changes
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect
+        setStageSize({ width, height })
+      }
+    })
+
+    resizeObserver.observe(containerRef.current)
+
+    // Set initial size
+    const { width, height } = containerRef.current.getBoundingClientRect()
+    setStageSize({ width, height })
+
+    return () => resizeObserver.disconnect()
   }, [])
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
       const combo = normalizeKeyEvent(e)
       if (!combo) return
 
-      // Ctrl+A - barcha gate'larni tanlash
-      if (combo === 'ctrl+a') {
+      // Create Subcircuit
+      if (combo === shortcuts.createSubcircuit) {
         e.preventDefault()
-        const allGateIds = gates.map(g => g.id)
-        selectMultipleGates(allGateIds)
+        if (selectedGates.length > 0) {
+          log('Subcircuit yaratish boshlandi...', selectedGates)
+          const selectedSet = new Set(selectedGates)
+          const initialGates = gates.filter(g => selectedSet.has(g.id))
+          // Fix: Pass all wires connected to the selection, not just internal ones.
+          const initialWires = wires.filter(w => selectedSet.has(w.fromGate) || selectedSet.has(w.toGate))
+
+          startCreation('quick', {
+            selectedGates: initialGates,
+            selectedWires: initialWires
+          })
+        } else {
+          console.warn('Subcircuit yaratish uchun avval gate\'larni tanlang.')
+          // TODO: Add toast notification
+        }
       }
 
-      // Ctrl+G - tanlangan gate'lardan subcircuit yaratish
-      // Note: Ctrl+G handling SubcircuitEditorManager'da qilinadi
+      if (combo === 'ctrl+a') {
+        e.preventDefault()
+        selectMultipleGates(gates.map(g => g.id))
+      }
 
-      // Escape - tanlashni bekor qilish
+      // Copy
+      if (combo === 'ctrl+c') {
+        e.preventDefault()
+        useGameStore.getState().copySelection()
+      }
+
+      // Paste
+      if (combo === 'ctrl+v') {
+        e.preventDefault()
+        useGameStore.getState().pasteSelection()
+      }
+
+      // Delete
+      if (combo === 'delete' || combo === 'backspace') {
+        e.preventDefault()
+        useGameStore.getState().deleteSelection()
+      }
+
       if (combo === 'escape') {
+        if (isEditing) stopEditing()
         clearSelection()
         setIsDrawingSelection(false)
         setTempSelectionBox(null)
       }
-
-      // Delete - tanlangan gate'larni o'chirish (agar kerak bo'lsa)
-      // if (e.key === 'Delete' && selectedGates.length > 0) {
-      //   selectedGates.forEach(id => removeGate(id))
-      //   clearSelection()
-      // }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectedGates, gates, wires, selectMultipleGates, clearSelection])
+  }, [selectMultipleGates, clearSelection, isEditing, stopEditing, gates, shortcuts, startCreation, selectedGates, wires])
 
-  // Simulyatsiya loop
   useEffect(() => {
     if (!isSimulating) return
-
     const simulationInterval = setInterval(() => {
       const result = runSimulation(gates, wires)
-
       if (result.success) {
-        // Signallarni yangilash
-        const newSignals = {}
-
-        // Wire signallari
-        Object.keys(result.signals).forEach(key => {
-          newSignals[key] = result.signals[key]
-        })
-
-        // Gate output signallari
-        Object.keys(result.gateOutputs).forEach(key => {
-          newSignals[`gate_${key}`] = result.gateOutputs[key]
-        })
-
-        // Debug: INPUT gate'lar va ularning signal'larini ko'rsatish
-        console.log('🔍 Simulyatsiya signals:', {
-          wireSignals: result.signals,
-          gateOutputs: result.gateOutputs,
-          inputGates: gates.filter(g => g.type === 'INPUT').map(g => ({ id: g.id, value: g.value }))
-        })
-
+        const newSignals = { ...result.signals, ...result.gateOutputs }
         updateSignals(newSignals)
       }
-    }, 100) // Har 100ms da yangilash
-
+    }, 100)
     return () => clearInterval(simulationInterval)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSimulating, gates, wires])
+  }, [isSimulating, gates, wires, updateSignals])
 
-  // Simulyatsiya faol bo'lmaganda ham signal'larni hisoblash (useMemo)
-  // Bu signal'larni har safar gates/wires o'zgarganda qayta hisoblaydi
-  // Lekin store'ga yozmaydi, shuning uchun cheksiz loop bo'lmaydi
   const computedSignals = useMemo(() => {
-    // Agar simulyatsiya faol bo'lsa, store'dagi signal'lardan foydalanish
-    if (isSimulating) {
-      return signals
-    }
-
-    // Agar gate yoki wire yo'q bo'lsa, bo'sh object qaytarish
-    if (gates.length === 0 || wires.length === 0) {
-      return {}
-    }
-
-    // Signal'larni hisoblash
+    if (isSimulating) return signals
+    if (gates.length === 0) return {}
     const result = runSimulation(gates, wires)
-
     if (result.success) {
-      const newSignals = {}
-
-      // Wire signallari
-      Object.keys(result.signals).forEach(key => {
-        newSignals[key] = result.signals[key]
-      })
-
-      // Gate output signallari
-      Object.keys(result.gateOutputs).forEach(key => {
-        newSignals[`gate_${key}`] = result.gateOutputs[key]
-      })
-
-      return newSignals
+      return { ...result.signals, ...result.gateOutputs }
     }
-
     return {}
   }, [gates, wires, isSimulating, signals])
 
-  // Clock gate'lar uchun interval - periodik signal generatori
   useEffect(() => {
     const clockGates = gates.filter(g => g.type === GateTypes.CLOCK)
-
-    // Agar Clock gate'lar yo'q bo'lsa, hech narsa qilmaslik
     if (clockGates.length === 0) return
-
-    // Har 500ms da Clock gate'larning value'sini almashtirish
     const clockInterval = setInterval(() => {
-      clockGates.forEach(gate => {
-        const newValue = gate.value === 1 ? 0 : 1
-        updateGate(gate.id, { value: newValue })
-      })
-    }, 500) // 500ms = 0.5 soniya (2Hz chastota)
-
+      clockGates.forEach(gate => updateGate(gate.id, { value: gate.value === 1 ? 0 : 1 }))
+    }, 500)
     return () => clearInterval(clockInterval)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gates])
+  }, [gates, updateGate])
 
-  // Canvas'ga gate qo'shish (drag & drop uchun)
   const handleDrop = useCallback((e) => {
     e.preventDefault()
     const stage = stageRef.current
     if (!stage) return
-
     const gateType = e.dataTransfer.getData('gateType')
     if (!gateType) return
-
-    // Konva koordinatalarini olish
     stage.setPointersPositions(e)
     const position = stage.getPointerPosition()
 
-    // Yangi gate yaratish
-    const newGate = createGate(gateType, position.x, position.y)
-    addGate(newGate)
+    // Grid snapping (10px)
+    const snappedX = Math.round(position.x / 10) * 10
+    const snappedY = Math.round(position.y / 10) * 10
 
-    // Update achievement statistics
+    const newGate = createGate(gateType, snappedX, snappedY)
+    addGate(newGate)
     updateStats('gatesPlaced', prev => prev + 1)
-    updateStats('gateTypesUsed', prev => {
-      const types = new Set(prev)
-      types.add(gateType)
-      return types
-    })
+    updateStats('gateTypesUsed', prev => new Set(prev).add(gateType))
   }, [addGate, updateStats])
 
-  const handleDragOver = (e) => {
-    e.preventDefault()
-  }
+  const handleDragOver = (e) => e.preventDefault()
 
-
-  // Selection rectangle handlers
   const handleStageMouseDown = (e) => {
-    // Agar bo'sh joyga bosilsa, selection box boshlash
-    if (e.target === e.target.getStage()) {
-      const stage = stageRef.current
-      if (!stage) return
-
-      const position = stage.getPointerPosition()
+    if (e.target === e.target.getStage() && !isEditing) {
+      const pos = e.target.getStage().getPointerPosition()
       setIsDrawingSelection(true)
-      setSelectionStart(position)
-      setSelectionStartedWithShift(e.evt.shiftKey) // Shift holatini eslab qolish
-      setTempSelectionBox({
-        x1: position.x,
-        y1: position.y,
-        x2: position.x,
-        y2: position.y
-      })
+      setSelectionStart(pos)
+      setSelectionStartedWithShift(e.evt.shiftKey)
+      setTempSelectionBox({ x1: pos.x, y1: pos.y, x2: pos.x, y2: pos.y })
     }
   }
 
   const handleSelectionMouseMove = (e) => {
     if (!isDrawingSelection || !selectionStart) return
-
-    const stage = stageRef.current
-    if (!stage) return
-
-    const position = stage.getPointerPosition()
-    const newSelectionBox = {
-      x1: selectionStart.x,
-      y1: selectionStart.y,
-      x2: position.x,
-      y2: position.y
-    }
-    setTempSelectionBox(newSelectionBox)
-
-    // Live-update pre-selected gates
-    const gatesInBox = getGatesInSelectionBox(newSelectionBox)
-    setPreSelectedGates(gatesInBox.map(g => g.id))
+    const pos = e.target.getStage().getPointerPosition()
+    const newBox = { x1: selectionStart.x, y1: selectionStart.y, x2: pos.x, y2: pos.y }
+    setTempSelectionBox(newBox)
+    setPreSelectedGates(getGatesInSelectionBox(newBox).map(g => g.id))
   }
 
-  const handleSelectionMouseUp = (e) => {
+  const handleSelectionMouseUp = () => {
     if (!isDrawingSelection || !tempSelectionBox) return
-
     const { x1, y1, x2, y2 } = tempSelectionBox
-    const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2))
-
-    // Agar sichqoncha deyarli harakatlanmagan bo'lsa (click)
-    if (distance < 5) {
-      // va shift bosilmagan bo'lsa, tanlovni tozalash
-      if (!selectionStartedWithShift) {
+    if (Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2)) < 5) {
+      if (!selectionStartedWithShift) clearSelection()
+    } else {
+      const newGateIds = getGatesInSelectionBox(tempSelectionBox).map(g => g.id)
+      if (newGateIds.length > 0) {
+        selectMultipleGates(selectionStartedWithShift ? [...new Set([...selectedGates, ...newGateIds])] : newGateIds)
+      } else if (!selectionStartedWithShift) {
         clearSelection()
       }
-    } else { // Agar drag bo'lgan bo'lsa
-      const gatesInBox = getGatesInSelectionBox(tempSelectionBox)
-      const newGateIds = gatesInBox.map(g => g.id)
-
-      if (newGateIds.length > 0) {
-        if (selectionStartedWithShift) {
-          const combinedIds = [...new Set([...selectedGates, ...newGateIds])]
-          selectMultipleGates(combinedIds)
-        } else {
-          selectMultipleGates(newGateIds)
-        }
-      } else {
-        // Bo'sh joyga drag qilinganda (va shift bosilmagan bo'lsa) tanlovni tozalash
-        if (!selectionStartedWithShift) {
-          clearSelection()
-        }
-      }
     }
-
-    // Reset state
     setIsDrawingSelection(false)
-    setSelectionStart(null)
     setTempSelectionBox(null)
-    setSelectionStartedWithShift(false)
-    setPreSelectedGates([]) // Clear pre-selection
+    setPreSelectedGates([])
   }
 
-  // --- Gate Dragging Logic ---
-
   const handleGateDragStart = (gateId, e) => {
-    const stage = e.target.getStage()
-    if (!stage) return
-
-    // If the dragged gate is part of a selection, prepare for multi-drag
     if (selectedGates.length > 1 && selectedGates.includes(gateId)) {
       setDragStartData({
-        pointer: stage.getPointerPosition(),
+        pointer: e.target.getStage().getPointerPosition(),
         gates: gates.filter(g => selectedGates.includes(g.id)).map(g => ({ id: g.id, x: g.x, y: g.y }))
       })
     }
   }
 
   const handleGateDragMove = (gateId, e) => {
-    const stage = e.target.getStage()
-    if (!stage) return
+    const stage = e.target.getStage();
+    if (!stage) return;
+    const pointer = stage.getPointerPosition();
 
-    const pointer = stage.getPointerPosition()
+    // Snap pointer to grid for drag calculation
+    const snappedPointerX = Math.round(pointer.x / 10) * 10;
+    const snappedPointerY = Math.round(pointer.y / 10) * 10;
 
-    // Multi-drag logic
     if (dragStartData) {
-      const dx = pointer.x - dragStartData.pointer.x
-      const dy = pointer.y - dragStartData.pointer.y
-
-      const newPositions = {}
-      dragStartData.gates.forEach(startGate => {
-        newPositions[startGate.id] = {
-          x: startGate.x + dx,
-          y: startGate.y + dy
+      const dx = snappedPointerX - Math.round(dragStartData.pointer.x / 10) * 10;
+      const dy = snappedPointerY - Math.round(dragStartData.pointer.y / 10) * 10;
+      const newPositions = {};
+      dragStartData.gates.forEach(sg => {
+        newPositions[sg.id] = {
+          x: Math.round((sg.x + dx) / 10) * 10,
+          y: Math.round((sg.y + dy) / 10) * 10
         }
-      })
-      setDraggedItems(newPositions)
-      return
+      });
+      latestDraggedItems.current = newPositions;
+    } else {
+      latestDraggedItems.current = {
+        [gateId]: {
+          x: Math.round(e.target.x() / 10) * 10,
+          y: Math.round(e.target.y() / 10) * 10
+        }
+      };
     }
-
-    // Single-drag logic
-    setDraggedItems({
-      [gateId]: {
-        x: e.target.x(),
-        y: e.target.y()
-      }
-    })
-  }
+    if (!updateScheduled.current) {
+      updateScheduled.current = true;
+      requestAnimationFrame(() => {
+        setDraggedItems(latestDraggedItems.current);
+        updateScheduled.current = false;
+      });
+    }
+  };
 
   const handleGateDragEnd = (gateId, e) => {
-    // Multi-drag final update
     if (dragStartData) {
       const pointer = e.target.getStage().getPointerPosition()
-      const dx = pointer.x - dragStartData.pointer.x
-      const dy = pointer.y - dragStartData.pointer.y
+      // Snap logic for group drag end
+      const snappedPointerX = Math.round(pointer.x / 10) * 10;
+      const snappedPointerY = Math.round(pointer.y / 10) * 10;
+      const startPointerX = Math.round(dragStartData.pointer.x / 10) * 10;
+      const startPointerY = Math.round(dragStartData.pointer.y / 10) * 10;
 
-      const finalPositions = dragStartData.gates.map(startGate => ({
-        id: startGate.id,
-        x: startGate.x + dx,
-        y: startGate.y + dy
+      const dx = snappedPointerX - startPointerX
+      const dy = snappedPointerY - startPointerY
+      const finalPositions = dragStartData.gates.map(sg => ({
+        id: sg.id,
+        x: Math.round((sg.x + dx) / 10) * 10,
+        y: Math.round((sg.y + dy) / 10) * 10
       }))
-
       updateGatePositions(finalPositions)
     } else {
-      // Single-drag final update
-      updateGate(gateId, { x: e.target.x(), y: e.target.y() })
+      updateGate(gateId, {
+        x: Math.round(e.target.x() / 10) * 10,
+        y: Math.round(e.target.y() / 10) * 10
+      })
     }
-
-    // Reset drag states
     setDraggedItems({})
     setDragStartData(null)
   }
 
-  // Wire ulash boshlash
-  const handleWireStart = (gateId, connectionType, connectionIndex) => {
+  const handleWireStart = (gateId, type, index) => {
     setIsDraggingWire(true)
-    setWireStart({
-      gateId,
-      type: connectionType, // 'input' yoki 'output'
-      index: connectionIndex
-    })
+    setWireStart({ gateId, type, index })
   }
 
-  // Wire ulashni tugatish
-  const handleWireEnd = (gateId, connectionType, connectionIndex) => {
+  const handleWireEnd = (gateId, type, index) => {
     if (!isDraggingWire || !wireStart) return
-
-    // Mantiqiy tekshiruvlar
-    if (wireStart.gateId === gateId) {
-      // O'ziga o'zini ulash mumkin emas
+    if (wireStart.gateId === gateId || wireStart.type === type) {
       cancelWireCreation()
       return
     }
-
-    if (wireStart.type === connectionType) {
-      // Input-input yoki output-output ulash mumkin emas
-      cancelWireCreation()
-      return
-    }
-
-    // Wire yaratish
     const wire = {
       fromGate: wireStart.type === 'output' ? wireStart.gateId : gateId,
-      fromIndex: wireStart.type === 'output' ? wireStart.index : connectionIndex,
+      fromIndex: wireStart.type === 'output' ? wireStart.index : index,
       toGate: wireStart.type === 'input' ? wireStart.gateId : gateId,
-      toIndex: wireStart.type === 'input' ? wireStart.index : connectionIndex
+      toIndex: wireStart.type === 'input' ? wireStart.index : index
     }
-
     addWire(wire)
     cancelWireCreation()
-
-    // Update achievement statistics
     updateStats('wiresConnected', prev => prev + 1)
   }
 
@@ -416,151 +334,127 @@ const Canvas = () => {
     setTempWireEnd(null)
   }
 
-  // Mouse harakati (vaqtinchalik wire ko'rsatish uchun)
   const handleMouseMove = (e) => {
-    // Selection box drawing
-    if (isDrawingSelection) {
-      handleSelectionMouseMove(e)
-      return
-    }
-
-    // Wire creation
-    if (!isDraggingWire) return
-
-    const stage = stageRef.current
-    const position = stage.getPointerPosition()
-    setTempWireEnd(position)
+    if (isDrawingSelection) handleSelectionMouseMove(e)
+    if (isDraggingWire) setTempWireEnd(e.target.getStage().getPointerPosition())
   }
 
   const handleStageMouseUp = (e) => {
-    // Selection box tugallash
-    if (isDrawingSelection) {
-      handleSelectionMouseUp(e)
-      return
-    }
-
-    // Wire creation tugallash
-    if (!isDraggingWire) return
-
-    const target = e.target
-    if (target && target.getClassName && target.getClassName() === 'Circle') {
-      return
-    }
-
-    cancelWireCreation()
+    if (isDrawingSelection) handleSelectionMouseUp(e)
+    if (isDraggingWire && e.target.getClassName() !== 'Circle') cancelWireCreation()
   }
 
-  return (
-    <div
-      className="relative h-full overflow-hidden bg-slate-950/30 canvas-3d"
-      onDrop={handleDrop}
-      onDragOver={handleDragOver}
-    >
-      {/* 3D Grid Floor */}
-      <div className="grid-3d" />
+  const renderDomEditor = () => {
+    if (!isEditing || editingMode !== 'edit') return null;
 
-      {/* Grid background */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-60 mix-blend-screen"
-        style={{
-          backgroundImage: `
-            linear-gradient(to right, rgba(34, 211, 238, 0.14) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(129, 140, 248, 0.12) 1px, transparent 1px)
-          `,
-          backgroundSize: '20px 20px'
-        }}
-      />
+    // Inline mode uses Konva only, no DOM overlay needed
+    if (preferredEditorMode === 'inline') return null;
+
+    const editorProps = {
+      onClose: stopEditing,
+      subcircuit: editingSubcircuit,
+    };
+
+    const renderEditorComponent = () => {
+      switch (preferredEditorMode) {
+        case 'splitView':
+          return <SplitViewMode {...editorProps} />;
+        case 'floating':
+          return <FloatingPanelMode {...editorProps} />;
+        case 'fullModal':
+          return <FullModalMode {...editorProps} />;
+        default:
+          return null; // Inline mode is Konva-only
+      }
+    };
+
+    return (
+      <>
+        {/* Backdrop and UI for non-inline editing modes */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-30 bg-slate-900/80 backdrop-blur-sm" onClick={stopEditing} />
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40">
+          <motion.div initial={{ y: -100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="flex items-center gap-4 rounded-lg bg-slate-800/80 p-3 shadow-lg border border-slate-700">
+            <div className="flex items-center gap-2">
+              <Edit className="h-5 w-5 text-cyan-400" />
+              <h2 className="text-lg font-semibold text-white">Editing: <span className="text-cyan-400">{editingSubcircuit?.name}</span></h2>
+            </div>
+            <button onClick={stopEditing} className="px-4 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm transition-colors">Close Editor</button>
+          </motion.div>
+        </div>
+
+        {/* Mode-specific DOM UI */}
+        {renderEditorComponent()}
+      </>
+    );
+  };
+
+  const renderCreationFlow = () => {
+    if (!isEditing || editingMode !== 'create' || !creationMethod) return null;
+    const props = {
+      onComplete: (template) => {
+        addTemplate(template)
+        startEditing('edit', template)
+        clearSelection()
+        if (enableSounds) soundService.playSuccess()
+      },
+      onCancel: () => {
+        stopEditing()
+        if (enableSounds) soundService.playCancel()
+      }
+    }
+    switch (creationMethod) {
+      case 'quick': return <QuickCreate {...props} />
+      case 'wizard': return <WizardCreate {...props} />
+      case 'template': return <TemplateCreate {...props} />
+      case 'visual': return <VisualBoundaryCreate {...props} />
+      default: return <QuickCreate {...props} />
+    }
+  }
+
+  const LoadingFallback = () => (
+    <div className="fixed inset-0 flex items-center justify-center bg-slate-900/50 z-50">
+      <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-cyan-400"></div>
+    </div>
+  )
+
+  return (
+    <div ref={containerRef} className="relative h-full overflow-hidden bg-slate-950/30 canvas-3d p-4" onDrop={handleDrop} onDragOver={handleDragOver}>
+      <div className="grid-3d" />
+      <div className="pointer-events-none absolute inset-0 opacity-60 mix-blend-screen" style={{ backgroundImage: `linear-gradient(to right, rgba(34, 211, 238, 0.14) 1px, transparent 1px), linear-gradient(to bottom, rgba(129, 140, 248, 0.12) 1px, transparent 1px)`, backgroundSize: '10px 10px' }} />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent" />
       <div className="pointer-events-none absolute inset-0 opacity-30 mix-blend-screen">
         <div className="absolute left-10 top-12 h-40 w-40 rounded-full border border-cyan-400/50 bg-cyan-400/10 blur-2xl" />
         <div className="absolute right-12 bottom-20 h-52 w-52 rounded-full border border-indigo-500/40 bg-indigo-500/10 blur-[100px]" />
-        <div className="absolute inset-y-0 left-1/3 w-px bg-gradient-to-b from-transparent via-cyan-300/40 to-transparent" />
-        <div className="absolute inset-y-0 right-1/4 w-px bg-gradient-to-b from-transparent via-indigo-300/30 to-transparent" />
       </div>
 
-      <Stage
-        ref={stageRef}
-        width={stageSize.width}
-        height={stageSize.height}
-        onMouseDown={handleStageMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleStageMouseUp}
-        onTouchEnd={handleStageMouseUp}
-      >
+      <Stage ref={stageRef} width={stageSize.width} height={stageSize.height} onMouseDown={handleStageMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleStageMouseUp} onTouchEnd={handleStageMouseUp} className={isEditing ? 'cursor-default' : 'cursor-crosshair'}>
         <Layer>
-          {/* Simlarni chizish */}
-          {wires.map(wire => (
-            <SpaceWireComponent
-              key={wire.id}
-              wire={wire}
-              gates={gates}
-              signal={computedSignals[wire.id]}
-              isSimulating={isSimulating}
-              draggedItems={draggedItems}
-            />
+          {!isEditing && wires.map(wire => (
+            <SpaceWireComponent key={wire.id} wire={wire} gates={gates} signal={computedSignals[wire.id]} isSimulating={isSimulating} draggedItems={draggedItems} />
           ))}
-
-          {/* Vaqtinchalik wire (yaratish jarayonida) */}
           {isDraggingWire && wireStart && tempWireEnd && (() => {
             const gate = gates.find(g => g.id === wireStart.gateId)
             if (!gate) return null
-
             let startX, startY
             if (wireStart.type === 'output') {
-              // Chiqish nuqtasidan boshlangan
-              startX = gate.x + gate.width + 5
-              startY = gate.y + gate.height / 2
-            } else {
-              // Kirish nuqtasidan boshlangan
               const config = gateConfigs[gate.type]
-              const inputCount = config.maxInputs || 2
-              const spacing = gate.height / (inputCount + 1)
+              const spacing = gate.height / ((config.outputs || 1) + 1)
+              startX = gate.x + gate.width + 5
+              startY = gate.y + spacing * (wireStart.index + 1)
+            } else {
+              const config = gateConfigs[gate.type]
+              const spacing = gate.height / ((config.maxInputs || config.minInputs || 2) + 1)
               startX = gate.x - 5
               startY = gate.y + spacing * (wireStart.index + 1)
             }
-
-            return (
-              <SpaceWireComponent
-                wire={{
-                  id: 'temp',
-                  startX,
-                  startY,
-                  endX: tempWireEnd.x,
-                  endY: tempWireEnd.y
-                }}
-                gates={gates}
-                signal={0}
-                isTemporary={true}
-              />
-            )
+            return <SpaceWireComponent wire={{ id: 'temp', startX, startY, endX: tempWireEnd.x, endY: tempWireEnd.y }} gates={gates} signal={0} isTemporary={true} />
           })()}
-
-          {/* Selection rectangle */}
           {tempSelectionBox && (
-            <Rect
-              x={Math.min(tempSelectionBox.x1, tempSelectionBox.x2)}
-              y={Math.min(tempSelectionBox.y1, tempSelectionBox.y2)}
-              width={Math.abs(tempSelectionBox.x2 - tempSelectionBox.x1)}
-              height={Math.abs(tempSelectionBox.y2 - tempSelectionBox.y1)}
-              fill="rgba(59, 130, 246, 0.15)"
-              stroke="rgba(59, 130, 246, 0.8)"
-              strokeWidth={2}
-              dash={[8, 4]}
-              shadowBlur={10}
-              shadowColor="rgba(59, 130, 246, 0.5)"
-              shadowOpacity={0.8}
-            />
+            <Rect x={Math.min(tempSelectionBox.x1, tempSelectionBox.x2)} y={Math.min(tempSelectionBox.y1, tempSelectionBox.y2)} width={Math.abs(tempSelectionBox.x2 - tempSelectionBox.x1)} height={Math.abs(tempSelectionBox.y2 - tempSelectionBox.y1)} fill="rgba(59, 130, 246, 0.15)" stroke="rgba(59, 130, 246, 0.8)" strokeWidth={2} dash={[8, 4]} />
           )}
-
-          {/* Gate'larni chizish */}
-          {gates.map(gate => {
+          {!isEditing && gates.map(gate => {
             const draggedPosition = draggedItems[gate.id]
-            const gateProps = {
-              ...gate,
-              x: draggedPosition ? draggedPosition.x : gate.x,
-              y: draggedPosition ? draggedPosition.y : gate.y
-            };
-
+            const gateProps = { ...gate, x: draggedPosition ? draggedPosition.x : gate.x, y: draggedPosition ? draggedPosition.y : gate.y };
             return (
               <PCBGateComponent
                 key={gate.id}
@@ -571,37 +465,32 @@ const Canvas = () => {
                 onDragMove={handleGateDragMove}
                 onDragEnd={handleGateDragEnd}
                 onSelect={(e) => {
-                  if (e.evt.ctrlKey) {
-                    // Ctrl+Click - toggle selection
-                    toggleGateSelection(gate.id)
-                  } else if (e.evt.shiftKey) {
-                    // Shift+Click - add to selection
-                    toggleGateSelection(gate.id)
-                  } else {
-                    // Normal click - single select
-                    selectGate(gate.id)
-                  }
+                  if (e.evt.ctrlKey || e.evt.shiftKey) toggleGateSelection(gate.id)
+                  else selectGate(gate.id)
                 }}
                 onUpdateGate={updateGate}
-              onWireStart={handleWireStart}
-              onWireEnd={handleWireEnd}
-              outputSignal={computedSignals[`gate_${gate.id}`] || 0}
-            />
-          );
+                onWireStart={handleWireStart}
+                onWireEnd={handleWireEnd}
+                outputSignal={computedSignals[`gate_${gate.id}`] || 0}
+              />
+            );
           })}
         </Layer>
+        <SubcircuitEditorManager />
       </Stage>
 
-      {/* Simulyatsiya indikatori */}
+      <Suspense fallback={<LoadingFallback />}>
+        {renderCreationFlow()}
+        {renderDomEditor()}
+      </Suspense>
+
+
       {isSimulating && (
         <div className="absolute right-4 top-4 flex items-center gap-2 rounded-full border border-emerald-300/40 bg-emerald-500/20 px-4 py-2 text-sm font-semibold text-emerald-200 shadow-[0_0_25px_rgba(16,185,129,0.45)] backdrop-blur">
           <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(52,211,153,0.85)]" />
           <span>Signal oqimi faollashdi</span>
         </div>
       )}
-
-      {/* Subcircuit Editor Manager */}
-      <SubcircuitEditorManager />
     </div>
   )
 }

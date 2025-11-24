@@ -1,98 +1,120 @@
 // Subcircuit Editor Store - Tahrirlash holati
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
+import { deepEqualArrays } from '../utils/arrayUtils' // Corrected import path
+
+const initialState = {
+  // Editing state
+  isEditing: false,
+  editingMode: null, // 'create' | 'edit' | 'preview'
+  editingSubcircuit: null, // Current subcircuit being edited
+  editingContext: [], // Breadcrumb path [{id, name, type}]
+
+  // Creation state
+  creationMethod: null, // 'quick' | 'wizard' | 'template' | 'visual'
+  creationStep: 0,
+  creationData: {
+    selectedGates: [],
+    selectedWires: [],
+    boundaryBox: null,
+    templateId: null,
+    name: '',
+    description: '',
+    icon: '',
+    category: 'custom',
+    isGlobal: false
+  },
+
+  // Port mapping
+  portMappingMode: null,
+  tempPorts: {
+    inputs: [],
+    outputs: []
+  },
+  portConnections: [], // [{external: wireId, internal: portIndex}]
+  suggestedMappings: [], // AI suggestions
+
+  // Canvas state
+  internalGates: [],
+  internalWires: [],
+  internalBounds: null,
+  selectedInternalGates: [],
+  selectedInternalWires: [],
+
+  // Preview state
+  previewCircuit: null,
+  previewSignals: {},
+  isSimulatingPreview: false,
+
+  // History (Undo/Redo)
+  history: {
+    past: [],
+    present: null,
+    future: []
+  },
+  maxHistorySteps: 50,
+
+  // Auto-save
+  isDirty: false,
+  lastSaved: null,
+  autoSaveTimer: null,
+
+  // UI State
+  panels: {
+    toolbar: { visible: true, position: 'top' },
+    properties: { visible: false, target: null, position: 'right' },
+    layers: { visible: false, position: 'left' },
+    preview: { visible: true, position: 'bottom' }
+  },
+
+  // Visual helpers
+  gridVisible: true,
+  gridSize: 20,
+  guidelines: [],
+  rulers: { x: [], y: [] },
+  zoomLevel: 1,
+  panOffset: { x: 0, y: 0 },
+
+  // Validation
+  validationErrors: [],
+  validationWarnings: []
+}
 
 const useSubcircuitEditorStore = create(
   immer((set, get) => ({
-    // Editing state
-    isEditing: false,
-    editingMode: null, // 'create' | 'edit' | 'preview'
-    editingSubcircuit: null, // Current subcircuit being edited
-    editingContext: [], // Breadcrumb path [{id, name, type}]
-
-    // Creation state
-    creationMethod: null, // 'quick' | 'wizard' | 'template' | 'visual'
-    creationStep: 0,
-    creationData: {
-      selectedGates: [],
-      selectedWires: [],
-      boundaryBox: null,
-      templateId: null,
-      name: '',
-      description: '',
-      icon: '',
-      category: 'custom',
-      isGlobal: false
-    },
-
-    // Port mapping
-    portMappingMode: null,
-    tempPorts: {
-      inputs: [],
-      outputs: []
-    },
-    portConnections: [], // [{external: wireId, internal: portIndex}]
-    suggestedMappings: [], // AI suggestions
-
-    // Canvas state
-    internalGates: [],
-    internalWires: [],
-    internalBounds: null,
-    selectedInternalGates: [],
-    selectedInternalWires: [],
-
-    // Preview state
-    previewCircuit: null,
-    previewSignals: {},
-    isSimulatingPreview: false,
-
-    // History (Undo/Redo)
-    history: {
-      past: [],
-      present: null,
-      future: []
-    },
-    maxHistorySteps: 50,
-
-    // Auto-save
-    isDirty: false,
-    lastSaved: null,
-    autoSaveTimer: null,
-
-    // UI State
-    panels: {
-      toolbar: { visible: true, position: 'top' },
-      properties: { visible: false, target: null, position: 'right' },
-      layers: { visible: false, position: 'left' },
-      preview: { visible: true, position: 'bottom' }
-    },
-
-    // Visual helpers
-    gridVisible: true,
-    gridSize: 20,
-    guidelines: [],
-    rulers: { x: [], y: [] },
-    zoomLevel: 1,
-    panOffset: { x: 0, y: 0 },
-
-    // Validation
-    validationErrors: [],
-    validationWarnings: [],
+    ...initialState,
 
     // Actions
 
     // Start editing
     startEditing: (mode, subcircuit = null) => set(state => {
+      console.log('[STORE] startEditing called:', { mode, subcircuit })
       state.isEditing = true
       state.editingMode = mode
       state.editingSubcircuit = subcircuit
 
       if (subcircuit) {
-        state.internalGates = [...(subcircuit.internalGates || [])]
-        state.internalWires = [...(subcircuit.internalWires || [])]
-        state.internalBounds = subcircuit.internalBounds || null
-        state.tempPorts.inputs = [...(subcircuit.inputPorts || [])]
-        state.tempPorts.outputs = [...(subcircuit.outputPorts || [])]
+        const newInternalGates = [...(subcircuit.internalCircuit?.gates || [])]
+        const newInternalWires = [...(subcircuit.internalCircuit?.wires || [])]
+        const newInputs = subcircuit.inputs ? [...subcircuit.inputs] : []
+        const newOutputs = subcircuit.outputs ? [...subcircuit.outputs] : []
+
+        console.log('[STORE] startEditing data:', {
+          newInternalGates: newInternalGates.length,
+          newInternalWires: newInternalWires.length,
+          newInputs: newInputs.length,
+          newOutputs: newOutputs.length,
+          subcircuitData: subcircuit.internalCircuit
+        })
+
+        // Always update to ensure gates are loaded
+        state.internalGates = newInternalGates
+        state.internalWires = newInternalWires
+        state.tempPorts.inputs = newInputs
+        state.tempPorts.outputs = newOutputs
+        state.internalBounds = subcircuit.internalCircuit?.bounds || null
+
+        console.log('[STORE] After update, state.internalGates:', state.internalGates.length)
       }
 
       // Save initial state to history
@@ -124,11 +146,13 @@ const useSubcircuitEditorStore = create(
       state.isEditing = true
       state.editingMode = 'create'
       state.creationMethod = method
-      state.creationStep = 0
       state.creationData = {
         ...state.creationData,
         ...initialData
       }
+      // Populate the editor's canvas with the selected gates
+      state.internalGates = initialData.selectedGates || []
+      state.internalWires = initialData.selectedWires || []
     }),
 
     nextCreationStep: () => set(state => {
@@ -450,38 +474,18 @@ const useSubcircuitEditorStore = create(
       state.lastSaved = new Date()
     }),
 
-    // Reset
-    reset: () => set(state => {
-      state.isEditing = false
-      state.editingMode = null
-      state.editingSubcircuit = null
-      state.editingContext = []
-      state.creationMethod = null
-      state.creationStep = 0
-      state.creationData = {
-        selectedGates: [],
-        selectedWires: [],
-        boundaryBox: null,
-        templateId: null,
-        name: '',
-        description: '',
-        icon: '',
-        category: 'custom',
-        isGlobal: false
+    updateInternalGateState: (gateId, updates) => set(state => {
+      if (!state.editingSubcircuit) return
+
+      const gate = state.editingSubcircuit.internalCircuit.gates.find(g => g.id === gateId)
+      if (gate) {
+        Object.assign(gate, updates)
+        state.isDirty = true
       }
-      state.tempPorts = { inputs: [], outputs: [] }
-      state.internalGates = []
-      state.internalWires = []
-      state.internalBounds = null
-      state.selectedInternalGates = []
-      state.selectedInternalWires = []
-      state.previewCircuit = null
-      state.previewSignals = {}
-      state.history = { past: [], present: null, future: [] }
-      state.isDirty = false
-      state.validationErrors = []
-      state.validationWarnings = []
-    })
+    }),
+
+    // Reset all state
+    reset: () => set(initialState)
   }))
 )
 

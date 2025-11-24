@@ -6,7 +6,7 @@ const useUserPreferencesStore = create(
   persist(
     (set, get) => ({
       // Editor preferences
-      editorMode: 'fullModal', // 'inline' | 'floating' | 'fullModal' | 'splitView' (vaqtincha fullModal test uchun)
+      editorMode: 'inline', // 'inline' | 'floating' | 'fullModal' | 'splitView' (vaqtincha fullModal test uchun)
       creationFlow: 'quick', // 'quick' | 'wizard' | 'template' | 'visual'
       portMappingStyle: 'connectionLines', // 'nodeGraph' | 'connectionLines' | 'smartAuto' | 'pinDesigner'
 

@@ -4,6 +4,7 @@ import useSubcircuitStore from '../store/subcircuitStore'
 
 export class SimulationEngine {
   constructor(gates, wires) {
+    console.log('[SIMULATION] Engine yaratilmoqda...', { gates: gates.length, wires: wires.length });
     this.gates = gates
     this.wires = wires
     this.signals = {}
@@ -12,17 +13,23 @@ export class SimulationEngine {
 
   // Simulyatsiyani ishga tushirish
   simulate() {
+    console.log('[SIMULATION] Simulyatsiya boshlandi.');
     // Boshlang'ich signallarni o'rnatish
     this.resetSignals()
 
     // Topologik tartiblash - dependency grafini yaratish
+    console.log('[SIMULATION] Elementlarni topologik saralash...');
     const sortedGates = this.topologicalSort()
+    console.log('[SIMULATION] Saralangan tartib:', sortedGates.map(g => `${g.type}_${g.id}`));
 
     // Har bir gate'ni ketma-ket hisoblash
+    console.log('[SIMULATION] Elementlarni baholash boshlandi...');
     for (const gate of sortedGates) {
       this.evaluateGate(gate)
     }
+    console.log('[SIMULATION] Elementlarni baholash tugadi.');
 
+    console.log('[SIMULATION] Simulyatsiya yakunlandi.', { signals: this.signals, gateOutputs: this.gateOutputs });
     return {
       signals: this.signals,
       gateOutputs: this.gateOutputs
@@ -30,6 +37,7 @@ export class SimulationEngine {
   }
 
   resetSignals() {
+    console.log('[SIMULATION] Signallar boshlang\'ich holatga keltirilmoqda.');
     this.signals = {}
     this.gateOutputs = {}
 
@@ -44,17 +52,21 @@ export class SimulationEngine {
         this.gateOutputs[gate.id] = gate.value || 0
       }
     })
+    console.log('[SIMULATION] Signallar o\'rnatildi.', { initialOutputs: this.gateOutputs });
   }
 
   // Gate'ni hisoblash
   evaluateGate(gate) {
+    console.log(`[SIMULATION] Baholanmoqda: ${gate.type}_${gate.id}`);
     // Gate'ning kirish signallarini yig'ish
     const inputSignals = this.getGateInputs(gate)
+    console.log(`[SIMULATION]   - Kirish signallari (${gate.type}_${gate.id}):`, inputSignals);
 
     let outputs = []
 
     // SUBCIRCUIT uchun alohida logic
     if (gate.type === GateTypes.SUBCIRCUIT) {
+      console.log(`[SIMULATION]   - Subcircuit aniqlandi: ${gate.templateId}`);
       // Subcircuit template'ni olish
       const subcircuitStore = useSubcircuitStore.getState()
       const template = subcircuitStore.getTemplate(gate.templateId)
@@ -62,6 +74,7 @@ export class SimulationEngine {
       if (template) {
         // Subcircuit simulyatsiya
         outputs = simulateSubcircuit(gate, inputSignals, subcircuitStore.manager)
+        console.log(`[SIMULATION]   - Subcircuit natijasi:`, outputs);
       } else {
         console.error('Subcircuit template topilmadi:', gate.templateId)
         outputs = new Array(gate.outputPorts?.length || 1).fill(0)
@@ -77,6 +90,7 @@ export class SimulationEngine {
       outputs = [output]
       this.gateOutputs[gate.id] = output
     }
+    console.log(`[SIMULATION]   - Chiqish signallari (${gate.type}_${gate.id}):`, outputs);
 
     // Gate'dan chiqadigan simlarga signalni uzatish
     const outputWires = this.wires.filter(wire => wire.fromGate === gate.id)
@@ -105,6 +119,12 @@ export class SimulationEngine {
     return inputWires.map(wire => {
       // Agar sim boshqa gate'dan kelayotgan bo'lsa
       if (wire.fromGate) {
+        // SUBCIRCUIT chiqishlarini to'g'ri olish
+        const fromGate = this.gates.find(g => g.id === wire.fromGate);
+        if (fromGate && fromGate.type === GateTypes.SUBCIRCUIT) {
+          const outputKey = `${wire.fromGate}_${wire.fromIndex || 0}`;
+          return this.gateOutputs[outputKey] || 0;
+        }
         return this.gateOutputs[wire.fromGate] || 0
       }
       return this.signals[wire.id] || 0
@@ -118,9 +138,13 @@ export class SimulationEngine {
     const visiting = new Set() // Cycle detection uchun
 
     const visit = (gate) => {
+      if (!gate) {
+        console.warn('[SIMULATION] `visit` funksiyasiga `undefined` element keldi.');
+        return;
+      }
       if (visited.has(gate.id)) return
       if (visiting.has(gate.id)) {
-        console.warn('Cycle detected in gate connections!')
+        console.warn(`[SIMULATION] Sikl aniqlandi! Element: ${gate.type}_${gate.id}`)
         return
       }
 
@@ -135,11 +159,7 @@ export class SimulationEngine {
       sorted.push(gate)
     }
 
-    // INPUT gate'lardan boshlash
-    const inputGates = this.gates.filter(g => g.type === GateTypes.INPUT)
-    inputGates.forEach(gate => visit(gate))
-
-    // Qolgan gate'larni qo'shish
+    // Barcha elementlar bo'yicha yurib chiqish
     this.gates.forEach(gate => {
       if (!visited.has(gate.id)) {
         visit(gate)
@@ -168,6 +188,7 @@ export class SimulationEngine {
 
   // Sxema to'g'riligini tekshirish
   validateCircuit() {
+    console.log('[SIMULATION] Sxema tekshirilmoqda...');
     const errors = []
 
     // Har bir gate'ning minimal kirishlari borligini tekshirish
@@ -199,12 +220,14 @@ export class SimulationEngine {
 
     // Cycle mavjudligini tekshirish
     if (this.hasCycle()) {
+      console.warn('[SIMULATION] Sxemada sikl mavjudligi aniqlandi.');
       errors.push({
         type: 'cycle_detected',
         message: 'Sxemada sikl mavjud'
       })
     }
 
+    console.log(`[SIMULATION] Tekshiruv natijasi: ${errors.length === 0 ? 'Valid' : 'Invalid'}`, { errors });
     return {
       valid: errors.length === 0,
       errors
@@ -249,16 +272,18 @@ export class SimulationEngine {
 
 // Helper funksiyalar
 export const runSimulation = (gates, wires) => {
+  console.log('%c[SIMULATION] `runSimulation` ishga tushirildi.', 'color: #4CAF50; font-weight: bold;', { gates: gates.length, wires: wires.length });
   const engine = new SimulationEngine(gates, wires)
   const validation = engine.validateCircuit()
 
   // Validation xatoliklari bo'lganda ham simulyatsiya ishlashi kerak
   // Faqat warning berish
   if (!validation.valid) {
-    console.warn('Sxemada xatoliklar bor, lekin simulyatsiya davom etmoqda:', validation.errors)
+    console.warn('[SIMULATION] Sxemada xatoliklar bor, lekin simulyatsiya davom etmoqda:', validation.errors)
   }
 
   const result = engine.simulate()
+  console.log('%c[SIMULATION] `runSimulation` yakunlandi.', 'color: #F44336; font-weight: bold;', { result });
   return {
     success: true,
     ...result,

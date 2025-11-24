@@ -66,62 +66,64 @@ export function validateGate(gate) {
     errors.push('Gate is not a valid object')
     return { valid: false, errors }
   }
+  
+  const sanitized = { ...gate };
 
   // Required fields
-  if (!gate.id) {
+  if (!sanitized.id) {
     errors.push('Gate ID is missing')
   }
 
-  if (!gate.type) {
+  if (!sanitized.type) {
     errors.push('Gate type is missing')
   }
 
   // Position validation
-  if (typeof gate.x !== 'number') {
-    gate.x = 0
+  if (typeof sanitized.x !== 'number') {
+    sanitized.x = 0
     errors.push('Gate x position invalid, defaulting to 0')
   }
 
-  if (typeof gate.y !== 'number') {
-    gate.y = 0
+  if (typeof sanitized.y !== 'number') {
+    sanitized.y = 0
     errors.push('Gate y position invalid, defaulting to 0')
   }
 
   // Size validation
-  if (!gate.width || typeof gate.width !== 'number') {
-    gate.width = 80 // Default width
+  if (!sanitized.width || typeof sanitized.width !== 'number') {
+    sanitized.width = 80 // Default width
   }
 
-  if (!gate.height || typeof gate.height !== 'number') {
-    gate.height = 60 // Default height
+  if (!sanitized.height || typeof sanitized.height !== 'number') {
+    sanitized.height = 60 // Default height
   }
 
   // Port arrays validation
-  if (!Array.isArray(gate.inputs)) {
-    gate.inputs = []
+  if (!Array.isArray(sanitized.inputs)) {
+    sanitized.inputs = []
   }
 
-  if (!Array.isArray(gate.outputs)) {
-    gate.outputs = []
+  if (!Array.isArray(sanitized.outputs)) {
+    sanitized.outputs = []
   }
 
   // Additional properties
-  if (gate.value === undefined) {
-    gate.value = 0
+  if (sanitized.value === undefined) {
+    sanitized.value = 0
   }
 
-  if (gate.rotation === undefined) {
-    gate.rotation = 0
+  if (sanitized.rotation === undefined) {
+    sanitized.rotation = 0
   }
 
-  if (gate.flipped === undefined) {
-    gate.flipped = false
+  if (sanitized.flipped === undefined) {
+    sanitized.flipped = false
   }
 
   return {
     valid: errors.length === 0,
     errors,
-    sanitized: gate
+    sanitized: sanitized
   }
 }
 
@@ -146,7 +148,7 @@ export function validatePort(port) {
   }
 
   // Connected gate validation
-  if (port.connectedGate && typeof port.connectedGate !== 'string') {
+  if (port.connectedGateId && typeof port.connectedGateId !== 'string') {
     errors.push('Connected gate ID must be a string')
   }
 
@@ -412,6 +414,17 @@ export function validateSelection(selectedGates, selectedWires, allGates, allWir
   // Check for external dependencies
   let externalInputCount = 0
   let externalOutputCount = 0
+  let potentialInputsFromGates = 0
+  let potentialOutputsFromGates = 0
+
+  selectedGates.forEach(gate => {
+    if (gate.type === 'INPUT') {
+      potentialInputsFromGates++
+    }
+    if (gate.type === 'OUTPUT') {
+      potentialOutputsFromGates++
+    }
+  })
 
   if (selectedWires && allWires) {
     // Find external connections
@@ -430,11 +443,11 @@ export function validateSelection(selectedGates, selectedWires, allGates, allWir
   }
 
   // Warnings for port counts
-  if (externalInputCount === 0) {
+  if (externalInputCount === 0 && potentialInputsFromGates === 0) {
     warnings.push('No external inputs detected - subcircuit will have no input ports')
   }
 
-  if (externalOutputCount === 0) {
+  if (externalOutputCount === 0 && potentialOutputsFromGates === 0) {
     warnings.push('No external outputs detected - subcircuit will have no output ports')
   }
 

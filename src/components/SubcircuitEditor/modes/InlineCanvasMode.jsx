@@ -1,42 +1,92 @@
-import React from 'react'
-import { motion } from 'framer-motion'
-import { Maximize2 } from 'lucide-react'
+import React, { useMemo, useCallback } from 'react'
+import { Group, Rect } from 'react-konva'
+import useSubcircuitEditorStore from '../../../store/subcircuitEditorStore'
+import PCBGateComponent from '../../Gates/PCBGateComponent'
+import WireComponent from '../../Wires/WireComponent'
+import { calculateSafeBounds } from '../../../engine/validation'
 
-const InlineCanvasMode = ({ onClose, theme, enableAnimations }) => {
+const InlineCanvasMode = React.memo(() => { // Wrap with React.memo
+  // Separate store subscriptions to avoid re-creating objects
+  const internalGates = useSubcircuitEditorStore(state => state.internalGates)
+  const internalWires = useSubcircuitEditorStore(state => state.internalWires)
+  const updateInternalGate = useSubcircuitEditorStore(state => state.updateInternalGate)
+
+  // Memoize bounds calculation
+  const bounds = useMemo(() => {
+    if (!internalGates || internalGates.length === 0) {
+      return { width: 400, height: 300, minX: 0, minY: 0, maxX: 400, maxY: 300 }
+    }
+    return calculateSafeBounds(internalGates, 100)
+  }, [internalGates])
+
+  // Memoize handlers to prevent re-creating functions
+  const handleDragEnd = useCallback((gateId, e) => {
+    updateInternalGate(gateId, { x: e.target.x(), y: e.target.y() })
+  }, [updateInternalGate])
+
+  // Prevent clicks inside the editor from propagating to the backdrop
+  const handleGroupClick = useCallback((e) => {
+    e.cancelBubble = true
+  }, [])
+
+  // Empty handlers for editor mode (no interaction needed)
+  const emptyHandler = useCallback(() => {}, [])
+
+  if (!internalGates || internalGates.length === 0) {
+    return null;
+  }
+
+  const groupX = window.innerWidth / 2 - (bounds.width / 2);
+  const groupY = window.innerHeight / 2 - (bounds.height / 2);
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-40 bg-slate-900/95 backdrop-blur-sm"
+    <Group
+      x={groupX}
+      y={groupY}
+      onClick={handleGroupClick}
     >
-      <div className="h-full flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b border-slate-700">
-          <div className="flex items-center gap-3">
-            <Maximize2 className="h-5 w-5 text-cyan-400" />
-            <h2 className="text-lg font-semibold text-white">Inline Canvas Mode</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm transition-colors"
-          >
-            Close
-          </button>
-        </div>
+      <Rect
+        width={bounds.width}
+        height={bounds.height}
+        fill="rgba(15, 23, 42, 0.85)" // slate-900 with opacity
+        stroke="#334155" // slate-700
+        strokeWidth={2}
+        cornerRadius={16}
+        shadowColor="black"
+        shadowBlur={25}
+        shadowOpacity={0.6}
+      />
 
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-500 mb-4">
-              <Maximize2 className="h-12 w-12 text-white" />
-            </div>
-            <h3 className="text-xl font-semibold text-white mb-2">Inline Canvas Editor</h3>
-            <p className="text-gray-400">Edit your subcircuit directly on the main canvas</p>
-            <p className="text-sm text-gray-500 mt-2">Full implementation coming soon...</p>
-          </div>
-        </div>
-      </div>
-    </motion.div>
+      {/* Render Wires */}
+      {internalWires.map(wire => (
+          <WireComponent
+            key={wire.id}
+            wire={wire}
+            gates={internalGates}
+            isEditing
+          />
+        )
+      )}
+
+      {/* Render Gates */}
+      {internalGates.map(gate => (
+        gate && <PCBGateComponent
+          key={gate.id}
+          gate={gate}
+          isSelected={false}
+          isPreSelected={false}
+          outputSignal={0} // Simplified view, no simulation
+          onDragEnd={handleDragEnd}
+          onDragStart={emptyHandler}
+          onDragMove={emptyHandler}
+          onSelect={emptyHandler}
+          onUpdateGate={emptyHandler}
+          onWireStart={emptyHandler}
+          onWireEnd={emptyHandler}
+        />
+      ))}
+    </Group>
   )
-}
+}) // End React.memo
 
 export default InlineCanvasMode

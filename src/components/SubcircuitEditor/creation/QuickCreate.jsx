@@ -1,43 +1,32 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Zap } from 'lucide-react'
 import useSubcircuitEditorStore from '../../../store/subcircuitEditorStore'
 import { createSubcircuitFromSelection } from '../../../engine/subcircuits'
-import SoundManager from '../effects/SoundManager'
+import { soundService } from '../effects/SoundManager'
+import toast from 'react-hot-toast'
 
 const QuickCreate = ({ onComplete, onCancel }) => {
-  const [isProcessing, setIsProcessing] = React.useState(false)
-  const [retryCount, setRetryCount] = React.useState(0)
-  const hasStarted = React.useRef(false)
+  const [isProcessing, setIsProcessing] = useState(false)
   const creationData = useSubcircuitEditorStore(state => state.creationData)
 
   useEffect(() => {
-    if (hasStarted.current) return
-
     const selectedGates = creationData?.selectedGates || []
     const selectedWires = creationData?.selectedWires || []
 
+    // Agar ma'lumotlar hali tayyor bo'lmasa, jarayonni bekor qilish.
+    // Bu holat aslida yuz bermasligi kerak, lekin himoya sifatida qo'shildi.
     if (!creationData || selectedGates.length === 0) {
-      if (retryCount < 3) {
-        console.warn(`QuickCreate: Ma'lumot topilmadi, retry ${retryCount + 1}/3`)
-        setRetryCount(retryCount + 1)
-        setTimeout(() => {
-          hasStarted.current = false
-          setIsProcessing(false)
-        }, 200)
-      } else {
-        console.error('QuickCreate: Gate\'lar topilmadi, bekor qilinmoqda')
-        SoundManager.playError()
-        onCancel()
-      }
+      console.error("QuickCreate: Yaratish uchun ma'lumotlar topilmadi. Jarayon bekor qilinmoqda.");
+      soundService.playError()
+      toast.error("Subcircuit yaratish uchun ma'lumotlar topilmadi.");
+      onCancel()
       return
     }
 
     const autoCreate = async () => {
-      console.log('QuickCreate: autoCreate started')
       setIsProcessing(true)
-
-      console.log('QuickCreate: Processing gates:', selectedGates.length)
+      console.log('QuickCreate: Avtomatik yaratish boshlandi', { gates: selectedGates.length, wires: selectedWires.length });
 
       const gateTypes = [...new Set(selectedGates.map(g => g.type))]
       const smartName = gateTypes.length === 1
@@ -45,10 +34,9 @@ const QuickCreate = ({ onComplete, onCancel }) => {
         : `Complex Circuit ${Date.now() % 1000}`
 
       try {
-        // Yangi refactored engine ishlatish
         const result = createSubcircuitFromSelection(
           selectedGates,
-          selectedWires || [],
+          selectedWires,
           smartName,
           {
             autoDetectPorts: true,
@@ -58,52 +46,41 @@ const QuickCreate = ({ onComplete, onCancel }) => {
           }
         )
 
-        console.log('QuickCreate: Subcircuit creation result:', result)
+        console.log('QuickCreate: Subcircuit yaratish natijasi:', result)
 
         if (result && result.success && result.template) {
-          // Show warnings if any
           if (result.warnings && result.warnings.length > 0) {
-            console.warn('QuickCreate warnings:', result.warnings)
+            console.warn('QuickCreate ogohlantirishlari:', result.warnings)
+            // Use default toast for warnings
+            toast(`Subcircuit yaratildi, lekin ${result.warnings.length} ta ogohlantirish bor.`);
           }
-
-          SoundManager.playSuccess()
-
+          soundService.playSuccess()
+          toast.success(`"${result.template.name}" subcircuit yaratildi!`);
+          // Animatsiya tugashi uchun kichik pauza
           setTimeout(() => {
-            console.log('QuickCreate: Calling onComplete with template')
             onComplete(result.template)
           }, 800)
-        } else if (result && !result.success) {
-          // Xatoliklarni ko'rsatish
-          console.error('QuickCreate: Creation failed', result.errors)
-          SoundManager.playError()
-
-          // Foydalanuvchiga xatolik haqida xabar berish mumkin
-          if (result.errors && result.errors.length > 0) {
-            alert(`Subcircuit yaratishda xatolik:\n${result.errors.join('\n')}`)
-          }
-
-          onCancel()
         } else {
-          console.error('QuickCreate: Unexpected result structure')
-          SoundManager.playError()
+          const errorMsg = result?.errors?.join('\n') || 'Noma\'lum xatolik';
+          console.error('QuickCreate: Yaratishda xatolik:', errorMsg)
+          soundService.playError()
+          toast.error(`Subcircuit yaratishda xatolik:\n${errorMsg}`, { duration: 6000 });
           onCancel()
         }
       } catch (error) {
-        console.error('Quick create xatosi:', error)
-        SoundManager.playError()
-        hasStarted.current = false
-        setIsProcessing(false)
+        console.error('QuickCreate: Kutilmagan xato:', error)
+        soundService.playError()
+        toast.error("Subcircuit yaratishda kutilmagan tizim xatosi yuz berdi.");
         onCancel()
       }
     }
 
-    hasStarted.current = true
-    const timeoutId = setTimeout(() => {
-      autoCreate()
-    }, 100)
+    // Animatsiya ko'rinishi uchun kichik kechikish bilan ishga tushirish
+    const timeoutId = setTimeout(autoCreate, 300)
 
     return () => clearTimeout(timeoutId)
-  }, [creationData, retryCount, onComplete, onCancel])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Bu effekt faqat bir marta, komponent ishga tushganda bajariladi.
 
   const selectedGateCount = creationData?.selectedGates?.length || 0
 
@@ -130,12 +107,12 @@ const QuickCreate = ({ onComplete, onCancel }) => {
         className="absolute mt-48 text-center"
       >
         <p className="text-lg font-semibold text-white">
-          {isProcessing ? 'Creating Subcircuit...' : 'Preparing...'}
+          {isProcessing ? 'Subcircuit yaratilmoqda...' : 'Tayyorlanmoqda...'}
         </p>
         <p className="mt-1 text-sm text-gray-400">
           {isProcessing && selectedGateCount
-            ? `${selectedGateCount} gates`
-            : 'Loading...'}
+            ? `${selectedGateCount} element`
+            : 'Yuklanmoqda...'}
         </p>
       </motion.div>
     </motion.div>
