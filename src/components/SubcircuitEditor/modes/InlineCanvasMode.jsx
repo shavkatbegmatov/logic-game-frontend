@@ -103,8 +103,8 @@ const InlineCanvasMode = React.memo(() => {
     return null;
   }
 
-  const groupX = window.innerWidth / 2 - (bounds.width / 2);
-  const groupY = window.innerHeight / 2 - (bounds.height / 2);
+  const groupX = window.innerWidth / 2 - (bounds.width / 2) - bounds.minX;
+  const groupY = window.innerHeight / 2 - (bounds.height / 2) - bounds.minY;
 
   return (
     <Group
