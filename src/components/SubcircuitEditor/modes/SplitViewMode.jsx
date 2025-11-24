@@ -58,6 +58,10 @@ const SplitViewMode = ({ onClose }) => {
   const [tempWireEnd, setTempWireEnd] = useState(null)
   const [draggingGate, setDraggingGate] = useState(null)
 
+  // Panning state
+  const [isPanning, setIsPanning] = useState(false)
+  const [lastPanPosition, setLastPanPosition] = useState(null)
+
   const handleWireStart = useCallback((gateId, type, index) => {
     setIsDraggingWire(true)
     setWireStart({ gateId, type, index })
@@ -87,15 +91,74 @@ const SplitViewMode = ({ onClose }) => {
     cancelWire()
   }, [isDraggingWire, wireStart, addInternalWire, cancelWire])
 
+  // Coordinate transformation helper
+  const getRelativePointerPosition = (node) => {
+    const transform = node.getAbsoluteTransform().copy()
+    transform.invert()
+    const pos = node.getStage().getPointerPosition()
+    return transform.point(pos)
+  }
+
+  const onStageMouseDown = useCallback((e) => {
+    // Middle mouse or Space+Left for panning
+    if (e.evt.button === 1 || (e.evt.button === 0 && e.evt.code === 'Space')) {
+      e.evt.preventDefault()
+      setIsPanning(true)
+      setLastPanPosition({ x: e.evt.clientX, y: e.evt.clientY })
+    }
+  }, [])
+
   const onStageMouseMove = useCallback((e) => {
-    if (!isDraggingWire) return
-    const pos = e.target.getStage().getPointerPosition()
-    if (pos) setTempWireEnd(pos)
-  }, [isDraggingWire])
+    // Panning logic
+    if (isPanning && lastPanPosition) {
+      const dx = e.evt.clientX - lastPanPosition.x
+      const dy = e.evt.clientY - lastPanPosition.y
+      setPanOffset({ x: panOffset.x + dx, y: panOffset.y + dy })
+      setLastPanPosition({ x: e.evt.clientX, y: e.evt.clientY })
+      return
+    }
+
+    // Wire dragging logic
+    if (isDraggingWire) {
+      const stage = e.target.getStage()
+      // Get pointer position relative to the layer (accounting for zoom/pan)
+      const layer = stage.getLayers()[0]
+      const pos = getRelativePointerPosition(layer)
+      if (pos) setTempWireEnd(pos)
+    }
+  }, [isPanning, lastPanPosition, panOffset, setPanOffset, isDraggingWire])
 
   const onStageMouseUp = useCallback((e) => {
+    if (isPanning) {
+      setIsPanning(false)
+      setLastPanPosition(null)
+    }
     if (isDraggingWire && e.target.getClassName() !== 'Circle') cancelWire()
-  }, [isDraggingWire, cancelWire])
+  }, [isPanning, isDraggingWire, cancelWire])
+
+  const onStageWheel = useCallback((e) => {
+    e.evt.preventDefault()
+    const stage = e.target.getStage()
+    const oldScale = stage.scaleX()
+    const pointer = stage.getPointerPosition()
+
+    const mousePointTo = {
+      x: (pointer.x - stage.x()) / oldScale,
+      y: (pointer.y - stage.y()) / oldScale,
+    }
+
+    const newScale = e.evt.deltaY > 0 ? oldScale * 0.9 : oldScale * 1.1
+    // Limit zoom
+    if (newScale < 0.1 || newScale > 5) return
+
+    setZoomLevel(newScale)
+
+    const newPos = {
+      x: pointer.x - mousePointTo.x * newScale,
+      y: pointer.y - mousePointTo.y * newScale,
+    }
+    setPanOffset(newPos)
+  }, [setZoomLevel, setPanOffset])
 
   const zoomIn = () => setZoomLevel(zoomLevel * 1.1)
   const zoomOut = () => setZoomLevel(zoomLevel / 1.1)
@@ -148,13 +211,13 @@ const SplitViewMode = ({ onClose }) => {
                     gate={gate}
                     isSelected={false}
                     isPreSelected={false}
-                    onDragStart={() => {}}
-                    onDragMove={() => {}}
-                    onDragEnd={() => {}}
-                    onSelect={() => {}}
-                    onUpdateGate={() => {}}
-                    onWireStart={() => {}}
-                    onWireEnd={() => {}}
+                    onDragStart={() => { }}
+                    onDragMove={() => { }}
+                    onDragEnd={() => { }}
+                    onSelect={() => { }}
+                    onUpdateGate={() => { }}
+                    onWireStart={() => { }}
+                    onWireEnd={() => { }}
                     outputSignal={0}
                   />
                 ))}
@@ -184,13 +247,25 @@ const SplitViewMode = ({ onClose }) => {
               scaleY={zoomLevel}
               x={panOffset.x}
               y={panOffset.y}
+              onMouseDown={onStageMouseDown}
               onMouseMove={onStageMouseMove}
               onMouseUp={onStageMouseUp}
+              onWheel={onStageWheel}
               onTouchEnd={onStageMouseUp}
-              className="bg-[rgba(15,23,42,0.85)]"
+              className={`bg-[rgba(15,23,42,0.85)] ${isPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
             >
               <Layer>
                 <Rect x={0} y={0} width={stageSize.width} height={stageSize.height} stroke="#334155" strokeWidth={1} opacity={0.15} />
+                {/* Grid */}
+                <Rect
+                  x={-panOffset.x / zoomLevel}
+                  y={-panOffset.y / zoomLevel}
+                  width={stageSize.width / zoomLevel}
+                  height={stageSize.height / zoomLevel}
+                  fillPatternImage={null} // TODO: Add grid pattern
+                  fill="transparent"
+                />
+
                 {internalWires.map(wire => (
                   <WireComponent key={wire.id} wire={wire} gates={internalGates} signal={0} isTemporary={false} draggingGate={draggingGate} />
                 ))}
