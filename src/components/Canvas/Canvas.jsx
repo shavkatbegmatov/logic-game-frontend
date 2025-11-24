@@ -309,6 +309,15 @@ const Canvas = () => {
   }
 
   const handleWireStart = (gateId, type, index) => {
+    // If we are already dragging a wire, this click might be intended to finish the connection
+    if (isDraggingWire && wireStart) {
+      // Check if this is a valid target
+      if (wireStart.gateId !== gateId && wireStart.type !== type) {
+        handleWireEnd(gateId, type, index)
+        return
+      }
+    }
+
     // Check if this pin is already occupied
     const isOccupied = wires.some(w =>
       (type === 'output' && w.fromGate === gateId && w.fromIndex === index) ||
