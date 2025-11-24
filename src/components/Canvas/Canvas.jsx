@@ -317,7 +317,9 @@ const Canvas = () => {
     }
 
     // Check if this pin is already occupied
-    const isOccupied = wires.some(w =>
+    // Use getState() to get the absolute latest state, preventing stale closure issues
+    const currentWires = useGameStore.getState().wires
+    const isOccupied = currentWires.some(w =>
       (type === 'output' && w.fromGate === gateId && w.fromIndex === index) ||
       (type === 'input' && w.toGate === gateId && w.toIndex === index)
     )
