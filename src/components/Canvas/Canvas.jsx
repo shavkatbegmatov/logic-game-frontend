@@ -1,5 +1,5 @@
 import React, { useRef, useCallback, useState, useEffect, useMemo, Suspense } from 'react'
-import { Stage, Layer, Rect } from 'react-konva'
+import { Stage, Layer, Rect, Circle, Ring } from 'react-konva'
 import { motion } from 'framer-motion'
 import { Edit } from 'lucide-react'
 
@@ -40,6 +40,8 @@ const Canvas = () => {
   const [tempWireEnd, setTempWireEnd] = useState(null)
   const [draggedItems, setDraggedItems] = useState({})
   const [dragStartData, setDragStartData] = useState(null)
+  const [snappedWireEnd, setSnappedWireEnd] = useState(null)
+  const [isWireCreationMode, setIsWireCreationMode] = useState(false)
 
   const latestDraggedItems = useRef({});
   const updateScheduled = useRef(false);
@@ -307,41 +309,173 @@ const Canvas = () => {
   }
 
   const handleWireStart = (gateId, type, index) => {
+    // Stop propagation to prevent stage click
     setIsDraggingWire(true)
     setWireStart({ gateId, type, index })
+    // If we are already in creation mode, this might be a restart, but usually we start fresh
+    setIsWireCreationMode(false)
   }
 
   const handleWireEnd = (gateId, type, index) => {
     if (!isDraggingWire || !wireStart) return
+
+    // Prevent connecting to self or same type (input-input or output-output)
     if (wireStart.gateId === gateId || wireStart.type === type) {
-      cancelWireCreation()
+      // If we are in creation mode, don't cancel immediately, just ignore invalid clicks
+      if (!isWireCreationMode) {
+        cancelWireCreation()
+      }
       return
     }
+
     const wire = {
       fromGate: wireStart.type === 'output' ? wireStart.gateId : gateId,
       fromIndex: wireStart.type === 'output' ? wireStart.index : index,
       toGate: wireStart.type === 'input' ? wireStart.gateId : gateId,
       toIndex: wireStart.type === 'input' ? wireStart.index : index
     }
-    addWire(wire)
+
+    // Check if wire already exists
+    const exists = wires.some(w =>
+      w.fromGate === wire.fromGate &&
+      w.fromIndex === wire.fromIndex &&
+      w.toGate === wire.toGate &&
+      w.toIndex === wire.toIndex
+    )
+
+    if (!exists) {
+      addWire(wire)
+      updateStats('wiresConnected', prev => prev + 1)
+      if (enableSounds) soundService.playConnect()
+    }
+
     cancelWireCreation()
-    updateStats('wiresConnected', prev => prev + 1)
   }
 
   const cancelWireCreation = () => {
     setIsDraggingWire(false)
     setWireStart(null)
     setTempWireEnd(null)
+    setSnappedWireEnd(null)
+    setIsWireCreationMode(false)
+  }
+
+  const findSnapTarget = (pointerPos) => {
+    if (!wireStart) return null
+
+    const SNAP_RADIUS = 20
+    let bestDist = SNAP_RADIUS
+    let bestTarget = null
+
+    gates.forEach(gate => {
+      // Don't snap to source gate
+      if (gate.id === wireStart.gateId) return
+
+      const config = gateConfigs[gate.type]
+      if (!config) return
+
+      // If dragging from output, look for inputs
+      if (wireStart.type === 'output') {
+        // Can't connect to OUTPUT gate inputs (it has none effectively for this logic, or handled differently)
+        // Actually OUTPUT gates have inputs.
+
+        const inputCount = config.maxInputs || 2
+        const spacing = gate.height / (inputCount + 1)
+
+        for (let i = 0; i < inputCount; i++) {
+          const px = gate.x - 10
+          const py = gate.y + spacing * (i + 1)
+          const dist = Math.sqrt(Math.pow(pointerPos.x - px, 2) + Math.pow(pointerPos.y - py, 2))
+
+          if (dist < bestDist) {
+            bestDist = dist
+            bestTarget = { gateId: gate.id, type: 'input', index: i, x: px, y: py }
+          }
+        }
+      }
+      // If dragging from input, look for outputs
+      else {
+        if (gate.type === GateTypes.OUTPUT) return // Output gates don't have outputs
+
+        // Most gates have 1 output
+        const px = gate.x + gate.width + 10
+        const py = gate.y + gate.height / 2
+        const dist = Math.sqrt(Math.pow(pointerPos.x - px, 2) + Math.pow(pointerPos.y - py, 2))
+
+        if (dist < bestDist) {
+          bestDist = dist
+          bestTarget = { gateId: gate.id, type: 'output', index: 0, x: px, y: py }
+        }
+      }
+    })
+
+    return bestTarget
   }
 
   const handleMouseMove = (e) => {
     if (isDrawingSelection) handleSelectionMouseMove(e)
-    if (isDraggingWire) setTempWireEnd(e.target.getStage().getPointerPosition())
+
+    if (isDraggingWire) {
+      const stage = e.target.getStage()
+      const pointerPos = stage.getPointerPosition()
+      setTempWireEnd(pointerPos)
+
+      const snapTarget = findSnapTarget(pointerPos)
+      setSnappedWireEnd(snapTarget)
+    }
   }
 
   const handleStageMouseUp = (e) => {
     if (isDrawingSelection) handleSelectionMouseUp(e)
-    if (isDraggingWire && e.target.getClassName() !== 'Circle') cancelWireCreation()
+
+    if (isDraggingWire) {
+      // If we have a snap target, complete the connection
+      if (snappedWireEnd) {
+        handleWireEnd(snappedWireEnd.gateId, snappedWireEnd.type, snappedWireEnd.index)
+        return
+      }
+
+      // If we are NOT in creation mode yet, and we just clicked (didn't drag far), enter creation mode
+      // We can check if tempWireEnd is close to start, but simpler is just to check if we are not over a valid target
+      // If we clicked on empty space, we might want to cancel OR enter creation mode.
+      // Current behavior: dragging starts immediately on mousedown.
+      // If mouseup happens and we haven't connected, we check if we should stay in "creation mode" (click-click)
+
+      // If we are NOT in creation mode yet, and we just clicked (didn't drag far), enter creation mode
+      if (!isWireCreationMode) {
+        const startGate = gates.find(g => g.id === wireStart.gateId)
+        if (startGate) {
+          let startX, startY
+          if (wireStart.type === 'output') {
+            const config = gateConfigs[startGate.type]
+            const spacing = startGate.height / ((config.outputs || 1) + 1)
+            startX = startGate.x + startGate.width + 5
+            startY = startGate.y + spacing * (wireStart.index + 1)
+          } else {
+            const config = gateConfigs[startGate.type]
+            const spacing = startGate.height / ((config.maxInputs || config.minInputs || 2) + 1)
+            startX = startGate.x - 5
+            startY = startGate.y + spacing * (wireStart.index + 1)
+          }
+
+          const pointerPos = e.target.getStage().getPointerPosition()
+          const dist = Math.sqrt(Math.pow(pointerPos.x - startX, 2) + Math.pow(pointerPos.y - startY, 2))
+
+          // If moved less than 10px, treat as click and enter creation mode
+          if (dist < 10) {
+            setIsWireCreationMode(true)
+          } else {
+            // If dragged far and released on empty space, cancel
+            cancelWireCreation()
+          }
+        } else {
+          cancelWireCreation()
+        }
+      } else {
+        // If we were ALREADY in creation mode and clicked empty space, cancel
+        cancelWireCreation()
+      }
+    }
   }
 
   const renderDomEditor = () => {
@@ -447,7 +581,33 @@ const Canvas = () => {
               startX = gate.x - 5
               startY = gate.y + spacing * (wireStart.index + 1)
             }
-            return <SpaceWireComponent wire={{ id: 'temp', startX, startY, endX: tempWireEnd.x, endY: tempWireEnd.y }} gates={gates} signal={0} isTemporary={true} />
+
+            // Use snapped position if available
+            const endX = snappedWireEnd ? snappedWireEnd.x : tempWireEnd.x
+            const endY = snappedWireEnd ? snappedWireEnd.y : tempWireEnd.y
+
+            return (
+              <>
+                <SpaceWireComponent
+                  wire={{ id: 'temp', startX, startY, endX, endY }}
+                  gates={gates}
+                  signal={0}
+                  isTemporary={true}
+                />
+                {snappedWireEnd && (
+                  <Ring
+                    x={snappedWireEnd.x}
+                    y={snappedWireEnd.y}
+                    innerRadius={5}
+                    outerRadius={10}
+                    stroke="#00ff00"
+                    strokeWidth={2}
+                    opacity={0.8}
+                    listening={false}
+                  />
+                )}
+              </>
+            )
           })()}
           {tempSelectionBox && (
             <Rect x={Math.min(tempSelectionBox.x1, tempSelectionBox.x2)} y={Math.min(tempSelectionBox.y1, tempSelectionBox.y2)} width={Math.abs(tempSelectionBox.x2 - tempSelectionBox.x1)} height={Math.abs(tempSelectionBox.y2 - tempSelectionBox.y1)} fill="rgba(59, 130, 246, 0.15)" stroke="rgba(59, 130, 246, 0.8)" strokeWidth={2} dash={[8, 4]} />
