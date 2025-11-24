@@ -309,6 +309,17 @@ const Canvas = () => {
   }
 
   const handleWireStart = (gateId, type, index) => {
+    // Check if this pin is already occupied
+    const isOccupied = wires.some(w =>
+      (type === 'output' && w.fromGate === gateId && w.fromIndex === index) ||
+      (type === 'input' && w.toGate === gateId && w.toIndex === index)
+    )
+
+    if (isOccupied) {
+      // Optional: Visual feedback
+      return
+    }
+
     // Stop propagation to prevent stage click
     setIsDraggingWire(true)
     setWireStart({ gateId, type, index })
@@ -350,13 +361,19 @@ const Canvas = () => {
       w.toIndex === wire.toIndex
     )
 
-    if (!exists && !isInputOccupied) {
+    // Check if source output is already occupied
+    const isOutputOccupied = wires.some(w =>
+      w.fromGate === wire.fromGate &&
+      w.fromIndex === wire.fromIndex
+    )
+
+    if (!exists && !isInputOccupied && !isOutputOccupied) {
       addWire(wire)
       updateStats('wiresConnected', prev => prev + 1)
       if (enableSounds) soundService.playConnect()
-    } else if (isInputOccupied) {
+    } else if (isInputOccupied || isOutputOccupied) {
       // Optional: Visual feedback for blocked connection could go here
-      console.warn('Input pin already occupied')
+      console.warn('Pin already occupied')
     }
 
     cancelWireCreation()
@@ -417,8 +434,12 @@ const Canvas = () => {
         const dist = Math.sqrt(Math.pow(pointerPos.x - px, 2) + Math.pow(pointerPos.y - py, 2))
 
         if (dist < bestDist) {
-          bestDist = dist
-          bestTarget = { gateId: gate.id, type: 'output', index: 0, x: px, y: py }
+          // Check if output is occupied
+          const isOccupied = wires.some(w => w.fromGate === gate.id && w.fromIndex === 0)
+          if (!isOccupied) {
+            bestDist = dist
+            bestTarget = { gateId: gate.id, type: 'output', index: 0, x: px, y: py }
+          }
         }
       }
     })
