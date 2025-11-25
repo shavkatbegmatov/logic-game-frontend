@@ -43,6 +43,7 @@ const Canvas = () => {
   const [snappedWireEnd, setSnappedWireEnd] = useState(null)
   const [hoveredStartPin, setHoveredStartPin] = useState(null)
   const [isWireCreationMode, setIsWireCreationMode] = useState(false)
+  const [rewireData, setRewireData] = useState(null)
   const resolveGatePosition = useCallback((gate) => {
     const override = draggedItems[gate.id]
     return override ? { ...gate, ...override } : gate
@@ -58,7 +59,7 @@ const Canvas = () => {
 
   const {
     gates, wires, selectedGate, selectedGates, preSelectedGates, addGate, updateGate,
-    updateGatePositions, addWire, selectGate, clearSelection, toggleGateSelection,
+    updateGatePositions, addWire, removeWire, selectGate, clearSelection, toggleGateSelection,
     selectMultipleGates, setPreSelectedGates, getGatesInSelectionBox, isSimulating,
     signals, updateSignals
   } = useGameStore()
@@ -330,13 +331,18 @@ const Canvas = () => {
     // Check if this pin is already occupied
     // Use getState() to get the absolute latest state, preventing stale closure issues
     const currentWires = useGameStore.getState().wires
-    const isOccupied = currentWires.some(w =>
+    const occupiedWire = currentWires.find(w =>
       (type === 'output' && w.fromGate === gateId && w.fromIndex === index) ||
       (type === 'input' && w.toGate === gateId && w.toIndex === index)
     )
 
-    if (isOccupied) {
-      // Optional: Visual feedback
+    if (occupiedWire) {
+      // Rewire: pick the existing wire, detach it, and let the user drop it elsewhere
+      removeWire(occupiedWire.id)
+      setRewireData({ wire: occupiedWire })
+      setIsDraggingWire(true)
+      setWireStart({ gateId, type, index })
+      setIsWireCreationMode(false)
       return
     }
 
@@ -349,12 +355,13 @@ const Canvas = () => {
 
   const handleWireEnd = (gateId, type, index) => {
     if (!isDraggingWire || !wireStart) return
+    let connected = false
 
     // Prevent connecting to self or same type (input-input or output-output)
     if (wireStart.gateId === gateId || wireStart.type === type) {
       // If we are in creation mode, don't cancel immediately, just ignore invalid clicks
       if (!isWireCreationMode) {
-        cancelWireCreation()
+        cancelWireCreation(true)
       }
       return
     }
@@ -392,6 +399,7 @@ const Canvas = () => {
         addWire(wire)
         updateStats('wiresConnected', prev => prev + 1)
         if (enableSounds) soundService.playConnect?.()
+        connected = true
       } else if (isInputOccupied || isOutputOccupied) {
         // Optional: Visual feedback for blocked connection could go here
         console.warn('Pin already occupied')
@@ -399,16 +407,20 @@ const Canvas = () => {
     } catch (error) {
       console.error('Wire connection handling failed', error)
     } finally {
-      cancelWireCreation()
+      cancelWireCreation(!connected)
     }
   }
 
-  const cancelWireCreation = () => {
+  const cancelWireCreation = (shouldRestore = true) => {
     setIsDraggingWire(false)
     setWireStart(null)
     setTempWireEnd(null)
     setSnappedWireEnd(null)
     setIsWireCreationMode(false)
+    if (shouldRestore && rewireData?.wire) {
+      addWire(rewireData.wire)
+    }
+    setRewireData(null)
   }
 
   const findSnapTarget = (pointerPos) => {
