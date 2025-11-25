@@ -22,6 +22,7 @@ const PCBGateComponent = ({
   const config = gateConfigs[gate.type]
   const [isHovered, setIsHovered] = useState(false)
   const [pulseAnimation, setPulseAnimation] = useState(0)
+  const [hoveredPin, setHoveredPin] = useState(null)
   const { playSound } = useSound()
 
   // Komponent holati o'zgarganda log yozish
@@ -301,124 +302,206 @@ const PCBGateComponent = ({
       )}
 
       {/* Input Connectors - Gold Plated Pins */}
-      {gate.type !== GateTypes.INPUT && inputPositions.map((pos, index) => (
-        <Group key={`input-${index}`}>
-          {/* Pin Shadow */}
-          <Circle
-            x={pos.x - gate.x + 1}
-            y={pos.y - gate.y + 1}
-            radius={7}
-            fill="black"
-            opacity={0.3}
-          />
+      {gate.type !== GateTypes.INPUT && inputPositions.map((pos, index) => {
+        const isPinHovered = hoveredPin?.type === 'input' && hoveredPin.index === index
+        const handleEnter = (e) => {
+          setHoveredPin({ type: 'input', index })
+          const stage = e.target.getStage()
+          if (stage) stage.container().style.cursor = 'pointer'
+        }
+        const handleLeave = (e) => {
+          setHoveredPin(null)
+          const stage = e.target.getStage()
+          if (stage) stage.container().style.cursor = 'crosshair'
+        }
 
-          {/* Gold Pin Base */}
-          <Circle
-            x={pos.x - gate.x}
-            y={pos.y - gate.y}
-            radius={7}
-            fill={SPACE_COLORS.goldContact}
-            stroke={SPACE_COLORS.copperTrace}
-            strokeWidth={1}
-            shadowBlur={4}
-            shadowColor={SPACE_COLORS.goldContact}
-            shadowOpacity={0.5}
-          />
-
-          {/* Pin Center */}
-          <Circle
-            x={pos.x - gate.x}
-            y={pos.y - gate.y}
-            radius={4}
-            fill="#1A1A1A"
-            stroke={SPACE_COLORS.goldContact}
-            strokeWidth={1}
-            onMouseEnter={(e) => {
-              e.target.radius(5)
-              e.target.fill(SPACE_COLORS.goldContact)
-              e.target.getLayer().batchDraw()
-            }}
-            onMouseLeave={(e) => {
-              e.target.radius(4)
-              e.target.fill('#1A1A1A')
-              e.target.getLayer().batchDraw()
-            }}
-            onMouseDown={(e) => {
-              e.cancelBubble = true
-            }}
-            onMouseUp={(e) => {
-              e.cancelBubble = true
-              onWireEnd(gate.id, 'input', index)
-            }}
-            onTouchEnd={(e) => {
-              e.cancelBubble = true
-              onWireEnd(gate.id, 'input', index)
-            }}
-          />
-        </Group>
-      ))}
-
-      {/* Output Connectors - Gold Plated Pins */}
-      {outputPositions.map((pos, index) => (
-        <Group key={`output-${index}`}>
-          {/* Pin Shadow */}
-          <Circle
-            x={pos.x - gate.x + 1}
-            y={pos.y - gate.y + 1}
-            radius={7}
-            fill="black"
-            opacity={0.3}
-          />
-
-          {/* Gold Pin Base */}
-          <Circle
-            x={pos.x - gate.x}
-            y={pos.y - gate.y}
-            radius={7}
-            fill={SPACE_COLORS.goldContact}
-            stroke={SPACE_COLORS.copperTrace}
-            strokeWidth={1}
-            shadowBlur={outputSignal === 1 ? 12 : 4}
-            shadowColor={outputSignal === 1 ? gateTheme.led : SPACE_COLORS.goldContact}
-            shadowOpacity={outputSignal === 1 ? 0.8 : 0.5}
-          />
-
-          {/* Pin Center */}
-          <Circle
-            x={pos.x - gate.x}
-            y={pos.y - gate.y}
-            radius={4}
-            fill={outputSignal === 1 ? gateTheme.led : '#1A1A1A'}
-            stroke={SPACE_COLORS.goldContact}
-            strokeWidth={1}
-            opacity={outputSignal === 1 ? Math.sin(pulseAnimation * Math.PI / 180) * 0.3 + 0.7 : 1}
-            onMouseEnter={(e) => {
-              e.target.radius(5)
-              e.target.getLayer().batchDraw()
-            }}
-            onMouseLeave={(e) => {
-              e.target.radius(4)
-              e.target.getLayer().batchDraw()
-            }}
-            onMouseDown={(e) => {
-              e.cancelBubble = true
-              onWireStart(gate.id, 'output', index)
-            }}
-          />
-
-          {/* Signal Indicator Ring */}
-          {outputSignal === 1 && (
-            <Ring
+        return (
+          <Group key={`input-${index}`}>
+            {/* Larger invisible hit zone to make grabbing easier */}
+            <Circle
               x={pos.x - gate.x}
               y={pos.y - gate.y}
-              innerRadius={6}
-              outerRadius={8 + Math.sin(pulseAnimation * Math.PI / 180) * 2}
-              fill={gateTheme.led}
+              radius={12}
+              fill="rgba(255,255,255,0.01)"
+              onMouseEnter={handleEnter}
+              onMouseLeave={handleLeave}
+              onMouseUp={(e) => {
+                e.cancelBubble = true
+                onWireEnd(gate.id, 'input', index)
+              }}
+              onTouchEnd={(e) => {
+                e.cancelBubble = true
+                onWireEnd(gate.id, 'input', index)
+              }}
+            />
+
+            {/* Pin Shadow */}
+            <Circle
+              x={pos.x - gate.x + 1}
+              y={pos.y - gate.y + 1}
+              radius={7}
+              fill="black"
               opacity={0.3}
             />
-          )}
-        </Group>
-      ))}
+
+            {/* Gold Pin Base */}
+            <Circle
+              x={pos.x - gate.x}
+              y={pos.y - gate.y}
+              radius={isPinHovered ? 9 : 7}
+              fill={SPACE_COLORS.goldContact}
+              stroke={SPACE_COLORS.copperTrace}
+              strokeWidth={1}
+              shadowBlur={isPinHovered ? 10 : 4}
+              shadowColor={SPACE_COLORS.goldContact}
+              shadowOpacity={0.6}
+            />
+
+            {/* Pin Center */}
+            <Circle
+              x={pos.x - gate.x}
+              y={pos.y - gate.y}
+              radius={isPinHovered ? 6 : 4}
+              fill={isPinHovered ? SPACE_COLORS.goldContact : '#1A1A1A'}
+              stroke={SPACE_COLORS.goldContact}
+              strokeWidth={1}
+              onMouseEnter={handleEnter}
+              onMouseLeave={handleLeave}
+              onMouseDown={(e) => {
+                e.cancelBubble = true
+              }}
+              onMouseUp={(e) => {
+                e.cancelBubble = true
+                onWireEnd(gate.id, 'input', index)
+              }}
+              onTouchEnd={(e) => {
+                e.cancelBubble = true
+                onWireEnd(gate.id, 'input', index)
+              }}
+            />
+
+            {/* Hover halo */}
+            {isPinHovered && (
+              <Ring
+                x={pos.x - gate.x}
+                y={pos.y - gate.y}
+                innerRadius={9}
+                outerRadius={13}
+                stroke={SPACE_COLORS.ui.selectionGlow}
+                strokeWidth={1.5}
+                shadowBlur={12}
+                shadowColor={SPACE_COLORS.ui.selectionGlow}
+                opacity={0.8}
+                listening={false}
+              />
+            )}
+          </Group>
+        )
+      })}
+
+      {/* Output Connectors - Gold Plated Pins */}
+      {outputPositions.map((pos, index) => {
+        const isPinHovered = hoveredPin?.type === 'output' && hoveredPin.index === index
+        const handleEnter = (e) => {
+          setHoveredPin({ type: 'output', index })
+          const stage = e.target.getStage()
+          if (stage) stage.container().style.cursor = 'pointer'
+        }
+        const handleLeave = (e) => {
+          setHoveredPin(null)
+          const stage = e.target.getStage()
+          if (stage) stage.container().style.cursor = 'crosshair'
+        }
+
+        return (
+          <Group key={`output-${index}`}>
+            {/* Larger invisible hit zone to make grabbing easier */}
+            <Circle
+              x={pos.x - gate.x}
+              y={pos.y - gate.y}
+              radius={12}
+              fill="rgba(255,255,255,0.01)"
+              onMouseEnter={handleEnter}
+              onMouseLeave={handleLeave}
+              onMouseDown={(e) => {
+                e.cancelBubble = true
+                onWireStart(gate.id, 'output', index)
+              }}
+            />
+
+            {/* Pin Shadow */}
+            <Circle
+              x={pos.x - gate.x + 1}
+              y={pos.y - gate.y + 1}
+              radius={7}
+              fill="black"
+              opacity={0.3}
+            />
+
+            {/* Gold Pin Base */}
+            <Circle
+              x={pos.x - gate.x}
+              y={pos.y - gate.y}
+              radius={isPinHovered ? 9 : 7}
+              fill={SPACE_COLORS.goldContact}
+              stroke={SPACE_COLORS.copperTrace}
+              strokeWidth={1}
+              shadowBlur={outputSignal === 1 || isPinHovered ? 12 : 4}
+              shadowColor={outputSignal === 1 ? gateTheme.led : SPACE_COLORS.goldContact}
+              shadowOpacity={outputSignal === 1 || isPinHovered ? 0.9 : 0.5}
+            />
+
+            {/* Pin Center */}
+            <Circle
+              x={pos.x - gate.x}
+              y={pos.y - gate.y}
+              radius={isPinHovered ? 6 : 4}
+              fill={outputSignal === 1 ? gateTheme.led : (isPinHovered ? SPACE_COLORS.goldContact : '#1A1A1A')}
+              stroke={SPACE_COLORS.goldContact}
+              strokeWidth={1}
+              opacity={
+                outputSignal === 1
+                  ? Math.sin(pulseAnimation * Math.PI / 180) * 0.3 + 0.7
+                  : 1
+              }
+              onMouseEnter={handleEnter}
+              onMouseLeave={handleLeave}
+              onMouseDown={(e) => {
+                e.cancelBubble = true
+                onWireStart(gate.id, 'output', index)
+              }}
+            />
+
+            {/* Hover halo */}
+            {isPinHovered && (
+              <Ring
+                x={pos.x - gate.x}
+                y={pos.y - gate.y}
+                innerRadius={9}
+                outerRadius={13}
+                stroke={SPACE_COLORS.ui.selectionGlow}
+                strokeWidth={1.5}
+                shadowBlur={12}
+                shadowColor={SPACE_COLORS.ui.selectionGlow}
+                opacity={0.8}
+                listening={false}
+              />
+            )}
+
+            {/* Signal Indicator Ring */}
+            {outputSignal === 1 && (
+              <Ring
+                x={pos.x - gate.x}
+                y={pos.y - gate.y}
+                innerRadius={6}
+                outerRadius={8 + Math.sin(pulseAnimation * Math.PI / 180) * 2}
+                fill={gateTheme.led}
+                opacity={0.3}
+              />
+            )}
+          </Group>
+        )
+      })}
 
       {/* 3D Effect Top Highlight */}
       <Rect
