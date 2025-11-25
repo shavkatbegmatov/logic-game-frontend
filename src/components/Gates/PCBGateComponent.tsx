@@ -326,15 +326,18 @@ const PCBGateComponent = ({
         }
 
         return (
-          <Group key={`input-${index}`} dataRole="pin">
+          <Group
+            key={`input-${index}`}
+            dataRole="pin"
+            onMouseEnter={handleEnter}
+            onMouseLeave={handleLeave}
+          >
             {/* Larger invisible hit zone to make grabbing easier */}
             <Circle
               x={pos.x - gate.x}
               y={pos.y - gate.y}
               radius={12}
               fill="rgba(255,255,255,0.01)"
-              onMouseEnter={handleEnter}
-              onMouseLeave={handleLeave}
               onMouseUp={(e) => {
                 e.cancelBubble = true
                 onWireEnd(gate.id, 'input', index)
@@ -375,8 +378,6 @@ const PCBGateComponent = ({
               fill={isPinHovered ? SPACE_COLORS.goldContact : '#1A1A1A'}
               stroke={SPACE_COLORS.goldContact}
               strokeWidth={1}
-              onMouseEnter={handleEnter}
-              onMouseLeave={handleLeave}
               onMouseDown={(e) => {
                 e.cancelBubble = true
               }}
@@ -424,15 +425,18 @@ const PCBGateComponent = ({
         }
 
         return (
-          <Group key={`output-${index}`} dataRole="pin">
+          <Group
+            key={`output-${index}`}
+            dataRole="pin"
+            onMouseEnter={handleEnter}
+            onMouseLeave={handleLeave}
+          >
             {/* Larger invisible hit zone to make grabbing easier */}
             <Circle
               x={pos.x - gate.x}
               y={pos.y - gate.y}
               radius={12}
               fill="rgba(255,255,255,0.01)"
-              onMouseEnter={handleEnter}
-              onMouseLeave={handleLeave}
               onMouseDown={(e) => {
                 e.cancelBubble = true
                 onWireStart(gate.id, 'output', index)
@@ -474,8 +478,6 @@ const PCBGateComponent = ({
                   ? Math.sin(pulseAnimation * Math.PI / 180) * 0.3 + 0.7
                   : 1
               }
-              onMouseEnter={handleEnter}
-              onMouseLeave={handleLeave}
               onMouseDown={(e) => {
                 e.cancelBubble = true
                 onWireStart(gate.id, 'output', index)
