@@ -30,6 +30,24 @@ class SoundService {
     oscillator.stop(this.audioContext.currentTime + 0.1)
   }
 
+  playConnect() {
+    if (!this.initialized) this.init()
+    const oscillator = this.audioContext.createOscillator()
+    const gainNode = this.audioContext.createGain()
+
+    oscillator.connect(gainNode)
+    gainNode.connect(this.audioContext.destination)
+
+    oscillator.frequency.setValueAtTime(500, this.audioContext.currentTime)
+    oscillator.frequency.exponentialRampToValueAtTime(750, this.audioContext.currentTime + 0.12)
+    oscillator.type = 'triangle'
+    gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime)
+    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.15)
+
+    oscillator.start(this.audioContext.currentTime)
+    oscillator.stop(this.audioContext.currentTime + 0.15)
+  }
+
   playSuccess() {
     if (!this.initialized) this.init()
     const oscillator = this.audioContext.createOscillator()

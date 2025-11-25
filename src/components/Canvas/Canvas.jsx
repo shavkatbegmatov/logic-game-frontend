@@ -376,16 +376,20 @@ const Canvas = () => {
       w.fromIndex === wire.fromIndex
     )
 
-    if (!exists && !isInputOccupied && !isOutputOccupied) {
-      addWire(wire)
-      updateStats('wiresConnected', prev => prev + 1)
-      if (enableSounds) soundService.playConnect()
-    } else if (isInputOccupied || isOutputOccupied) {
-      // Optional: Visual feedback for blocked connection could go here
-      console.warn('Pin already occupied')
+    try {
+      if (!exists && !isInputOccupied && !isOutputOccupied) {
+        addWire(wire)
+        updateStats('wiresConnected', prev => prev + 1)
+        if (enableSounds) soundService.playConnect?.()
+      } else if (isInputOccupied || isOutputOccupied) {
+        // Optional: Visual feedback for blocked connection could go here
+        console.warn('Pin already occupied')
+      }
+    } catch (error) {
+      console.error('Wire connection handling failed', error)
+    } finally {
+      cancelWireCreation()
     }
-
-    cancelWireCreation()
   }
 
   const cancelWireCreation = () => {
