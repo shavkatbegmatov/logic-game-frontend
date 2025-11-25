@@ -43,6 +43,10 @@ const Canvas = () => {
   const [snappedWireEnd, setSnappedWireEnd] = useState(null)
   const [hoveredStartPin, setHoveredStartPin] = useState(null)
   const [isWireCreationMode, setIsWireCreationMode] = useState(false)
+  const resolveGatePosition = useCallback((gate) => {
+    const override = draggedItems[gate.id]
+    return override ? { ...gate, ...override } : gate
+  }, [draggedItems])
 
   const latestDraggedItems = useRef({});
   const updateScheduled = useRef(false);
@@ -415,10 +419,12 @@ const Canvas = () => {
     let bestTarget = null
 
     gates.forEach(gate => {
+      const gatePos = resolveGatePosition(gate)
+      const { x, y, width, height, type } = gatePos
       // Don't snap to source gate
-      if (gate.id === wireStart.gateId) return
+      if (gatePos.id === wireStart.gateId) return
 
-      const config = gateConfigs[gate.type]
+      const config = gateConfigs[type]
       if (!config) return
 
       // If dragging from output, look for inputs
@@ -427,38 +433,38 @@ const Canvas = () => {
         // Actually OUTPUT gates have inputs.
 
         const inputCount = config.maxInputs || 2
-        const spacing = gate.height / (inputCount + 1)
+        const spacing = height / (inputCount + 1)
 
         for (let i = 0; i < inputCount; i++) {
-          const px = gate.x - 10
-          const py = gate.y + spacing * (i + 1)
+          const px = x - 10
+          const py = y + spacing * (i + 1)
           const dist = Math.sqrt(Math.pow(pointerPos.x - px, 2) + Math.pow(pointerPos.y - py, 2))
 
           if (dist < bestDist) {
             // Check if input is already occupied
-            const isOccupied = wires.some(w => w.toGate === gate.id && w.toIndex === i)
+            const isOccupied = wires.some(w => w.toGate === gatePos.id && w.toIndex === i)
             if (!isOccupied) {
               bestDist = dist
-              bestTarget = { gateId: gate.id, type: 'input', index: i, x: px, y: py }
+              bestTarget = { gateId: gatePos.id, type: 'input', index: i, x: px, y: py }
             }
           }
         }
       }
       // If dragging from input, look for outputs
       else {
-        if (gate.type === GateTypes.OUTPUT) return // Output gates don't have outputs
+        if (type === GateTypes.OUTPUT) return // Output gates don't have outputs
 
         // Most gates have 1 output
-        const px = gate.x + gate.width + 10
-        const py = gate.y + gate.height / 2
+        const px = x + width + 10
+        const py = y + height / 2
         const dist = Math.sqrt(Math.pow(pointerPos.x - px, 2) + Math.pow(pointerPos.y - py, 2))
 
         if (dist < bestDist) {
           // Check if output is occupied
-          const isOccupied = wires.some(w => w.fromGate === gate.id && w.fromIndex === 0)
+          const isOccupied = wires.some(w => w.fromGate === gatePos.id && w.fromIndex === 0)
           if (!isOccupied) {
             bestDist = dist
-            bestTarget = { gateId: gate.id, type: 'output', index: 0, x: px, y: py }
+            bestTarget = { gateId: gatePos.id, type: 'output', index: 0, x: px, y: py }
           }
         }
       }
@@ -474,40 +480,42 @@ const Canvas = () => {
     const currentWires = useGameStore.getState().wires
 
     gates.forEach(gate => {
-      const config = gateConfigs[gate.type]
+      const gatePos = resolveGatePosition(gate)
+      const { x, y, width, height, type, id } = gatePos
+      const config = gateConfigs[type]
       if (!config) return
 
       // Check Inputs
       const inputCount = config.maxInputs || 2
-      const spacing = gate.height / (inputCount + 1)
+      const spacing = height / (inputCount + 1)
 
       for (let i = 0; i < inputCount; i++) {
-        const px = gate.x - 10
-        const py = gate.y + spacing * (i + 1)
+        const px = x - 10
+        const py = y + spacing * (i + 1)
         const dist = Math.sqrt(Math.pow(pointerPos.x - px, 2) + Math.pow(pointerPos.y - py, 2))
 
         if (dist < bestDist) {
           // Check if input is occupied
-          const isOccupied = currentWires.some(w => w.toGate === gate.id && w.toIndex === i)
+          const isOccupied = currentWires.some(w => w.toGate === id && w.toIndex === i)
           if (!isOccupied) {
             bestDist = dist
-            bestTarget = { gateId: gate.id, type: 'input', index: i, x: px, y: py }
+            bestTarget = { gateId: id, type: 'input', index: i, x: px, y: py }
           }
         }
       }
 
       // Check Outputs
-      if (gate.type !== GateTypes.OUTPUT) {
-        const px = gate.x + gate.width + 10
-        const py = gate.y + gate.height / 2
+      if (type !== GateTypes.OUTPUT) {
+        const px = x + width + 10
+        const py = y + height / 2
         const dist = Math.sqrt(Math.pow(pointerPos.x - px, 2) + Math.pow(pointerPos.y - py, 2))
 
         if (dist < bestDist) {
           // Check if output is occupied
-          const isOccupied = currentWires.some(w => w.fromGate === gate.id && w.fromIndex === 0)
+          const isOccupied = currentWires.some(w => w.fromGate === id && w.fromIndex === 0)
           if (!isOccupied) {
             bestDist = dist
-            bestTarget = { gateId: gate.id, type: 'output', index: 0, x: px, y: py }
+            bestTarget = { gateId: id, type: 'output', index: 0, x: px, y: py }
           }
         }
       }
@@ -679,7 +687,12 @@ const Canvas = () => {
             <SpaceWireComponent key={wire.id} wire={wire} gates={gates} signal={computedSignals[wire.id]} isSimulating={isSimulating} draggedItems={draggedItems} />
           ))}
           {isDraggingWire && wireStart && tempWireEnd && (() => {
-            const gate = gates.find(g => g.id === wireStart.gateId)
+            const gate = (() => {
+              const base = gates.find(g => g.id === wireStart.gateId)
+              if (!base) return null
+              const override = draggedItems[wireStart.gateId]
+              return override ? { ...base, ...override } : base
+            })()
             if (!gate) return null
             let startX, startY
             if (wireStart.type === 'output') {
