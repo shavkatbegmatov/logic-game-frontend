@@ -338,6 +338,10 @@ const PCBGateComponent = ({
               y={pos.y - gate.y}
               radius={12}
               fill="rgba(255,255,255,0.01)"
+              onMouseDown={(e) => {
+                e.cancelBubble = true
+                onWireStart(gate.id, 'input', index)
+              }}
               onMouseUp={(e) => {
                 e.cancelBubble = true
                 onWireEnd(gate.id, 'input', index)
@@ -380,6 +384,7 @@ const PCBGateComponent = ({
               strokeWidth={1}
               onMouseDown={(e) => {
                 e.cancelBubble = true
+                onWireStart(gate.id, 'input', index)
               }}
               onMouseUp={(e) => {
                 e.cancelBubble = true

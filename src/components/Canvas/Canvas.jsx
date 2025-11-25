@@ -343,10 +343,10 @@ const Canvas = () => {
         : { gateId: occupiedWire.fromGate, type: 'output', index: occupiedWire.fromIndex }
 
       removeWire(occupiedWire.id)
-      setRewireData({ wire: occupiedWire })
+      setRewireData({ wire: occupiedWire, detached: { gateId, type, index } })
       setIsDraggingWire(true)
       setWireStart(fixedEnd)
-      setIsWireCreationMode(false)
+      setIsWireCreationMode(true)
       return
     }
 
@@ -360,6 +360,14 @@ const Canvas = () => {
   const handleWireEnd = (gateId, type, index) => {
     if (!isDraggingWire || !wireStart) return
     let connected = false
+
+    // Skip immediate reconnect to the same detached pin when rewiring
+    if (rewireData?.detached &&
+        rewireData.detached.gateId === gateId &&
+        rewireData.detached.type === type &&
+        rewireData.detached.index === index) {
+      return
+    }
 
     // Prevent connecting to self or same type (input-input or output-output)
     if (wireStart.gateId === gateId || wireStart.type === type) {
