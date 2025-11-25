@@ -41,6 +41,7 @@ const Canvas = () => {
   const [draggedItems, setDraggedItems] = useState({})
   const [dragStartData, setDragStartData] = useState(null)
   const [snappedWireEnd, setSnappedWireEnd] = useState(null)
+  const [hoveredStartPin, setHoveredStartPin] = useState(null)
   const [isWireCreationMode, setIsWireCreationMode] = useState(false)
 
   const latestDraggedItems = useRef({});
@@ -201,6 +202,12 @@ const Canvas = () => {
 
   const handleStageMouseDown = (e) => {
     if (e.target === e.target.getStage() && !isEditing) {
+      // If we have a hovered start pin, start the wire from there
+      if (hoveredStartPin) {
+        handleWireStart(hoveredStartPin.gateId, hoveredStartPin.type, hoveredStartPin.index)
+        return
+      }
+
       const pos = e.target.getStage().getPointerPosition()
       setIsDrawingSelection(true)
       setSelectionStart(pos)
@@ -460,6 +467,55 @@ const Canvas = () => {
     return bestTarget
   }
 
+  const findStartTarget = (pointerPos) => {
+    const SNAP_RADIUS = 20
+    let bestDist = SNAP_RADIUS
+    let bestTarget = null
+    const currentWires = useGameStore.getState().wires
+
+    gates.forEach(gate => {
+      const config = gateConfigs[gate.type]
+      if (!config) return
+
+      // Check Inputs
+      const inputCount = config.maxInputs || 2
+      const spacing = gate.height / (inputCount + 1)
+
+      for (let i = 0; i < inputCount; i++) {
+        const px = gate.x - 10
+        const py = gate.y + spacing * (i + 1)
+        const dist = Math.sqrt(Math.pow(pointerPos.x - px, 2) + Math.pow(pointerPos.y - py, 2))
+
+        if (dist < bestDist) {
+          // Check if input is occupied
+          const isOccupied = currentWires.some(w => w.toGate === gate.id && w.toIndex === i)
+          if (!isOccupied) {
+            bestDist = dist
+            bestTarget = { gateId: gate.id, type: 'input', index: i, x: px, y: py }
+          }
+        }
+      }
+
+      // Check Outputs
+      if (gate.type !== GateTypes.OUTPUT) {
+        const px = gate.x + gate.width + 10
+        const py = gate.y + gate.height / 2
+        const dist = Math.sqrt(Math.pow(pointerPos.x - px, 2) + Math.pow(pointerPos.y - py, 2))
+
+        if (dist < bestDist) {
+          // Check if output is occupied
+          const isOccupied = currentWires.some(w => w.fromGate === gate.id && w.fromIndex === 0)
+          if (!isOccupied) {
+            bestDist = dist
+            bestTarget = { gateId: gate.id, type: 'output', index: 0, x: px, y: py }
+          }
+        }
+      }
+    })
+
+    return bestTarget
+  }
+
   const handleMouseMove = (e) => {
     if (isDrawingSelection) handleSelectionMouseMove(e)
 
@@ -470,6 +526,14 @@ const Canvas = () => {
 
       const snapTarget = findSnapTarget(pointerPos)
       setSnappedWireEnd(snapTarget)
+    } else {
+      // If not dragging, look for start targets
+      const stage = e.target.getStage()
+      if (stage) {
+        const pointerPos = stage.getPointerPosition()
+        const startTarget = findStartTarget(pointerPos)
+        setHoveredStartPin(startTarget)
+      }
     }
   }
 
@@ -657,6 +721,19 @@ const Canvas = () => {
               </>
             )
           })()}
+          {/* Hover Start Indicator */}
+          {!isDraggingWire && hoveredStartPin && (
+            <Ring
+              x={hoveredStartPin.x}
+              y={hoveredStartPin.y}
+              innerRadius={5}
+              outerRadius={10}
+              stroke="#22d3ee" // Cyan color for start suggestion
+              strokeWidth={2}
+              opacity={0.8}
+              listening={false}
+            />
+          )}
           {tempSelectionBox && (
             <Rect x={Math.min(tempSelectionBox.x1, tempSelectionBox.x2)} y={Math.min(tempSelectionBox.y1, tempSelectionBox.y2)} width={Math.abs(tempSelectionBox.x2 - tempSelectionBox.x1)} height={Math.abs(tempSelectionBox.y2 - tempSelectionBox.y1)} fill="rgba(59, 130, 246, 0.15)" stroke="rgba(59, 130, 246, 0.8)" strokeWidth={2} dash={[8, 4]} />
           )}
