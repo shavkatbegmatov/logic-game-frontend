@@ -337,11 +337,15 @@ const Canvas = () => {
     )
 
     if (occupiedWire) {
-      // Rewire: pick the existing wire, detach it, and let the user drop it elsewhere
+      // Rewire: pick the existing wire, detach it, and let the user drop one end while the opposite end stays anchored
+      const fixedEnd = type === 'output'
+        ? { gateId: occupiedWire.toGate, type: 'input', index: occupiedWire.toIndex }
+        : { gateId: occupiedWire.fromGate, type: 'output', index: occupiedWire.fromIndex }
+
       removeWire(occupiedWire.id)
       setRewireData({ wire: occupiedWire })
       setIsDraggingWire(true)
-      setWireStart({ gateId, type, index })
+      setWireStart(fixedEnd)
       setIsWireCreationMode(false)
       return
     }
