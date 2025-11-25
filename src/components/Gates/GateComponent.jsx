@@ -228,6 +228,9 @@ const GateComponent = ({
             e.cancelBubble = true
             onWireEnd(gate.id, 'input', index)
           }}
+          onClick={(e) => {
+            e.cancelBubble = true
+          }}
         />
       ))}
 
@@ -255,6 +258,9 @@ const GateComponent = ({
           onMouseDown={(e) => {
             e.cancelBubble = true
             onWireStart(gate.id, 'output', index)
+          }}
+          onClick={(e) => {
+            e.cancelBubble = true
           }}
         />
       ))}
