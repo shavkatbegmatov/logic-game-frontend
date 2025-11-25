@@ -25,6 +25,15 @@ const PCBGateComponent = ({
   const [hoveredPin, setHoveredPin] = useState(null)
   const { playSound } = useSound()
 
+  const isPinEvent = (target) => {
+    let node = target
+    while (node) {
+      if (node?.attrs?.dataRole === 'pin') return true
+      node = node.getParent?.()
+    }
+    return false
+  }
+
   // Komponent holati o'zgarganda log yozish
   useEffect(() => {
     log(`'${gate.type}_${gate.id}' holati yangilandi`, { isSelected, isPreSelected, outputSignal });
@@ -90,6 +99,7 @@ const PCBGateComponent = ({
 
   const handleClick = (e) => {
     e.cancelBubble = true
+    if (isPinEvent(e.target)) return
     log(`'${gate.type}_${gate.id}' bosildi (click).`);
 
     // Play click sound
@@ -316,7 +326,7 @@ const PCBGateComponent = ({
         }
 
         return (
-          <Group key={`input-${index}`}>
+          <Group key={`input-${index}`} dataRole="pin">
             {/* Larger invisible hit zone to make grabbing easier */}
             <Circle
               x={pos.x - gate.x}
@@ -414,7 +424,7 @@ const PCBGateComponent = ({
         }
 
         return (
-          <Group key={`output-${index}`}>
+          <Group key={`output-${index}`} dataRole="pin">
             {/* Larger invisible hit zone to make grabbing easier */}
             <Circle
               x={pos.x - gate.x}
