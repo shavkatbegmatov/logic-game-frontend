@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ChevronRight, ChevronLeft, Settings, Link2, Eye, Save, CircuitBoard, Zap, Info } from 'lucide-react'
 import useSubcircuitEditorStore from '../../../store/subcircuitEditorStore'
-import { createSubcircuitFromSelection } from '@/engine/subcircuits.ts'
+import { createSubcircuitFromSelection } from '@/engine/subcircuits'
 import { soundService } from '../effects/SoundManager'
 
 const WizardCreate = ({ onComplete, onCancel }) => {

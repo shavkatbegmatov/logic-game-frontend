@@ -39,6 +39,9 @@ interface GameState {
   signals: SignalMap
   isSimulating: boolean
 
+  // Clipboard
+  clipboard: { gates: Gate[]; wires: Wire[] } | null
+
   // Actions
   addGate: (gate: Gate) => void
   removeGate: (gateId: string | number) => void
@@ -70,6 +73,9 @@ interface GameState {
   resetCanvas: () => void
   saveCircuit: () => { gates: Gate[]; wires: Wire[] }
   loadCircuit: (circuit: { gates: Gate[]; wires: Wire[] }) => void
+  copySelection: () => void
+  pasteSelection: () => void
+  deleteSelection: () => void
 }
 
 const useGameStore = create<GameState>((set, get) => ({
@@ -97,6 +103,9 @@ const useGameStore = create<GameState>((set, get) => ({
   // Signal simulyatsiyasi
   signals: {},
   isSimulating: false,
+
+  // Clipboard
+  clipboard: null,
 
   // Actions
   addGate: (gate) => {
@@ -401,6 +410,92 @@ const useGameStore = create<GameState>((set, get) => ({
       wires: circuit.wires || [],
       signals: {},
       isSimulating: false
+    });
+  },
+
+  // Clipboard operations
+  copySelection: () => {
+    const { selectedGates, gates, wires } = get();
+    if (selectedGates.length === 0) return;
+
+    const selectedGateObjects = gates.filter(g => selectedGates.includes(g.id));
+    const selectedWireObjects = wires.filter(w =>
+      selectedGates.includes(w.fromGate!) && selectedGates.includes(w.toGate!)
+    );
+
+    set({
+      clipboard: {
+        gates: selectedGateObjects,
+        wires: selectedWireObjects
+      }
+    });
+
+    logAction('copySelection', { gates: selectedGateObjects.length, wires: selectedWireObjects.length });
+  },
+
+  pasteSelection: () => {
+    const { clipboard } = get();
+    if (!clipboard?.gates?.length) return;
+
+    const idMap: Record<string | number, number> = {};
+    const newGates = clipboard.gates.map(g => {
+      const newId = Date.now() + Math.random();
+      idMap[g.id] = newId;
+      return { ...g, id: newId, x: g.x + 50, y: g.y + 50 };
+    });
+
+    const newWires = clipboard.wires.map(w => ({
+      ...w,
+      id: Date.now() + Math.random(),
+      fromGate: idMap[w.fromGate!],
+      toGate: idMap[w.toGate!]
+    }));
+
+    set((state) => ({
+      gates: [...state.gates, ...newGates],
+      wires: [...state.wires, ...newWires],
+      selectedGates: newGates.map(g => g.id),
+      selectedGate: null
+    }));
+
+    logAction('pasteSelection', { gates: newGates.length, wires: newWires.length });
+  },
+
+  deleteSelection: () => {
+    const { selectedGates, selectedGate, selectedWire, gates, wires } = get();
+    logAction('deleteSelection', { selectedGates, selectedGate, selectedWire });
+
+    // Wire tanlangan bo'lsa, faqat uni o'chirish
+    if (selectedWire) {
+      set({
+        wires: wires.filter(w => w.id !== selectedWire),
+        selectedWire: null
+      });
+      return;
+    }
+
+    // Gate'larni o'chirish
+    let gatesToDelete = [...selectedGates];
+    if (selectedGate && !gatesToDelete.includes(selectedGate)) {
+      gatesToDelete.push(selectedGate);
+    }
+
+    if (gatesToDelete.length === 0) return;
+
+    // O'chirilgan gate'larga ulangan wire'larni ham o'chirish
+    const newWires = wires.filter(w =>
+      !gatesToDelete.includes(w.fromGate!) &&
+      !gatesToDelete.includes(w.toGate!)
+    );
+
+    const newGates = gates.filter(g => !gatesToDelete.includes(g.id));
+
+    set({
+      gates: newGates,
+      wires: newWires,
+      selectedGate: null,
+      selectedWire: null,
+      selectedGates: []
     });
   }
 }));

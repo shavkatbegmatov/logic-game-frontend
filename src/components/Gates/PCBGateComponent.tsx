@@ -1,15 +1,44 @@
 import React, { useEffect, useState } from 'react'
 import { Group, Rect, Text, Circle, Line, Ring } from 'react-konva'
-import { GateTypes, gateConfigs } from '@/engine/gates.ts'
-import { SPACE_COLORS } from '@/constants/spaceTheme.ts'
+import { GateTypes, gateConfigs } from '@/engine/gates'
+import { SPACE_COLORS } from '@/constants/spaceTheme'
 import useSound from '../../hooks/useSound'
+import type { KonvaEventObject } from 'konva/lib/Node'
 
-const log = (message: any, ...args: any[]) => console.log(`%c[GATE] ${message}`, 'color: #FF9800;', ...args);
+const log = (message: string, ...args: unknown[]) => console.log(`%c[GATE] ${message}`, 'color: #FF9800;', ...args);
 
-const PCBGateComponent = ({
+interface ConnectedPins {
+  inputs: number[]
+  outputs: number[]
+}
+
+interface PCBGateComponentProps {
+  gate: {
+    id: number | string
+    type: string
+    x: number
+    y: number
+    width: number
+    height: number
+    value?: number
+  }
+  isSelected: boolean
+  isPreSelected?: boolean
+  onDragStart: (gateId: number | string, e: KonvaEventObject<DragEvent>) => void
+  onDragMove: (gateId: number | string, e: KonvaEventObject<DragEvent>) => void
+  onDragEnd: (gateId: number | string, e: KonvaEventObject<DragEvent>) => void
+  onSelect: (e: KonvaEventObject<MouseEvent>) => void
+  onUpdateGate: (gateId: number | string, updates: Record<string, unknown>) => void
+  onWireStart: (gateId: number | string, type: 'input' | 'output', index: number) => void
+  onWireEnd: (gateId: number | string, type: 'input' | 'output', index: number) => void
+  outputSignal: number
+  connectedPins?: ConnectedPins
+}
+
+const PCBGateComponent: React.FC<PCBGateComponentProps> = ({
   gate,
   isSelected,
-  isPreSelected, // To show highlighting during selection drawing
+  isPreSelected = false,
   onDragStart,
   onDragMove,
   onDragEnd,
@@ -17,12 +46,14 @@ const PCBGateComponent = ({
   onUpdateGate,
   onWireStart,
   onWireEnd,
-  outputSignal
+  outputSignal,
+  connectedPins = { inputs: [], outputs: [] }
 }) => {
   const config = gateConfigs[gate.type]
   const [isHovered, setIsHovered] = useState(false)
   const [pulseAnimation, setPulseAnimation] = useState(0)
   const [hoveredPin, setHoveredPin] = useState<null | { type: 'input' | 'output'; index: number }>(null)
+  const [isDraggingDisabled, setIsDraggingDisabled] = useState(false)
   const { playSound } = useSound()
 
   const isPinEvent = (target: any) => {
@@ -122,14 +153,23 @@ const PCBGateComponent = ({
     <Group
       x={gate.x}
       y={gate.y}
-      draggable={true}
-      onDragStart={(e) => onDragStart(gate.id, e)}
+      draggable={!isDraggingDisabled}
+      onDragStart={(e) => {
+        if (isDraggingDisabled || isPinEvent(e.target)) {
+          e.target.stopDrag()
+          return
+        }
+        onDragStart(gate.id, e)
+      }}
       onDragMove={(e) => onDragMove(gate.id, e)}
       onDragEnd={(e) => onDragEnd(gate.id, e)}
       onClick={handleClick}
       onTap={handleClick}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseLeave={() => {
+        setIsHovered(false)
+        setIsDraggingDisabled(false)
+      }}
     >
       {/* Selection Indicator */}
       {isSelected && (
@@ -314,15 +354,28 @@ const PCBGateComponent = ({
       {/* Input Connectors - Gold Plated Pins */}
       {gate.type !== GateTypes.INPUT && inputPositions.map((pos, index) => {
         const isPinHovered = hoveredPin?.type === 'input' && hoveredPin.index === index
-        const handleEnter = (e: any) => {
+        const isConnected = connectedPins.inputs.includes(index)
+
+        const handleEnter = (e: KonvaEventObject<MouseEvent>) => {
           setHoveredPin({ type: 'input', index })
+          setIsDraggingDisabled(true)
           const stage = e.target.getStage()
-          if (stage) stage.container().style.cursor = 'pointer'
+          if (stage) stage.container().style.cursor = isConnected ? 'grab' : 'pointer'
         }
-        const handleLeave = (e: any) => {
+        const handleLeave = (e: KonvaEventObject<MouseEvent>) => {
           setHoveredPin(null)
+          setIsDraggingDisabled(false)
           const stage = e.target.getStage()
           if (stage) stage.container().style.cursor = 'crosshair'
+        }
+
+        const handlePinMouseDown = (e: KonvaEventObject<MouseEvent>) => {
+          e.cancelBubble = true
+          const parent = e.target.getParent()
+          if (parent?.getParent()) {
+            parent.getParent()?.stopDrag()
+          }
+          onWireStart(gate.id, 'input', index)
         }
 
         return (
@@ -332,25 +385,39 @@ const PCBGateComponent = ({
             onMouseEnter={handleEnter}
             onMouseLeave={handleLeave}
           >
-            {/* Larger invisible hit zone to make grabbing easier */}
+            {/* Larger invisible hit zone */}
             <Circle
               x={pos.x - gate.x}
               y={pos.y - gate.y}
-              radius={12}
+              radius={14}
               fill="rgba(255,255,255,0.01)"
-              onMouseDown={(e: any) => {
-                e.cancelBubble = true
-                onWireStart(gate.id, 'input', index)
-              }}
+              onMouseDown={handlePinMouseDown}
               onMouseUp={(e) => {
                 e.cancelBubble = true
                 onWireEnd(gate.id, 'input', index)
               }}
+              onTouchStart={handlePinMouseDown}
               onTouchEnd={(e) => {
                 e.cancelBubble = true
                 onWireEnd(gate.id, 'input', index)
               }}
             />
+
+            {/* Connected indicator */}
+            {isConnected && (
+              <Ring
+                x={pos.x - gate.x}
+                y={pos.y - gate.y}
+                innerRadius={10}
+                outerRadius={12}
+                stroke={SPACE_COLORS.signalActive}
+                strokeWidth={1.5}
+                opacity={isPinHovered ? 1 : 0.6}
+                shadowBlur={isPinHovered ? 15 : 8}
+                shadowColor={SPACE_COLORS.signalActive}
+                listening={false}
+              />
+            )}
 
             {/* Pin Shadow */}
             <Circle
@@ -359,6 +426,7 @@ const PCBGateComponent = ({
               radius={7}
               fill="black"
               opacity={0.3}
+              listening={false}
             />
 
             {/* Gold Pin Base */}
@@ -366,12 +434,13 @@ const PCBGateComponent = ({
               x={pos.x - gate.x}
               y={pos.y - gate.y}
               radius={isPinHovered ? 9 : 7}
-              fill={SPACE_COLORS.goldContact}
-              stroke={SPACE_COLORS.copperTrace}
-              strokeWidth={1}
-              shadowBlur={isPinHovered ? 10 : 4}
-              shadowColor={SPACE_COLORS.goldContact}
+              fill={isConnected ? SPACE_COLORS.signalActive : SPACE_COLORS.goldContact}
+              stroke={isConnected ? SPACE_COLORS.effects.glowColor : SPACE_COLORS.copperTrace}
+              strokeWidth={isConnected ? 2 : 1}
+              shadowBlur={isPinHovered ? 12 : (isConnected ? 8 : 4)}
+              shadowColor={isConnected ? SPACE_COLORS.signalActive : SPACE_COLORS.goldContact}
               shadowOpacity={0.6}
+              listening={false}
             />
 
             {/* Pin Center */}
@@ -379,17 +448,15 @@ const PCBGateComponent = ({
               x={pos.x - gate.x}
               y={pos.y - gate.y}
               radius={isPinHovered ? 6 : 4}
-              fill={isPinHovered ? SPACE_COLORS.goldContact : '#1A1A1A'}
-              stroke={SPACE_COLORS.goldContact}
+              fill={isPinHovered ? (isConnected ? SPACE_COLORS.effects.glowColor : SPACE_COLORS.goldContact) : '#1A1A1A'}
+              stroke={isConnected ? SPACE_COLORS.signalActive : SPACE_COLORS.goldContact}
               strokeWidth={1}
-              onMouseDown={(e) => {
-                e.cancelBubble = true
-                onWireStart(gate.id, 'input', index)
-              }}
+              onMouseDown={handlePinMouseDown}
               onMouseUp={(e) => {
                 e.cancelBubble = true
                 onWireEnd(gate.id, 'input', index)
               }}
+              onTouchStart={handlePinMouseDown}
               onTouchEnd={(e) => {
                 e.cancelBubble = true
                 onWireEnd(gate.id, 'input', index)
@@ -403,11 +470,24 @@ const PCBGateComponent = ({
                 y={pos.y - gate.y}
                 innerRadius={9}
                 outerRadius={13}
-                stroke={SPACE_COLORS.ui.selectionGlow}
-                strokeWidth={1.5}
-                shadowBlur={12}
-                shadowColor={SPACE_COLORS.ui.selectionGlow}
-                opacity={0.8}
+                stroke={isConnected ? '#ff6b6b' : SPACE_COLORS.ui.selectionGlow}
+                strokeWidth={2}
+                shadowBlur={15}
+                shadowColor={isConnected ? '#ff6b6b' : SPACE_COLORS.ui.selectionGlow}
+                opacity={0.9}
+                listening={false}
+              />
+            )}
+
+            {/* Disconnect hint */}
+            {isPinHovered && isConnected && (
+              <Text
+                x={pos.x - gate.x - 25}
+                y={pos.y - gate.y - 25}
+                text="Uzish uchun bosing"
+                fontSize={9}
+                fill="#ff6b6b"
+                fontFamily="monospace"
                 listening={false}
               />
             )}
@@ -418,15 +498,28 @@ const PCBGateComponent = ({
       {/* Output Connectors - Gold Plated Pins */}
       {outputPositions.map((pos, index) => {
         const isPinHovered = hoveredPin?.type === 'output' && hoveredPin.index === index
-        const handleEnter = (e: any) => {
+        const isConnected = connectedPins.outputs.includes(index)
+
+        const handleEnter = (e: KonvaEventObject<MouseEvent>) => {
           setHoveredPin({ type: 'output', index })
+          setIsDraggingDisabled(true)
           const stage = e.target.getStage()
-          if (stage) stage.container().style.cursor = 'pointer'
+          if (stage) stage.container().style.cursor = isConnected ? 'grab' : 'pointer'
         }
-        const handleLeave = (e: any) => {
+        const handleLeave = (e: KonvaEventObject<MouseEvent>) => {
           setHoveredPin(null)
+          setIsDraggingDisabled(false)
           const stage = e.target.getStage()
           if (stage) stage.container().style.cursor = 'crosshair'
+        }
+
+        const handlePinMouseDown = (e: KonvaEventObject<MouseEvent>) => {
+          e.cancelBubble = true
+          const parent = e.target.getParent()
+          if (parent?.getParent()) {
+            parent.getParent()?.stopDrag()
+          }
+          onWireStart(gate.id, 'output', index)
         }
 
         return (
@@ -436,17 +529,39 @@ const PCBGateComponent = ({
             onMouseEnter={handleEnter}
             onMouseLeave={handleLeave}
           >
-            {/* Larger invisible hit zone to make grabbing easier */}
+            {/* Larger invisible hit zone */}
             <Circle
               x={pos.x - gate.x}
               y={pos.y - gate.y}
-              radius={12}
+              radius={14}
               fill="rgba(255,255,255,0.01)"
-              onMouseDown={(e) => {
+              onMouseDown={handlePinMouseDown}
+              onMouseUp={(e) => {
                 e.cancelBubble = true
-                onWireStart(gate.id, 'output', index)
+                onWireEnd(gate.id, 'output', index)
+              }}
+              onTouchStart={handlePinMouseDown}
+              onTouchEnd={(e) => {
+                e.cancelBubble = true
+                onWireEnd(gate.id, 'output', index)
               }}
             />
+
+            {/* Connected indicator */}
+            {isConnected && (
+              <Ring
+                x={pos.x - gate.x}
+                y={pos.y - gate.y}
+                innerRadius={10}
+                outerRadius={12}
+                stroke={outputSignal === 1 ? gateTheme.led : SPACE_COLORS.signalActive}
+                strokeWidth={1.5}
+                opacity={isPinHovered ? 1 : 0.6}
+                shadowBlur={isPinHovered ? 15 : 8}
+                shadowColor={outputSignal === 1 ? gateTheme.led : SPACE_COLORS.signalActive}
+                listening={false}
+              />
+            )}
 
             {/* Pin Shadow */}
             <Circle
@@ -455,6 +570,7 @@ const PCBGateComponent = ({
               radius={7}
               fill="black"
               opacity={0.3}
+              listening={false}
             />
 
             {/* Gold Pin Base */}
@@ -462,12 +578,13 @@ const PCBGateComponent = ({
               x={pos.x - gate.x}
               y={pos.y - gate.y}
               radius={isPinHovered ? 9 : 7}
-              fill={SPACE_COLORS.goldContact}
-              stroke={SPACE_COLORS.copperTrace}
-              strokeWidth={1}
-              shadowBlur={outputSignal === 1 || isPinHovered ? 12 : 4}
-              shadowColor={outputSignal === 1 ? gateTheme.led : SPACE_COLORS.goldContact}
+              fill={isConnected ? (outputSignal === 1 ? gateTheme.led : SPACE_COLORS.signalActive) : SPACE_COLORS.goldContact}
+              stroke={isConnected ? SPACE_COLORS.effects.glowColor : SPACE_COLORS.copperTrace}
+              strokeWidth={isConnected ? 2 : 1}
+              shadowBlur={outputSignal === 1 || isPinHovered ? 12 : (isConnected ? 8 : 4)}
+              shadowColor={outputSignal === 1 ? gateTheme.led : (isConnected ? SPACE_COLORS.signalActive : SPACE_COLORS.goldContact)}
               shadowOpacity={outputSignal === 1 || isPinHovered ? 0.9 : 0.5}
+              listening={false}
             />
 
             {/* Pin Center */}
@@ -475,17 +592,19 @@ const PCBGateComponent = ({
               x={pos.x - gate.x}
               y={pos.y - gate.y}
               radius={isPinHovered ? 6 : 4}
-              fill={outputSignal === 1 ? gateTheme.led : (isPinHovered ? SPACE_COLORS.goldContact : '#1A1A1A')}
-              stroke={SPACE_COLORS.goldContact}
+              fill={outputSignal === 1 ? gateTheme.led : (isPinHovered ? (isConnected ? SPACE_COLORS.effects.glowColor : SPACE_COLORS.goldContact) : '#1A1A1A')}
+              stroke={isConnected ? SPACE_COLORS.signalActive : SPACE_COLORS.goldContact}
               strokeWidth={1}
-              opacity={
-                outputSignal === 1
-                  ? Math.sin(pulseAnimation * Math.PI / 180) * 0.3 + 0.7
-                  : 1
-              }
-              onMouseDown={(e) => {
+              opacity={outputSignal === 1 ? Math.sin(pulseAnimation * Math.PI / 180) * 0.3 + 0.7 : 1}
+              onMouseDown={handlePinMouseDown}
+              onMouseUp={(e) => {
                 e.cancelBubble = true
-                onWireStart(gate.id, 'output', index)
+                onWireEnd(gate.id, 'output', index)
+              }}
+              onTouchStart={handlePinMouseDown}
+              onTouchEnd={(e) => {
+                e.cancelBubble = true
+                onWireEnd(gate.id, 'output', index)
               }}
             />
 
@@ -496,11 +615,11 @@ const PCBGateComponent = ({
                 y={pos.y - gate.y}
                 innerRadius={9}
                 outerRadius={13}
-                stroke={SPACE_COLORS.ui.selectionGlow}
-                strokeWidth={1.5}
-                shadowBlur={12}
-                shadowColor={SPACE_COLORS.ui.selectionGlow}
-                opacity={0.8}
+                stroke={isConnected ? '#ff6b6b' : SPACE_COLORS.ui.selectionGlow}
+                strokeWidth={2}
+                shadowBlur={15}
+                shadowColor={isConnected ? '#ff6b6b' : SPACE_COLORS.ui.selectionGlow}
+                opacity={0.9}
                 listening={false}
               />
             )}
@@ -514,6 +633,20 @@ const PCBGateComponent = ({
                 outerRadius={8 + Math.sin(pulseAnimation * Math.PI / 180) * 2}
                 fill={gateTheme.led}
                 opacity={0.3}
+                listening={false}
+              />
+            )}
+
+            {/* Disconnect hint */}
+            {isPinHovered && isConnected && (
+              <Text
+                x={pos.x - gate.x + 5}
+                y={pos.y - gate.y - 25}
+                text="Uzish uchun bosing"
+                fontSize={9}
+                fill="#ff6b6b"
+                fontFamily="monospace"
+                listening={false}
               />
             )}
           </Group>

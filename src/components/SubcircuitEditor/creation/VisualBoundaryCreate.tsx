@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Square, MousePointer, Move, Check, X, Info, Maximize2 } from 'lucide-react'
 import useSubcircuitEditorStore from '../../../store/subcircuitEditorStore'
 import useGameStore from '../../../store/gameStore'
-import { createSubcircuitFromSelection } from '@/engine/subcircuits.ts'
+import { createSubcircuitFromSelection } from '@/engine/subcircuits'
 import { soundService } from '../effects/SoundManager'
 
 const VisualBoundaryCreate = ({ onComplete, onCancel }) => {

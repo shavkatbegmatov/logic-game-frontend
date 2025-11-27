@@ -1,12 +1,57 @@
 import React, { useEffect, useState } from 'react'
 import { Line, Group, Circle } from 'react-konva'
-import { gateConfigs } from '@/engine/gates.ts'
-import { SPACE_COLORS } from '@/constants/spaceTheme.ts'
+import { gateConfigs } from '@/engine/gates'
+import { SPACE_COLORS } from '@/constants/spaceTheme'
 import { createBezierPoints, getWireGates } from '@/utils/wireUtils'
+import type { KonvaEventObject } from 'konva/lib/Node'
 
-const SpaceWireComponent = ({ wire, gates, signal, isTemporary = false, isSimulating = false, draggedItems = {} }) => {
+interface Wire {
+  id: number | string
+  fromGate?: number | string
+  toGate?: number | string
+  fromIndex?: number
+  toIndex?: number
+  startX?: number
+  startY?: number
+  endX?: number
+  endY?: number
+}
+
+interface Gate {
+  id: number | string
+  type: string
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+interface SpaceWireComponentProps {
+  wire: Wire
+  gates: Gate[]
+  signal: number
+  isTemporary?: boolean
+  isSimulating?: boolean
+  draggedItems?: Record<string | number, { x: number; y: number }>
+  isSelected?: boolean
+  onSelect?: (wireId: number | string, e: KonvaEventObject<MouseEvent>) => void
+  onContextMenu?: (wireId: number | string, e: KonvaEventObject<PointerEvent>) => void
+}
+
+const SpaceWireComponent: React.FC<SpaceWireComponentProps> = ({
+  wire,
+  gates,
+  signal,
+  isTemporary = false,
+  isSimulating = false,
+  draggedItems = {},
+  isSelected = false,
+  onSelect,
+  onContextMenu
+}) => {
   const [animationOffset, setAnimationOffset] = useState(0)
-  const [particlePositions, setParticlePositions] = useState([])
+  const [particlePositions, setParticlePositions] = useState<number[]>([])
+  const [isHovered, setIsHovered] = useState(false)
 
   // Animation loop for energy flow
   useEffect(() => {
@@ -99,8 +144,54 @@ const SpaceWireComponent = ({ wire, gates, signal, isTemporary = false, isSimula
 
   const wireStyle = getWireStyle()
 
+  const handleClick = (e: KonvaEventObject<MouseEvent>) => {
+    if (isTemporary) return
+    e.cancelBubble = true
+    onSelect?.(wire.id, e)
+  }
+
+  const handleContextMenu = (e: KonvaEventObject<PointerEvent>) => {
+    if (isTemporary) return
+    e.evt.preventDefault()
+    e.cancelBubble = true
+    onContextMenu?.(wire.id, e)
+  }
+
   return (
-    <Group>
+    <Group
+      onMouseEnter={() => !isTemporary && setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Invisible hit area for easier clicking */}
+      {!isTemporary && (
+        <Line
+          points={points}
+          stroke="transparent"
+          strokeWidth={16}
+          lineCap="round"
+          lineJoin="round"
+          onClick={handleClick}
+          onTap={handleClick}
+          onContextMenu={handleContextMenu}
+          hitStrokeWidth={20}
+        />
+      )}
+
+      {/* Selection highlight */}
+      {(isSelected || isHovered) && !isTemporary && (
+        <Line
+          points={points}
+          stroke={isSelected ? '#ff6b6b' : SPACE_COLORS.ui.selectionGlow}
+          strokeWidth={10}
+          opacity={isSelected ? 0.5 : 0.3}
+          lineCap="round"
+          lineJoin="round"
+          shadowBlur={15}
+          shadowColor={isSelected ? '#ff6b6b' : SPACE_COLORS.ui.selectionGlow}
+          listening={false}
+        />
+      )}
+
       {/* PCB Trace background */}
       <Line
         points={points}
@@ -109,25 +200,29 @@ const SpaceWireComponent = ({ wire, gates, signal, isTemporary = false, isSimula
         opacity={0.3}
         lineCap="round"
         lineJoin="round"
+        listening={false}
       />
 
       {/* Copper trace */}
       <Line
         points={points}
-        stroke={SPACE_COLORS.copperTrace}
+        stroke={isSelected ? '#ff6b6b' : SPACE_COLORS.copperTrace}
         strokeWidth={4}
-        opacity={0.6}
+        opacity={isSelected ? 0.8 : 0.6}
         lineCap="round"
         lineJoin="round"
+        listening={false}
       />
 
       {/* Main wire */}
       <Line
         points={points}
         {...wireStyle}
+        stroke={isSelected ? '#ff6b6b' : wireStyle.stroke}
         lineCap="round"
         lineJoin="round"
         tension={0}
+        listening={false}
       />
 
       {/* Energy flow animation when active */}

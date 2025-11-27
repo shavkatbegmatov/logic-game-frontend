@@ -47,12 +47,13 @@ const Canvas = () => {
   const [selectionStart, setSelectionStart] = useState(null)
   const [tempSelectionBox, setTempSelectionBox] = useState(null)
   const [selectionStartedWithShift, setSelectionStartedWithShift] = useState(false)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; wireId: string | number } | null>(null)
 
   const {
-    gates, wires, selectedGate, selectedGates, preSelectedGates, addGate, updateGate,
-    updateGatePositions, addWire, selectGate, clearSelection, toggleGateSelection,
+    gates, wires, selectedGate, selectedWire, selectedGates, preSelectedGates, addGate, updateGate,
+    updateGatePositions, addWire, removeWire, selectGate, selectWire, clearSelection, toggleGateSelection,
     selectMultipleGates, setPreSelectedGates, getGatesInSelectionBox, isSimulating,
-    signals, updateSignals
+    signals, updateSignals, deleteSelection
   } = useGameStore()
 
   const {
@@ -105,12 +106,19 @@ const Canvas = () => {
         clearSelection()
         setIsDrawingSelection(false)
         setTempSelectionBox(null)
+        setContextMenu(null)
+      }
+
+      // Delete selected wire or gates
+      if (combo === 'delete' || combo === 'backspace') {
+        e.preventDefault()
+        deleteSelection()
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectMultipleGates, clearSelection, isEditing, stopEditing, gates, shortcuts, startCreation, selectedGates, wires])
+  }, [selectMultipleGates, clearSelection, isEditing, stopEditing, gates, shortcuts, startCreation, selectedGates, wires, deleteSelection])
 
   useEffect(() => {
     if (!isSimulating) return
@@ -361,10 +369,31 @@ const Canvas = () => {
         <div className="absolute right-12 bottom-20 h-52 w-52 rounded-full border border-indigo-500/40 bg-indigo-500/10 blur-[100px]" />
       </div>
 
-      <Stage ref={stageRef} width={stageSize.width} height={stageSize.height} onMouseDown={handleStageMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleStageMouseUp} onTouchEnd={handleStageMouseUp} className={isEditing ? 'cursor-default' : 'cursor-crosshair'}>
+      <Stage ref={stageRef} width={stageSize.width} height={stageSize.height} onMouseDown={(e) => { setContextMenu(null); handleStageMouseDown(e); }} onMouseMove={handleMouseMove} onMouseUp={handleStageMouseUp} onTouchEnd={handleStageMouseUp} className={isEditing ? 'cursor-default' : 'cursor-crosshair'}>
         <Layer>
           {!isEditing && wires.map(wire => (
-            <SpaceWireComponent key={wire.id} wire={wire} gates={gates} signal={computedSignals[wire.id]} isSimulating={isSimulating} draggedItems={draggedItems} />
+            <SpaceWireComponent
+              key={wire.id}
+              wire={wire}
+              gates={gates}
+              signal={computedSignals[wire.id]}
+              isSimulating={isSimulating}
+              draggedItems={draggedItems}
+              isSelected={selectedWire === wire.id}
+              onSelect={(wireId) => selectWire(wireId)}
+              onContextMenu={(wireId, e) => {
+                selectWire(wireId)
+                const stage = stageRef.current
+                if (stage) {
+                  const containerRect = (stage as any).container().getBoundingClientRect()
+                  setContextMenu({
+                    x: e.evt.clientX - containerRect.left,
+                    y: e.evt.clientY - containerRect.top,
+                    wireId
+                  })
+                }
+              }}
+            />
           ))}
           {isDraggingWire && wireStart && tempWireEnd && (() => {
             const gate = gates.find(g => g.id === wireStart.gateId)
@@ -389,6 +418,15 @@ const Canvas = () => {
           {!isEditing && gates.map(gate => {
             const draggedPosition = draggedItems[gate.id]
             const gateProps = { ...gate, x: draggedPosition ? draggedPosition.x : gate.x, y: draggedPosition ? draggedPosition.y : gate.y };
+
+            // Qaysi pinlar ulangan - wire'lardan hisoblash
+            const connectedInputs = wires
+              .filter(w => w.toGate === gate.id)
+              .map(w => w.toIndex || 0)
+            const connectedOutputs = wires
+              .filter(w => w.fromGate === gate.id)
+              .map(w => w.fromIndex || 0)
+
             return (
               <PCBGateComponent
                 key={gate.id}
@@ -399,13 +437,14 @@ const Canvas = () => {
                 onDragMove={handleGateDragMove}
                 onDragEnd={handleGateDragEnd}
                 onSelect={(e) => {
-                  if (e.evt.ctrlKey || e.evt.shiftKey) toggleGateSelection(gate.id)
+                  if (e.evt?.ctrlKey || e.evt?.shiftKey) toggleGateSelection(gate.id)
                   else selectGate(gate.id)
                 }}
                 onUpdateGate={updateGate}
                 onWireStart={handleWireStart}
                 onWireEnd={handleWireEnd}
                 outputSignal={computedSignals[`gate_${gate.id}`] || 0}
+                connectedPins={{ inputs: connectedInputs, outputs: connectedOutputs }}
               />
             );
           })}
@@ -424,6 +463,51 @@ const Canvas = () => {
           <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(52,211,153,0.85)]" />
           <span>Signal oqimi faollashdi</span>
         </div>
+      )}
+
+      {/* Wire Context Menu */}
+      {contextMenu && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          className="absolute z-50 min-w-[160px] rounded-lg border border-slate-600/50 bg-slate-800/95 py-1 shadow-xl backdrop-blur-sm"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <button
+            className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50 transition-colors"
+            onClick={() => {
+              removeWire(contextMenu.wireId)
+              setContextMenu(null)
+              if (enableSounds) soundService.playDisconnect?.()
+            }}
+          >
+            <span className="text-red-400">✕</span>
+            Simni o'chirish
+          </button>
+          <button
+            className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50 transition-colors"
+            onClick={() => {
+              const wire = wires.find(w => w.id === contextMenu.wireId)
+              if (wire) {
+                removeWire(wire.id)
+                setIsDraggingWire(true)
+                setWireStart({ gateId: wire.fromGate, type: 'output', index: wire.fromIndex || 0 })
+              }
+              setContextMenu(null)
+            }}
+          >
+            <span className="text-cyan-400">↻</span>
+            Qayta ulash
+          </button>
+          <div className="my-1 border-t border-slate-600/50" />
+          <button
+            className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-400 hover:bg-slate-700/50 transition-colors"
+            onClick={() => setContextMenu(null)}
+          >
+            Bekor qilish
+          </button>
+        </motion.div>
       )}
     </div>
   )

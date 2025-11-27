@@ -3,7 +3,14 @@
     "allow": [
       "Bash(while read f)",
       "Bash(do cp \"$f\" \"$f%.jsx.tsx\")",
-      "Bash(find src/components -name \"*.jsx\" -exec sh -c 'cp \"\"\"\"$0\"\"\"\" \"\"\"\"${0%.jsx}.tsx\"\"\"\"' {})"
+      "Bash(find src/components -name \"*.jsx\" -exec sh -c 'cp \"\"\"\"$0\"\"\"\" \"\"\"\"${0%.jsx}.tsx\"\"\"\"' {})",
+      "Bash(wc:*)",
+      "Bash(node --check:*)",
+      "Bash(find:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm install:*)",
+      "Bash(xargs sed -i \"s/from ''''\\(@\\/[^'''']*\\)\\.ts''''/from ''''\\1''''/g\")",
+      "Bash(xargs sed:*)"
     ],
     "deny": [],
     "ask": []

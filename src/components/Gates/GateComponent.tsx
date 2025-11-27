@@ -1,6 +1,6 @@
 import React from 'react'
 import { Group, Rect, Text, Circle } from 'react-konva'
-import { GateTypes, gateConfigs } from '@/engine/gates.ts'
+import { GateTypes, gateConfigs } from '@/engine/gates'
 
 const GateComponent = ({
   gate,

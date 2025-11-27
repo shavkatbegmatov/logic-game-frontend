@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Group, Circle, Ring } from 'react-konva';
-import { SPACE_COLORS } from '@/constants/spaceTheme.ts';
+import { SPACE_COLORS } from '@/constants/spaceTheme';
 
 const GateParticleEffect = ({ x, y, trigger, type = 'click' }) => {
   const [particles, setParticles] = useState([]);
