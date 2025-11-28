@@ -10,7 +10,8 @@
       "Bash(npm run build:*)",
       "Bash(npm install:*)",
       "Bash(xargs sed -i \"s/from ''''\\(@\\/[^'''']*\\)\\.ts''''/from ''''\\1''''/g\")",
-      "Bash(xargs sed:*)"
+      "Bash(xargs sed:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

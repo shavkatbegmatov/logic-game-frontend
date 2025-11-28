@@ -1,5 +1,5 @@
 import React, { useRef, useCallback, useState, useEffect, useMemo, Suspense } from 'react'
-import { Stage, Layer, Rect } from 'react-konva'
+import { Stage, Layer, Rect, Ring } from 'react-konva'
 import { motion } from 'framer-motion'
 import { Edit } from 'lucide-react'
 
@@ -31,14 +31,44 @@ const FullModalMode = React.lazy(() => import('../SubcircuitEditor/modes/FullMod
 
 const log = (message, ...args) => console.log(`%c[CANVAS] ${message}`, 'color: #9C27B0;', ...args);
 
+// Type definitions
+interface WireStartData {
+  gateId: string | number;
+  type: 'input' | 'output';
+  index: number;
+}
+
+interface RewireData {
+  wire: any;
+  detached: {
+    gateId: string | number;
+    type: 'input' | 'output';
+    index: number;
+  };
+}
+
+interface SnapTarget {
+  gateId: string | number;
+  type: 'input' | 'output';
+  index: number;
+  x: number;
+  y: number;
+}
+
 const Canvas = () => {
   const stageRef = useRef(null)
   const [stageSize, setStageSize] = useState({ width: window.innerWidth - 280, height: window.innerHeight - 60 })
   const [isDraggingWire, setIsDraggingWire] = useState(false)
-  const [wireStart, setWireStart] = useState(null)
-  const [tempWireEnd, setTempWireEnd] = useState(null)
+  const [wireStart, setWireStart] = useState<WireStartData | null>(null)
+  const [tempWireEnd, setTempWireEnd] = useState<{ x: number; y: number } | null>(null)
   const [draggedItems, setDraggedItems] = useState({})
   const [dragStartData, setDragStartData] = useState(null)
+
+  // New state for wire snapping and rewiring
+  const [snappedWireEnd, setSnappedWireEnd] = useState<SnapTarget | null>(null)
+  const [hoveredStartPin, setHoveredStartPin] = useState<SnapTarget | null>(null)
+  const [isWireCreationMode, setIsWireCreationMode] = useState(false)
+  const [rewireData, setRewireData] = useState<RewireData | null>(null)
 
   const latestDraggedItems = useRef({});
   const updateScheduled = useRef(false);
@@ -64,6 +94,12 @@ const Canvas = () => {
   const { addTemplate } = useSubcircuitStore()
   const { shortcuts, editorMode: preferredEditorMode, enableSounds } = useUserPreferencesStore()
   const { updateStats } = useAchievementStore()
+
+  // Helper to get gate position accounting for drag state
+  const resolveGatePosition = useCallback((gate: any) => {
+    const override = draggedItems[gate.id]
+    return override ? { ...gate, ...override } : gate
+  }, [draggedItems])
 
   useEffect(() => {
     const handleResize = () => setStageSize({ width: window.innerWidth - 280, height: window.innerHeight - 60 })
@@ -167,8 +203,14 @@ const Canvas = () => {
 
   const handleDragOver = (e) => e.preventDefault()
 
-  const handleStageMouseDown = (e) => {
+  const handleStageMouseDown = (e: any) => {
     if (e.target === e.target.getStage() && !isEditing) {
+      // If we have a hovered start pin, start the wire from there
+      if (hoveredStartPin) {
+        handleWireStart(hoveredStartPin.gateId, hoveredStartPin.type, hoveredStartPin.index)
+        return
+      }
+
       const pos = e.target.getStage().getPointerPosition()
       setIsDrawingSelection(true)
       setSelectionStart(pos)
@@ -248,42 +290,288 @@ const Canvas = () => {
     setDragStartData(null)
   }
 
-  const handleWireStart = (gateId, type, index) => {
-    setIsDraggingWire(true)
-    setWireStart({ gateId, type, index })
-  }
-
-  const handleWireEnd = (gateId, type, index) => {
-    if (!isDraggingWire || !wireStart) return
-    if (wireStart.gateId === gateId || wireStart.type === type) {
-      cancelWireCreation()
+  const handleWireStart = (gateId: string | number, type: 'input' | 'output', index: number) => {
+    // If we are already dragging a wire, this click is ALWAYS intended to finish/cancel the connection
+    if (isDraggingWire && wireStart) {
+      handleWireEnd(gateId, type, index)
       return
     }
+
+    // Check if this pin is already occupied
+    const currentWires = useGameStore.getState().wires
+    const occupiedWire = currentWires.find(w =>
+      (type === 'output' && w.fromGate === gateId && w.fromIndex === index) ||
+      (type === 'input' && w.toGate === gateId && w.toIndex === index)
+    )
+
+    if (occupiedWire) {
+      // Rewire: pick the existing wire, detach it, and let the user drop one end while the opposite end stays anchored
+      const fixedEnd = type === 'output'
+        ? { gateId: occupiedWire.toGate, type: 'input' as const, index: occupiedWire.toIndex }
+        : { gateId: occupiedWire.fromGate, type: 'output' as const, index: occupiedWire.fromIndex }
+
+      removeWire(occupiedWire.id)
+      setRewireData({ wire: occupiedWire, detached: { gateId, type, index } })
+      setIsDraggingWire(true)
+      setWireStart(fixedEnd)
+      setIsWireCreationMode(true)
+      return
+    }
+
+    // Start new wire
+    setIsDraggingWire(true)
+    setWireStart({ gateId, type, index })
+    setIsWireCreationMode(false)
+  }
+
+  const handleWireEnd = (gateId: string | number, type: 'input' | 'output', index: number) => {
+    if (!isDraggingWire || !wireStart) return
+    let connected = false
+
+    // Skip immediate reconnect to the same detached pin when rewiring
+    if (rewireData?.detached &&
+        rewireData.detached.gateId === gateId &&
+        rewireData.detached.type === type &&
+        rewireData.detached.index === index) {
+      return
+    }
+
+    // Prevent connecting to self or same type (input-input or output-output)
+    if (wireStart.gateId === gateId || wireStart.type === type) {
+      if (!isWireCreationMode) {
+        cancelWireCreation(true)
+      }
+      return
+    }
+
     const wire = {
       fromGate: wireStart.type === 'output' ? wireStart.gateId : gateId,
       fromIndex: wireStart.type === 'output' ? wireStart.index : index,
       toGate: wireStart.type === 'input' ? wireStart.gateId : gateId,
       toIndex: wireStart.type === 'input' ? wireStart.index : index
     }
-    addWire(wire)
-    cancelWireCreation()
-    updateStats('wiresConnected', prev => prev + 1)
+
+    // Check if wire already exists
+    const exists = wires.some(w =>
+      w.fromGate === wire.fromGate &&
+      w.fromIndex === wire.fromIndex &&
+      w.toGate === wire.toGate &&
+      w.toIndex === wire.toIndex
+    )
+
+    // Check if target input is already occupied
+    const isInputOccupied = wires.some(w =>
+      w.toGate === wire.toGate &&
+      w.toIndex === wire.toIndex
+    )
+
+    // Check if source output is already occupied
+    const isOutputOccupied = wires.some(w =>
+      w.fromGate === wire.fromGate &&
+      w.fromIndex === wire.fromIndex
+    )
+
+    try {
+      if (!exists && !isInputOccupied && !isOutputOccupied) {
+        addWire(wire)
+        updateStats('wiresConnected', prev => prev + 1)
+        if (enableSounds) soundService.playConnect?.()
+        connected = true
+      } else if (isInputOccupied || isOutputOccupied) {
+        console.warn('Pin already occupied')
+      }
+    } catch (error) {
+      console.error('Wire connection handling failed', error)
+    } finally {
+      cancelWireCreation(!connected)
+    }
   }
 
-  const cancelWireCreation = () => {
+  const cancelWireCreation = (shouldRestore = true) => {
     setIsDraggingWire(false)
     setWireStart(null)
     setTempWireEnd(null)
+    setSnappedWireEnd(null)
+    setIsWireCreationMode(false)
+    // Restore original wire if canceling a rewire operation
+    if (shouldRestore && rewireData?.wire) {
+      addWire(rewireData.wire)
+    }
+    setRewireData(null)
   }
 
-  const handleMouseMove = (e) => {
+  // Find snap target when dragging wire
+  const findSnapTarget = (pointerPos: { x: number; y: number }): SnapTarget | null => {
+    if (!wireStart) return null
+
+    const SNAP_RADIUS = 20
+    let bestDist = SNAP_RADIUS
+    let bestTarget: SnapTarget | null = null
+
+    gates.forEach(gate => {
+      const gatePos = resolveGatePosition(gate)
+      const { x, y, width, height, type, id } = gatePos
+      // Don't snap to source gate
+      if (id === wireStart.gateId) return
+
+      const config = gateConfigs[type]
+      if (!config) return
+
+      // If dragging from output, look for inputs
+      if (wireStart.type === 'output') {
+        const inputCount = config.maxInputs || 2
+        const spacing = height / (inputCount + 1)
+
+        for (let i = 0; i < inputCount; i++) {
+          const px = x - 10
+          const py = y + spacing * (i + 1)
+          const dist = Math.sqrt(Math.pow(pointerPos.x - px, 2) + Math.pow(pointerPos.y - py, 2))
+
+          if (dist < bestDist) {
+            const isOccupied = wires.some(w => w.toGate === id && w.toIndex === i)
+            if (!isOccupied) {
+              bestDist = dist
+              bestTarget = { gateId: id, type: 'input', index: i, x: px, y: py }
+            }
+          }
+        }
+      }
+      // If dragging from input, look for outputs
+      else {
+        if (type === GateTypes.OUTPUT) return
+
+        const px = x + width + 10
+        const py = y + height / 2
+        const dist = Math.sqrt(Math.pow(pointerPos.x - px, 2) + Math.pow(pointerPos.y - py, 2))
+
+        if (dist < bestDist) {
+          const isOccupied = wires.some(w => w.fromGate === id && w.fromIndex === 0)
+          if (!isOccupied) {
+            bestDist = dist
+            bestTarget = { gateId: id, type: 'output', index: 0, x: px, y: py }
+          }
+        }
+      }
+    })
+
+    return bestTarget
+  }
+
+  // Find pin to start wire from (hover indicator)
+  const findStartTarget = (pointerPos: { x: number; y: number }): SnapTarget | null => {
+    const SNAP_RADIUS = 20
+    let bestDist = SNAP_RADIUS
+    let bestTarget: SnapTarget | null = null
+    const currentWires = useGameStore.getState().wires
+
+    gates.forEach(gate => {
+      const gatePos = resolveGatePosition(gate)
+      const { x, y, width, height, type, id } = gatePos
+      const config = gateConfigs[type]
+      if (!config) return
+
+      // Check Inputs
+      const inputCount = config.maxInputs || 2
+      const spacing = height / (inputCount + 1)
+
+      for (let i = 0; i < inputCount; i++) {
+        const px = x - 10
+        const py = y + spacing * (i + 1)
+        const dist = Math.sqrt(Math.pow(pointerPos.x - px, 2) + Math.pow(pointerPos.y - py, 2))
+
+        if (dist < bestDist) {
+          const isOccupied = currentWires.some(w => w.toGate === id && w.toIndex === i)
+          if (!isOccupied) {
+            bestDist = dist
+            bestTarget = { gateId: id, type: 'input', index: i, x: px, y: py }
+          }
+        }
+      }
+
+      // Check Outputs
+      if (type !== GateTypes.OUTPUT) {
+        const px = x + width + 10
+        const py = y + height / 2
+        const dist = Math.sqrt(Math.pow(pointerPos.x - px, 2) + Math.pow(pointerPos.y - py, 2))
+
+        if (dist < bestDist) {
+          const isOccupied = currentWires.some(w => w.fromGate === id && w.fromIndex === 0)
+          if (!isOccupied) {
+            bestDist = dist
+            bestTarget = { gateId: id, type: 'output', index: 0, x: px, y: py }
+          }
+        }
+      }
+    })
+
+    return bestTarget
+  }
+
+  const handleMouseMove = (e: any) => {
     if (isDrawingSelection) handleSelectionMouseMove(e)
-    if (isDraggingWire) setTempWireEnd(e.target.getStage().getPointerPosition())
+
+    if (isDraggingWire) {
+      const stage = e.target.getStage()
+      const pointerPos = stage.getPointerPosition()
+      setTempWireEnd(pointerPos)
+
+      const snapTarget = findSnapTarget(pointerPos)
+      setSnappedWireEnd(snapTarget)
+    } else {
+      // If not dragging, look for start targets
+      const stage = e.target.getStage()
+      if (stage) {
+        const pointerPos = stage.getPointerPosition()
+        const startTarget = findStartTarget(pointerPos)
+        setHoveredStartPin(startTarget)
+      }
+    }
   }
 
-  const handleStageMouseUp = (e) => {
+  const handleStageMouseUp = (e: any) => {
     if (isDrawingSelection) handleSelectionMouseUp()
-    if (isDraggingWire && e.target.getClassName() !== 'Circle') cancelWireCreation()
+
+    if (isDraggingWire) {
+      // If we have a snap target, complete the connection
+      if (snappedWireEnd) {
+        handleWireEnd(snappedWireEnd.gateId, snappedWireEnd.type, snappedWireEnd.index)
+        return
+      }
+
+      // Check if we should enter creation mode or cancel
+      if (!isWireCreationMode && wireStart) {
+        const startGate = gates.find(g => g.id === wireStart.gateId)
+        if (startGate) {
+          let startX: number, startY: number
+          if (wireStart.type === 'output') {
+            const config = gateConfigs[startGate.type]
+            const spacing = startGate.height / ((config.maxOutputs || 1) + 1)
+            startX = startGate.x + startGate.width + 5
+            startY = startGate.y + spacing * (wireStart.index + 1)
+          } else {
+            const config = gateConfigs[startGate.type]
+            const spacing = startGate.height / ((config.maxInputs || config.minInputs || 2) + 1)
+            startX = startGate.x - 5
+            startY = startGate.y + spacing * (wireStart.index + 1)
+          }
+
+          const pointerPos = e.target.getStage().getPointerPosition()
+          const dist = Math.sqrt(Math.pow(pointerPos.x - startX, 2) + Math.pow(pointerPos.y - startY, 2))
+
+          // If moved less than 10px, treat as click and enter creation mode
+          if (dist < 10) {
+            setIsWireCreationMode(true)
+          } else {
+            cancelWireCreation()
+          }
+        } else {
+          cancelWireCreation()
+        }
+      } else {
+        // If we were ALREADY in creation mode and clicked empty space, cancel
+        cancelWireCreation()
+      }
+    }
   }
 
   const renderDomEditor = () => {
@@ -396,22 +684,61 @@ const Canvas = () => {
             />
           ))}
           {isDraggingWire && wireStart && tempWireEnd && (() => {
-            const gate = gates.find(g => g.id === wireStart.gateId)
+            const gate = (() => {
+              const base = gates.find(g => g.id === wireStart.gateId)
+              if (!base) return null
+              const override = draggedItems[wireStart.gateId]
+              return override ? { ...base, ...override } : base
+            })()
             if (!gate) return null
-            let startX, startY
+            let startX: number, startY: number
             if (wireStart.type === 'output') {
               const config = gateConfigs[gate.type]
               const spacing = gate.height / ((config.maxOutputs || 1) + 1)
-              startX = gate.x + gate.width + 5
+              startX = gate.x + gate.width + 10
               startY = gate.y + spacing * (wireStart.index + 1)
             } else {
               const config = gateConfigs[gate.type]
               const spacing = gate.height / ((config.maxInputs || config.minInputs || 2) + 1)
-              startX = gate.x - 5
+              startX = gate.x - 10
               startY = gate.y + spacing * (wireStart.index + 1)
             }
-            return <SpaceWireComponent wire={{ id: 'temp', startX, startY, endX: tempWireEnd.x, endY: tempWireEnd.y }} gates={gates} signal={0} isTemporary={true} />
+
+            // Use snapped position if available
+            const endX = snappedWireEnd ? snappedWireEnd.x : tempWireEnd.x
+            const endY = snappedWireEnd ? snappedWireEnd.y : tempWireEnd.y
+
+            return (
+              <>
+                <SpaceWireComponent wire={{ id: 'temp', startX, startY, endX, endY }} gates={gates} signal={0} isTemporary={true} />
+                {snappedWireEnd && (
+                  <Ring
+                    x={snappedWireEnd.x}
+                    y={snappedWireEnd.y}
+                    innerRadius={5}
+                    outerRadius={10}
+                    stroke="#00ff00"
+                    strokeWidth={2}
+                    opacity={0.8}
+                    listening={false}
+                  />
+                )}
+              </>
+            )
           })()}
+          {/* Hover Start Indicator */}
+          {!isDraggingWire && hoveredStartPin && (
+            <Ring
+              x={hoveredStartPin.x}
+              y={hoveredStartPin.y}
+              innerRadius={5}
+              outerRadius={10}
+              stroke="#22d3ee"
+              strokeWidth={2}
+              opacity={0.8}
+              listening={false}
+            />
+          )}
           {tempSelectionBox && (
             <Rect x={Math.min(tempSelectionBox.x1, tempSelectionBox.x2)} y={Math.min(tempSelectionBox.y1, tempSelectionBox.y2)} width={Math.abs(tempSelectionBox.x2 - tempSelectionBox.x1)} height={Math.abs(tempSelectionBox.y2 - tempSelectionBox.y1)} fill="rgba(59, 130, 246, 0.15)" stroke="rgba(59, 130, 246, 0.8)" strokeWidth={2} dash={[8, 4]} />
           )}
