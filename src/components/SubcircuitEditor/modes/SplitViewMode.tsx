@@ -42,6 +42,10 @@ const SplitViewMode = ({ onClose }) => {
   const [tempWireEnd, setTempWireEnd] = useState<{ x: number; y: number } | null>(null)
   const [draggingGate, setDraggingGate] = useState<null | { id: string | number; x: number; y: number }>(null)
 
+  // Panning state
+  const [isPanning, setIsPanning] = useState(false)
+  const [lastPanPosition, setLastPanPosition] = useState<{ x: number; y: number } | null>(null)
+
   const handleWireStart = useCallback((gateId: string | number, type: 'input' | 'output', index: number) => {
     setIsDraggingWire(true)
     setWireStart({ gateId, type, index })
@@ -71,15 +75,73 @@ const SplitViewMode = ({ onClose }) => {
     cancelWire()
   }, [isDraggingWire, wireStart, addInternalWire, cancelWire])
 
+  // Coordinate transformation helper
+  const getRelativePointerPosition = (node: any) => {
+    const transform = node.getAbsoluteTransform().copy()
+    transform.invert()
+    const pos = node.getStage().getPointerPosition()
+    return transform.point(pos)
+  }
+
+  const onStageMouseDown = useCallback((e: any) => {
+    // Middle mouse or Space+Left for panning
+    if (e.evt.button === 1 || (e.evt.button === 0 && e.evt.code === 'Space')) {
+      e.evt.preventDefault()
+      setIsPanning(true)
+      setLastPanPosition({ x: e.evt.clientX, y: e.evt.clientY })
+    }
+  }, [])
+
   const onStageMouseMove = useCallback((e: any) => {
-    if (!isDraggingWire) return
-    const pos = e.target.getStage().getPointerPosition()
-    if (pos) setTempWireEnd(pos)
-  }, [isDraggingWire])
+    // Panning logic
+    if (isPanning && lastPanPosition) {
+      const dx = e.evt.clientX - lastPanPosition.x
+      const dy = e.evt.clientY - lastPanPosition.y
+      setPanOffset({ x: panOffset.x + dx, y: panOffset.y + dy })
+      setLastPanPosition({ x: e.evt.clientX, y: e.evt.clientY })
+      return
+    }
+
+    // Wire dragging logic
+    if (isDraggingWire) {
+      const stage = e.target.getStage()
+      const layer = stage.getLayers()[0]
+      const pos = getRelativePointerPosition(layer)
+      if (pos) setTempWireEnd(pos)
+    }
+  }, [isPanning, lastPanPosition, panOffset, setPanOffset, isDraggingWire])
 
   const onStageMouseUp = useCallback((e: any) => {
+    if (isPanning) {
+      setIsPanning(false)
+      setLastPanPosition(null)
+    }
     if (isDraggingWire && e.target.getClassName() !== 'Circle') cancelWire()
-  }, [isDraggingWire, cancelWire])
+  }, [isPanning, isDraggingWire, cancelWire])
+
+  const onStageWheel = useCallback((e: any) => {
+    e.evt.preventDefault()
+    const stage = e.target.getStage()
+    const oldScale = stage.scaleX()
+    const pointer = stage.getPointerPosition()
+
+    const mousePointTo = {
+      x: (pointer.x - stage.x()) / oldScale,
+      y: (pointer.y - stage.y()) / oldScale,
+    }
+
+    const newScale = e.evt.deltaY > 0 ? oldScale * 0.9 : oldScale * 1.1
+    // Limit zoom
+    if (newScale < 0.1 || newScale > 5) return
+
+    setZoomLevel(newScale)
+
+    const newPos = {
+      x: pointer.x - mousePointTo.x * newScale,
+      y: pointer.y - mousePointTo.y * newScale,
+    }
+    setPanOffset(newPos)
+  }, [setZoomLevel, setPanOffset])
 
   // Zoom controls
   const zoomIn = () => setZoomLevel(zoomLevel * 1.1)
@@ -195,9 +257,11 @@ const SplitViewMode = ({ onClose }) => {
               scaleY={zoomLevel}
               x={panOffset.x}
               y={panOffset.y}
+              onMouseDown={onStageMouseDown}
               onMouseMove={onStageMouseMove}
               onMouseUp={onStageMouseUp}
               onTouchEnd={onStageMouseUp}
+              onWheel={onStageWheel}
               className="bg-[rgba(15,23,42,0.85)]"
             >
               <Layer>
